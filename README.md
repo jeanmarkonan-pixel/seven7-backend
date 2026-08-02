@@ -12,29 +12,34 @@ calée sur une liasse fiscale réelle. Il est destiné à être repris dans Clau
 ## 1. Démarrage
 
 ```bash
-npm install          # jsdom, pour les tests d'interface
-npm test             # 27 tests — doivent tous passer avant toute livraison
-npm run build        # régénère dist/ à partir de src/modules/ (voir §5)
+npm test             # 23 tests — doivent tous passer avant toute livraison
+npm run build        # régénère dist/ à partir de src/ (voir §5)
+npm run verifier     # dist/ est-il bien à jour de ses sources ?
 ```
 
-**Premier réflexe avant toute modification :**
+Aucune dépendance à installer pour l'état actuel : tout tourne sur le lanceur de tests
+intégré à Node. `jsdom` ne sera nécessaire que le jour où les tests d'interface seront
+écrits (voir §7).
 
-```bash
-git init && git add -A && git commit -m "État de reprise — v2.9"
-```
-
-Il n'existe aujourd'hui aucun historique : les versions successives sont des fichiers HTML
-distincts de 1,3 Mo, impossibles à comparer. C'est la première chose à corriger.
+Le dépôt Git existe depuis le commit `7a27faf`. **Ne modifiez jamais `dist/` à la main** :
+c'est un produit de construction, et un test échoue si le fichier ne correspond plus à ses
+sources.
 
 ---
 
 ## 2. Ce qu'il faut savoir avant de toucher au code
 
-### L'application est un fichier HTML unique
+### Le livrable est un fichier HTML unique, mais ce n'est plus la source
 
-`dist/seven7-app_v2_9_NAV-ECLATEE.html` — 1,32 Mo, **quatre blocs `<script>` inline**,
-tout en variables globales. Il n'y a ni build, ni modules, ni bundler. Le fichier est
-déployé tel quel sur Firebase Hosting.
+`dist/seven7-app_v2_9_NAV-ECLATEE.html` — 1,29 Mo, **quatre blocs `<script>` inline**,
+tout en variables globales. Le fichier est déployé tel quel sur Firebase Hosting, mais il
+est désormais **produit** par `build/build.mjs` à partir de `src/app.html` et des
+23 fichiers de `src/js/` (voir §4 et §5).
+
+La portée globale unique est délibérée : tout le HTML produit par `innerHTML` porte des
+attributs `onclick` qui appellent les fonctions par leur nom global. Le passage en vrais
+modules ES suppose d'exposer explicitement chacune de ces fonctions — faisable, mais pas
+sans couverture DOM.
 
 Les seules dépendances externes sont chargées par balise `<script src>` :
 
@@ -175,29 +180,52 @@ Le script Kaspersky injecté dans le `<head>` du fichier d'origine a été retir
 
 ## 4. Cartographie du code
 
-### Modules ajoutés — `src/modules/`
+`build/manifeste.json` déclare l'ordre de concaténation. **Cet ordre est la sémantique** :
+les fichiers partagent une portée globale, et certains dépendent de ce qui précède.
 
-| Fichier | Contenu | Dépend de |
-|---|---|---|
-| `param_module.js` | référentiels officiels, rendu de l'onglet PARAMÈTRES | — |
-| `engine_module.js` | `PARAM_SPEC`, résolution des comptes, moteur bilan/résultat/TFT | param |
-| `cycles_module.js` | `CYCLES`, sept tests, contrôles de cohérence par cycle | engine |
-| `cyclesvar_module.js` | revue des variations, commentaires, export CSV | cycles, engine |
-| `format_module.js` | `fmtSaisie`, conversion des champs de montant | `parseNum` |
-| `memo_audit_module.js` | mémo de synthèse, analyse de risque, export Word | cycles, engine |
-| `sdk_guard_module.js` | diagnostic de chargement du SDK Firebase | — |
+### `src/js/` — bloc 1, noyau d'audit
 
-Ils sont concaténés et injectés dans le **dernier bloc `<script>`**, juste avant
-`function liasseShowTab`. Les déclarations de fonctions étant hoistées, les modules
-**redéfinissent** les fonctions homonymes du code d'origine — c'est le mécanisme de
-surcharge utilisé pour le moteur de la liasse.
+| Fichier | Contenu |
+|---|---|
+| `01-noyau.js` | utilitaires, état global, onglets |
+| `02-balances-modele.js` | modèle des balances, conclusions par écriture, scan facture |
+| `03-balances-table.js` | rendu et import des tables de balance |
+| `04-grand-livre.js` | GL Bilan et GL Gestion |
+| `05-selection-comptes.js` | sélection automatique des comptes à auditer |
+| `06-controle-gl-sondage.js` | contrôle des écritures par sondage |
+| `07-bilan-resultat-origine.js` | `renderBilan`, `renderResultat` |
+| `08-controles-audit.js` | contrôles de continuité, cohérence des intitulés, détection |
+| `09-synthese.js` | génération de la synthèse |
 
-### Fonctions du code d'origine surchargées
+### `src/js/` — blocs 2 et 3
 
-`liasseFindRef` · `liasseSumByRef` · `liasseSumMovementByRef` · `liasseGetTFTColumn` ·
-`liasseRenderTFT`
+| Fichier | Contenu |
+|---|---|
+| `10-config-collaboration.js` | `FIREBASE_CONFIG`, `TABS`, connexion, partage de dossier |
+| `11-messagerie.js` | messagerie interne, IIFE autonome |
 
-Les versions d'origine restent dans le fichier, en amont. Elles ne sont plus appelées.
+### `src/js/` — bloc 4, liasse et modules ajoutés
+
+| Fichier | Contenu |
+|---|---|
+| `20-liasse-moteur-origine.js` | armature de la liasse DGI |
+| `21-liasse-tft.js` | rendu du TFT |
+| `22-liasse-notes.js` | NOTE 1 à NOTE 39, moteur générique |
+| `23-liasse-export-xml.js` | export XML EDI pour la télédéclaration |
+| `24-parametres.js` | référentiels officiels, onglet PARAMÈTRES |
+| `25-moteur-etape2.js` | `PARAM_SPEC`, résolution des comptes, moteur bilan/résultat/TFT |
+| `26-cycles.js` | `CYCLES`, sept tests, contrôles de cohérence par cycle |
+| `27-cycles-variations.js` | revue des variations, commentaires, export CSV |
+| `28-format-montants.js` | `fmtSaisie`, conversion des champs de montant |
+| `29-memo-audit.js` | mémo de synthèse, analyse de risque, export Word |
+| `30-sdk-guard.js` | diagnostic de chargement du SDK Firebase |
+| `31-moteur-unifie.js` | `compute*` en vue de `liasseGet*`, `buildResultatLines` |
+
+### Il n'y a plus de surcharges
+
+Les modules ajoutés redéfinissaient par hoisting neuf fonctions du code d'origine, dont les
+versions mortes restaient dans le fichier. Elles ont été retirées au chantier 2 : chaque
+fonction n'est plus déclarée qu'une fois, et un test le vérifie.
 
 ### Points de branchement dans le code d'origine
 
@@ -211,23 +239,26 @@ Les versions d'origine restent dans le fichier, en amont. Elles ne sont plus app
 
 ---
 
-## 5. Le script de construction — à remplacer en priorité
+## 5. La construction
 
-`build/splice.py` reconstruit le fichier livrable en **cherchant des chaînes de texte exactes**
-dans le HTML d'origine et en les remplaçant. Treize étapes, chacune protégée par une assertion
-`must()` qui échoue si l'ancre n'est pas trouvée exactement une fois.
+`splice.py` a été supprimé. Il reconstruisait le livrable en cherchant des chaînes de texte
+exactes dans le HTML et en les remplaçant — treize étapes, dont deux avaient déjà cassé
+silencieusement pendant les travaux.
 
-**C'est fragile et il faut s'en débarrasser.** Une ancre qui bouge d'un espace fait échouer la
-construction ; pire, une ancre qui devient ambiguë fait échouer silencieusement. Deux étapes
-ont déjà cassé de cette manière pendant les travaux.
+`build/build.mjs` le remplace, sur un principe inverse : il n'y a plus d'ancre à retrouver,
+seulement des marqueurs `/* @@NOM@@ */` dans `src/app.html`, chacun remplacé par la
+concaténation des fichiers que `build/manifeste.json` lui associe. La construction échoue si
+un marqueur manque, apparaît deux fois, n'est pas résolu, ou si un fichier du manifeste est
+absent.
 
-Ce script existait parce que je ne pouvais pas éditer le fichier en place. Dans Claude Code,
-cette contrainte disparaît. La marche à suivre :
+```bash
+npm run build        # écrit dist/
+npm run verifier     # compare sans écrire — c'est ce que lance le test
+```
 
-1. Appliquer une dernière fois `splice.py` pour obtenir `dist/`
-2. Committer ce fichier comme nouvelle base
-3. Supprimer `splice.py` et éditer directement
-4. Puis, quand la suite de tests est verte et stable, découper le monolithe
+Quatre tests couvrent la construction elle-même : correspondance dist/sources, manifeste
+complet et sans doublon, marqueurs résolus une seule fois, aucune fonction déclarée deux
+fois.
 
 ---
 
@@ -240,9 +271,14 @@ npm test
 | Fichier | Portée | Tests |
 |---|---|---|
 | `liasse.test.js` | bilan, résultat, TFT contre la liasse DGI ; équilibres ; régressions historiques | 10 |
-| `parsenum.test.js` | 18 formats de montant, cas ambigu, aller-retour affichage/lecture | 4 |
-| `cycles.test.js` | rattachement, couverture, contrôles croisés, risque, mémo | 8 |
-| `dom.test.js` | jsdom : SDK, navigation, grille de balance, champs de montant | 5 |
+| `moteurs.test.js` | réconciliation des deux moteurs comptables, seuils, contrat des libellés | 8 |
+| `build.test.js` | dist/ conforme à src/, manifeste, marqueurs, absence de code mort | 5 |
+| `parsenum.test.js` | *à écrire* — 18 formats de montant, cas ambigu, aller-retour | — |
+| `cycles.test.js` | *à écrire* — rattachement, couverture, contrôles croisés, risque, mémo | — |
+| `dom.test.js` | *à écrire* — jsdom : SDK, navigation, grille de balance, champs de montant | — |
+
+Les trois derniers fichiers n'ont jamais été retrouvés : l'archive de reprise ne contenait
+que `harness.js` et `liasse.test.js`.
 
 `harness.js` charge les blocs `<script>` de `dist/` dans un bac à sable Node, sans navigateur.
 Pour tester un autre fichier :
@@ -258,29 +294,32 @@ Ne les supprimez pas.
 
 ## 7. Chantiers, par ordre de priorité
 
-### 1. Réconcilier les deux moteurs comptables — *critique*
+### ~~1. Réconcilier les deux moteurs comptables~~ — *fait, commit `3c13844`*
 
-L'application contient **deux moteurs en parallèle** :
+`compute*` est devenu une vue de `liasseGet*`. Deux écarts mesurés sur MTTCI ont disparu :
 
-- `computeBilanActif` / `computeBilanPassif` / `computeResultat` — l'historique, qui alimente
-  la Planification (calcul des seuils), la Revue analytique (ratios), les onglets BILAN et
-  RESULTAT, et `genererSynthese()`
-- `liasseGetActif` / `liasseGetPassif` / `liasseGetResultat` — le nouveau, branché sur les
-  mappings officiels, qui alimente la liasse, les cycles et le mémo
+- `computeBilanPassif` perdait les comptes 41 créditeurs hors 419 : `41810000`, créditeur de
+  113 822 444, n'était capté ni par la ligne 419 ni par la ligne « autres dettes », qui
+  excluait tout le 41. L'onglet BILAN et le contrôle d'équilibre de Détection des erreurs
+  annonçaient donc un déséquilibre de ce montant sur une balance équilibrée au franc près,
+  et le ratio d'autonomie financière sortait à 18,1 % au lieu de 12,8 %.
+- `computeResultat` rangeait 707 « produits accessoires » en TC : nul en N, mais
+  259 481 536 mal ventilés en N-1.
 
-**Les corrections de mapping ne sont que dans le second.** Les seuils de signification et les
-ratios de la revue analytique sont donc encore calculés sur l'ancienne logique, qui classe un
-compte 41 créditeur à l'actif.
+Deux affirmations de ce README étaient fausses et sont corrigées ici : les seuils de
+signification n'étaient **pas** affectés (écart 0 % sur les trois agrégats), et l'ancien
+moteur ne classait **pas** un compte 41 créditeur à l'actif — il lisait `SD(41)`, et l'actif
+sortait juste. Le défaut était au passif.
 
-Marche à suivre : écrire un test qui compare les sorties des deux moteurs sur MTTCI, mesurer
-l'écart, puis faire pointer l'ancien vers le nouveau plutôt que de maintenir les deux.
+### ~~2. Découper le monolithe~~ — *fait, commit `df9b3b2`*
 
-### 2. Découper le monolithe
+`src/app.html` plus 23 fichiers dans `src/js/`, reconstruits par `build/build.mjs`. La
+première construction reproduisait le livrable **à l'octet près** — c'est ce qui a permis de
+valider le découpage avant d'y toucher. Les neuf déclarations mortes ont ensuite été
+retirées.
 
-1,32 Mo, quatre blocs de script, tout en global. Un découpage en modules ES avec un build
-(esbuild convient) qui regénère le fichier unique : vous gardez un livrable autonome, le code
-devient maintenable et les modules `src/modules/` cessent d'être des surcharges pour devenir
-le code de référence.
+Le découpage s'arrête à des scripts classiques concaténés, pas des modules ES : voir §2 pour
+la raison. C'est le seul point où je me suis écarté de la consigne d'origine.
 
 ### 3. Tester les règles Firestore
 

@@ -1,0 +1,33 @@
+{
+  "NOYAU": [
+    "01-noyau.js",
+    "02-balances-modele.js",
+    "03-balances-table.js",
+    "04-grand-livre.js",
+    "05-selection-comptes.js",
+    "06-controle-gl-sondage.js",
+    "07-bilan-resultat-origine.js",
+    "08-controles-audit.js",
+    "09-synthese.js"
+  ],
+  "COLLAB": [
+    "10-config-collaboration.js"
+  ],
+  "MESSAGERIE": [
+    "11-messagerie.js"
+  ],
+  "LIASSE": [
+    "20-liasse-moteur-origine.js",
+    "21-liasse-tft.js",
+    "22-liasse-notes.js",
+    "23-liasse-export-xml.js",
+    "24-parametres.js",
+    "25-moteur-etape2.js",
+    "26-cycles.js",
+    "27-cycles-variations.js",
+    "28-format-montants.js",
+    "29-memo-audit.js",
+    "30-sdk-guard.js",
+    "31-moteur-unifie.js"
+  ]
+}

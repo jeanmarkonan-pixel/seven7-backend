@@ -5621,206 +5621,9 @@ function exportControleGLSondage(){
 // ============================================================
 // BILAN — reproduction exacte de la logique Excel (onglet BILAN)
 // ============================================================
-function computeBilanActif(ex){
-
-    var L = [];
-    function add(ref, poste, brutFn, amortFn){
-        var brut = brutFn ? brutFn() : 0;
-        var amort = amortFn ? amortFn() : 0;
-        L.push({ref:ref, poste:poste, brut:brut, amort:amort, net: brut-amort});
-    }
-    add("20* (SD/SC)","Immobilisations incorporelles", function(){return SD(ex,'20');}, function(){return SC(ex,'280');});
-    add("21* (SD/SC)","Terrains", function(){return SD(ex,'21');}, function(){return SC(ex,'281');});
-    add("22* (SD/SC)","Bâtiments", function(){return SD(ex,'22');}, function(){return SC(ex,'282');});
-    add("23* (SD/SC)","Aménagements, agencements et installations", function(){return SD(ex,'23');}, function(){return SC(ex,'283');});
-    add("24 hors 245* (SD/SC)","Matériel, mobilier et actifs biologiques", function(){return SD(ex,'24')-SD(ex,'245');}, function(){return SC(ex,'284')-SC(ex,'2845');});
-    add("245* (SD/SC)","Matériel de transport", function(){return SD(ex,'245');}, function(){return SC(ex,'2845');});
-    add("25* (SD)","Avances et acomptes versés sur immobilisations", function(){return SD(ex,'25');}, function(){return 0;});
-    add("26* (SD/SC)","Titres de participation", function(){return SD(ex,'26');}, function(){return SC(ex,'296');});
-    add("27* (SD/SC)","Autres immobilisations financières", function(){return SD(ex,'27');}, function(){return SC(ex,'297');});
-    var totalAI = L.reduce(function(s,l){return s+l.net;},0);
-    L.push({ref:'TOTAL', poste:'TOTAL ACTIF IMMOBILISÉ', brut:null, amort:null, net:totalAI, isTotal:true});
-
-    var startAC = L.length;
-    add("3* (SD/SC)","Stocks et en-cours", function(){return SD(ex,'3');}, function(){return SC(ex,'39');});
-    add("409* (SD)","Fournisseurs, avances versées", function(){return SD(ex,'409');}, function(){return 0;});
-    add("41* (SD/SC)","Clients", function(){return SD(ex,'41');}, function(){return SC(ex,'49');});
-    add("4 hors 40,41 (SD)","Autres créances", function(){return SD(ex,'4')-SD(ex,'40')-SD(ex,'41');}, function(){return 0;});
-    var totalAC = L.slice(startAC).reduce(function(s,l){return s+l.net;},0);
-    L.push({ref:'TOTAL', poste:'TOTAL ACTIF CIRCULANT', brut:null, amort:null, net:totalAC, isTotal:true});
-
-    var TA50 = SD(ex,'50')-SC(ex,'50');
-    var TA51 = SD(ex,'51')-SC(ex,'51');
-    var s52to58 = 0;
-    ['52','53','54','55','56','57','58'].forEach(function(p){ s52to58 += SD(ex,p)-SC(ex,p); });
-    var TA52 = Math.max(s52to58, 0);
-    L.push({ref:"50* (SD-SC)", poste:"Titres de placement", brut:null, amort:null, net:TA50});
-    L.push({ref:"51* (SD-SC)", poste:"Valeurs à encaisser", brut:null, amort:null, net:TA51});
-    L.push({ref:"52 à 58 hors 59", poste:"Banques, chèques postaux, caisse", brut:null, amort:null, net:TA52});
-    var totalTA = TA50+TA51+TA52;
-    L.push({ref:'TOTAL', poste:'TOTAL TRÉSORERIE-ACTIF', brut:null, amort:null, net:totalTA, isTotal:true});
-
-    var ecartConvActif = SD(ex,'478');
-    L.push({ref:"478* (SD)", poste:"Écart de conversion - Actif", brut:null, amort:null, net:ecartConvActif});
-
-    var totalGeneral = totalAI+totalAC+totalTA+ecartConvActif;
-    L.push({ref:'TOTAL', poste:'TOTAL GÉNÉRAL ACTIF', brut:null, amort:null, net:totalGeneral, isTotal:true, isGrandTotal:true});
-    return {lines:L, total: totalGeneral};
-}
-
-function computeBilanPassif(ex, resultatNet){
-    var L = [];
-    function add(ref, poste, fn){
-        var v = fn();
-        L.push({ref:ref, poste:poste, net:v});
-        return v;
-    }
-    var k9 = add("10*,9* (SC-SD)","Capital", function(){ return (SC(ex,'10')-SD(ex,'10'))+(SC(ex,'9')-SD(ex,'9')); });
-    var k10 = add("105,106* (SC-SD)","Primes et écarts de réévaluation", function(){ return (SC(ex,'105')-SD(ex,'105'))+(SC(ex,'106')-SD(ex,'106')); });
-    var k11 = add("11* (SC-SD)","Réserves", function(){ return SC(ex,'11')-SD(ex,'11'); });
-    var k12 = add("12* (SC-SD)","Report à nouveau (+ ou -)", function(){ return SC(ex,'12')-SD(ex,'12'); });
-    var k13 = add("cf. RESULTAT","Résultat net de l'exercice (+ ou -)", function(){ return resultatNet; });
-    var k14 = add("14* (SC-SD)","Subventions d'investissement", function(){ return SC(ex,'14')-SD(ex,'14'); });
-    var k15 = add("15* (SC-SD)","Provisions réglementées", function(){ return SC(ex,'15')-SD(ex,'15'); });
-    var totalCP = k9+k10+k11+k12+k13+k14+k15;
-    L.push({ref:'somme', poste:'TOTAL CAPITAUX PROPRES', net:totalCP, isTotal:true});
-
-    var k19 = add("16* (SC-SD)","Emprunts et dettes financières diverses", function(){ return SC(ex,'16')-SD(ex,'16'); });
-    var k20 = add("17* (SC-SD)","Dettes de location acquisition (crédit-bail)", function(){ return SC(ex,'17')-SD(ex,'17'); });
-    var k21 = add("19* (SC-SD)","Provisions pour risques et charges", function(){ return SC(ex,'19')-SD(ex,'19'); });
-    var totalDF = k19+k20+k21;
-    L.push({ref:'somme', poste:'TOTAL DETTES FINANCIÈRES', net:totalDF, isTotal:true});
-    var totalRS = totalCP+totalDF;
-    L.push({ref:'CP+DF', poste:'TOTAL RESSOURCES STABLES', net:totalRS, isTotal:true, isGrandTotal:true});
-
-    var k26 = add("419* (SC)","Clients, avances reçues", function(){ return SC(ex,'419'); });
-    var k27 = add("40 hors 409* (SC)","Fournisseurs d'exploitation", function(){ return SC(ex,'40')-SC(ex,'409'); });
-    var k28 = add("42,43,44* (SC)","Dettes fiscales et sociales", function(){ return SC(ex,'42')+SC(ex,'43')+SC(ex,'44'); });
-    var k29 = add("4 hors 40,41,42,43,44 (SC)","Autres dettes", function(){ return SC(ex,'4')-SC(ex,'40')-SC(ex,'41')-SC(ex,'42')-SC(ex,'43')-SC(ex,'44'); });
-    var totalPC = k26+k27+k28+k29;
-    L.push({ref:'somme', poste:'TOTAL PASSIF CIRCULANT', net:totalPC, isTotal:true});
-
-    var s52to58 = 0;
-    ['52','53','54','55','56','57','58'].forEach(function(p){ s52to58 += SD(ex,p)-SC(ex,p); });
-    var k33 = Math.max(-s52to58, 0);
-    L.push({ref:"52 à 58 (SC-SD)>0", poste:"Banques, découverts et crédits de trésorerie", net:k33});
-    L.push({ref:'somme', poste:'TOTAL TRÉSORERIE-PASSIF', net:k33, isTotal:true});
-    var k35 = add("479* (SC)","Écart de conversion - Passif", function(){ return SC(ex,'479'); });
-
-    var totalGeneral = totalRS+totalPC+k33+k35;
-    L.push({ref:'TOTAL', poste:'TOTAL GÉNÉRAL PASSIF', net:totalGeneral, isTotal:true, isGrandTotal:true});
-    return {lines:L, total: totalGeneral};
-}
-
 // ============================================================
 // RESULTAT — reproduction exacte de la logique Excel (onglet RESULTAT)
 // ============================================================
-function computeResultat(ex){
-    function V(a,b){ return (a||0)-(b||0); }
-    var R = {};
-    R.TA = SC(ex,'701')-SD(ex,'701');
-    R.RA = SD(ex,'601')-SC(ex,'601');
-    R.RB = SD(ex,'6031')-SC(ex,'6031');
-    R.XA = R.TA - R.RA - R.RB;
-
-    R.TB = (SC(ex,'702')-SD(ex,'702'))+(SC(ex,'703')-SD(ex,'703'))+(SC(ex,'704')-SD(ex,'704'));
-    R.TC = (SC(ex,'705')-SD(ex,'705'))+(SC(ex,'706')-SD(ex,'706'))+(SC(ex,'707')-SD(ex,'707'));
-    R.TD = SC(ex,'73')-SD(ex,'73');
-    R.TE = SC(ex,'72')-SD(ex,'72');
-    R.XB = R.TB+R.TC+R.TD+R.TE;
-    R.CA = R.TA+R.TB+R.TC;
-
-    R.TH = SC(ex,'71')-SD(ex,'71');
-    R.TI = SC(ex,'75')-SD(ex,'75');
-    R.TJ = SC(ex,'781');
-
-    R.RC = SD(ex,'602')-SC(ex,'602');
-    R.RD = SD(ex,'6032')-SC(ex,'6032');
-    R.RE = (SD(ex,'604')-SC(ex,'604'))+(SD(ex,'605')-SC(ex,'605'))+(SD(ex,'608')-SC(ex,'608'));
-    R.RF = (SD(ex,'6033')-SC(ex,'6033'))+(SD(ex,'6038')-SC(ex,'6038'));
-    R.RG = SD(ex,'61')-SC(ex,'61');
-    R.RH = (SD(ex,'62')-SC(ex,'62'))+(SD(ex,'63')-SC(ex,'63'));
-    R.RI = SD(ex,'64')-SC(ex,'64');
-    R.RJ = SD(ex,'65')-SC(ex,'65');
-
-    R.XC = R.XA+R.XB+R.TH+R.TI+R.TJ - R.RC-R.RD-R.RE-R.RF-R.RG-R.RH-R.RI-R.RJ;
-
-    R.RK = SD(ex,'66')-SC(ex,'66');
-    R.XD = R.XC - R.RK;
-
-    R.TK = SC(ex,'791');
-    R.RL = SD(ex,'681')+SD(ex,'69');
-    R.XE = R.XD + R.TK - R.RL;
-
-    R.TL = SC(ex,'77');
-    R.TM = SC(ex,'797');
-    R.TN = SC(ex,'787');
-    R.RM = SD(ex,'67')-SC(ex,'67');
-    R.RN = SD(ex,'697');
-    R.XF = R.TL+R.TM+R.TN-R.RM-R.RN;
-
-    R.XG = R.XE + R.XF;
-
-    R.TO = SC(ex,'82');
-    R.TP = (SC(ex,'84')-SD(ex,'84'))+(SC(ex,'86')-SD(ex,'86'))+(SC(ex,'88')-SD(ex,'88'));
-    R.RO = SD(ex,'81');
-    R.RP = (SD(ex,'83')-SC(ex,'83'))+(SD(ex,'85')-SC(ex,'85'));
-    R.XH = R.TO+R.TP-R.RO-R.RP;
-
-    R.RQ = SD(ex,'87');
-    R.RS = SD(ex,'89');
-    R.XI = R.XG + R.XH - R.RQ - R.RS; // RESULTAT NET DE L'EXERCICE
-
-    return R;
-}
-
-function buildResultatLines(rN, rN1){
-    return [
-        {ref:"701* (SC-SD)", lib:"Ventes de marchandises  (TA)", n:rN.TA, n1:rN1.TA},
-        {ref:"601* (SD-SC)", lib:"Achats de marchandises  (RA)", n:rN.RA, n1:rN1.RA},
-        {ref:"6031* (SD-SC)", lib:"Variation de stocks de marchandises  (RB)", n:rN.RB, n1:rN1.RB},
-        {ref:"TA-RA-RB", lib:"MARGE COMMERCIALE  (XA)", n:rN.XA, n1:rN1.XA, isTotal:true},
-        {ref:"702,703,704* (SC-SD)", lib:"Ventes de produits fabriqués  (TB)", n:rN.TB, n1:rN1.TB},
-        {ref:"705,706,707* (SC-SD)", lib:"Travaux, services vendus  (TC)", n:rN.TC, n1:rN1.TC},
-        {ref:"73* (SC-SD)", lib:"Production stockée (ou déstockage)  (TD)", n:rN.TD, n1:rN1.TD},
-        {ref:"72* (SC-SD)", lib:"Production immobilisée  (TE)", n:rN.TE, n1:rN1.TE},
-        {ref:"TB+TC+TD+TE", lib:"PRODUCTION DE L'EXERCICE  (XB)", n:rN.XB, n1:rN1.XB, isTotal:true},
-        {ref:"TA+TB+TC", lib:"dont CHIFFRE D'AFFAIRES (mémo)", n:rN.CA, n1:rN1.CA, isMemo:true},
-        {ref:"71* (SC-SD)", lib:"Subventions d'exploitation  (TH)", n:rN.TH, n1:rN1.TH},
-        {ref:"75* (SC-SD)", lib:"Autres produits  (TI)", n:rN.TI, n1:rN1.TI},
-        {ref:"781* (SC)", lib:"Transferts de charges d'exploitation  (TJ)", n:rN.TJ, n1:rN1.TJ},
-        {ref:"602* (SD-SC)", lib:"Achats de matières premières et fournitures liées  (RC)", n:rN.RC, n1:rN1.RC},
-        {ref:"6032* (SD-SC)", lib:"Variation de stocks de matières premières  (RD)", n:rN.RD, n1:rN1.RD},
-        {ref:"604,605,608* (SD-SC)", lib:"Autres achats  (RE)", n:rN.RE, n1:rN1.RE},
-        {ref:"6033,6038* (SD-SC)", lib:"Variation de stocks d'autres approvisionnements  (RF)", n:rN.RF, n1:rN1.RF},
-        {ref:"61* (SD-SC)", lib:"Transports  (RG)", n:rN.RG, n1:rN1.RG},
-        {ref:"62,63* (SD-SC)", lib:"Services extérieurs  (RH)", n:rN.RH, n1:rN1.RH},
-        {ref:"64* (SD-SC)", lib:"Impôts et taxes  (RI)", n:rN.RI, n1:rN1.RI},
-        {ref:"65* (SD-SC)", lib:"Autres charges  (RJ)", n:rN.RJ, n1:rN1.RJ},
-        {ref:"XA+XB+TH+TI+TJ-RC..RJ", lib:"VALEUR AJOUTÉE  (XC)", n:rN.XC, n1:rN1.XC, isTotal:true},
-        {ref:"66* (SD-SC)", lib:"Charges de personnel  (RK)", n:rN.RK, n1:rN1.RK},
-        {ref:"XC-RK", lib:"EXCÉDENT BRUT D'EXPLOITATION (EBE)  (XD)", n:rN.XD, n1:rN1.XD, isTotal:true},
-        {ref:"791* (SC)", lib:"Reprises d'amortissements, provisions et dépréciations  (TK)", n:rN.TK, n1:rN1.TK},
-        {ref:"681,69* (SD)", lib:"Dotations aux amortissements, provisions et dépréciations  (RL)", n:rN.RL, n1:rN1.RL},
-        {ref:"XD+TK-RL", lib:"RÉSULTAT D'EXPLOITATION  (XE)", n:rN.XE, n1:rN1.XE, isTotal:true},
-        {ref:"77* (SC)", lib:"Revenus financiers et assimilés  (TL)", n:rN.TL, n1:rN1.TL},
-        {ref:"797* (SC)", lib:"Reprises de provisions et dépréciations financières  (TM)", n:rN.TM, n1:rN1.TM},
-        {ref:"787* (SC)", lib:"Transferts de charges financières  (TN)", n:rN.TN, n1:rN1.TN},
-        {ref:"67* (SD-SC)", lib:"Frais financiers et charges assimilées  (RM)", n:rN.RM, n1:rN1.RM},
-        {ref:"697* (SD)", lib:"Dotations aux provisions et dépréciations financières  (RN)", n:rN.RN, n1:rN1.RN},
-        {ref:"TL+TM+TN-RM-RN", lib:"RÉSULTAT FINANCIER  (XF)", n:rN.XF, n1:rN1.XF, isTotal:true},
-        {ref:"XE+XF", lib:"RÉSULTAT DES ACTIVITÉS ORDINAIRES (RAO)  (XG)", n:rN.XG, n1:rN1.XG, isTotal:true},
-        {ref:"82* (SC)", lib:"Produits des cessions d'immobilisations  (TO)", n:rN.TO, n1:rN1.TO},
-        {ref:"84,86,88* (SC)", lib:"Autres produits HAO  (TP)", n:rN.TP, n1:rN1.TP},
-        {ref:"81* (SD)", lib:"Valeurs comptables des cessions d'immobilisations  (RO)", n:rN.RO, n1:rN1.RO},
-        {ref:"83,85* (SD)", lib:"Autres charges HAO  (RP)", n:rN.RP, n1:rN1.RP},
-        {ref:"TO+TP-RO-RP", lib:"RÉSULTAT HORS ACTIVITÉS ORDINAIRES (HAO)  (XH)", n:rN.XH, n1:rN1.XH, isTotal:true},
-        {ref:"87* (SD)", lib:"Participation des travailleurs  (RQ)", n:rN.RQ, n1:rN1.RQ},
-        {ref:"89* (SD)", lib:"Impôts sur le résultat  (RS)", n:rN.RS, n1:rN1.RS},
-        {ref:"XG+XH-RQ-RS", lib:"RÉSULTAT NET DE L'EXERCICE (Bénéfice + / Perte -)  (XI)", n:rN.XI, n1:rN1.XI, isTotal:true, isGrandTotal:true}
-    ];
-}
-
 function renderResultat(rN, rN1){
     var lines = buildResultatLines(rN, rN1);
     var table = document.getElementById('resultat-table');
@@ -9020,45 +8823,12 @@ function liasseGetPrefixTables(){
 // descendre sous 2 chiffres (niveau classe+sous-classe). Ainsi un compte à 6, 7, 8
 // chiffres retombe automatiquement sur son compte de 4 chiffres du PCG dès que
 // celui-ci existe, sans troncature arbitraire ni table à maintenir par longueur.
-function liasseFindRef(compte){
-    var raw = String(compte || '').trim();
-    if(!raw) return null;
-    // On ne garde que le préfixe numérique (ignore espaces, tirets, suffixes texte)
-    var m = raw.match(/^\d+/);
-    if(!m) return null;
-    var digits = m[0];
-    var tables = liasseGetPrefixTables();
-    var maxLen = Math.min(digits.length, 12); // garde-fou, aucun compte SYSCOHADA réel ne dépasse ça
-    for(var len = maxLen; len >= 2; len--){
-        var table = tables[len];
-        if(!table) continue;
-        var prefix = digits.substring(0, len);
-        if(table[prefix]) return table[prefix];
-    }
-    return null;
-}
-
 // Somme des comptes rattachés à un REF donné (ex: 'N' ou 'N1'), pour une colonne
 // ('brut','amort' pour ACTIF ; 'net' pour PASSIF/RESULTAT), avec la convention de signe
 // SD-SC (débiteur) pour brut/charges, SC-SD (créditeur) pour amort/passif/produits.
 // 'which' permet de choisir le solde d'OUVERTURE (od/oc) ou de CLOTURE (sd/sc, défaut) —
 // c'est cette bascule qui permet de réutiliser exactement le même moteur ACTIF/PASSIF
 // pour calculer les variations du TFT (méthode indirecte).
-function liasseSumByRef(ex, ref, col, sens, which){
-    var rows = (typeof balanceData !== 'undefined' && balanceData[ex]) ? balanceData[ex] : [];
-    var dField = (which === 'opening') ? 'od' : 'sd';
-    var cField = (which === 'opening') ? 'oc' : 'sc';
-    var total = 0;
-    for(var i=0;i<rows.length;i++){
-        var m = liasseFindRef(rows[i].compte);
-        if(!m || m.ref !== ref || m.col !== col) continue;
-        var sd = parseNum(rows[i][dField]) || 0;
-        var sc = parseNum(rows[i][cField]) || 0;
-        total += (sens === 'SC-SD') ? (sc - sd) : (sd - sc);
-    }
-    return total;
-}
-
 // ---------- ACTIF / PASSIF : résolution récursive (postes détail + totaux) ----------
 function liasseResolveTree(ex, lines, sensLeafNet, mapByRef, which){
     var memo = {};
@@ -9166,17 +8936,6 @@ function liasseBSVariation(ex, ref){
 // rattachés à une liste de REF donnée sur la colonne 'brut' (utilisé pour les acquisitions/
 // cessions d'immobilisations : le mouvement débit = augmentation brute, le mouvement
 // crédit = diminution brute (cession, mise au rebut) de l'exercice).
-function liasseSumMovementByRef(ex, refList, field){
-    var rows = (typeof balanceData !== 'undefined' && balanceData[ex]) ? balanceData[ex] : [];
-    var total = 0;
-    for(var i=0;i<rows.length;i++){
-        var m = liasseFindRef(rows[i].compte);
-        if(!m || m.col !== 'brut' || refList.indexOf(m.ref) === -1) continue;
-        total += parseNum(rows[i][field]) || 0;
-    }
-    return total;
-}
-
 // Solde d'un compte (préfixe brut, ex: '654', '676', '766') sur la balance de l'exercice 'ex',
 // à l'ouverture ou à la clôture — s'appuie sur les fonctions SD()/SC() déjà utilisées ailleurs
 // dans l'application (moteur balance générale).
@@ -9242,62 +9001,6 @@ function liasseGetCAFG(ex){
 }
 
 // ---------- TFT complet pour un exercice donné ('n' = colonne N, 'n1' = colonne N-1) ----------
-function liasseGetTFTColumn(ex){
-    var T = {};
-    // A. Trésorerie nette au 1er janvier
-    T.ZA = liasseBSOpeningNet(ex, 'BT') - liasseBSOpeningNet(ex, 'DT');
-
-    // Activités opérationnelles
-    T.FA = liasseGetCAFG(ex);
-    T.FB = -liasseBSVariation(ex, 'BA'); // Variation actif circulant HAO
-    T.FC = -liasseBSVariation(ex, 'BB'); // Variation des stocks
-    T.FD = -liasseBSVariation(ex, 'BG'); // Variation des créances
-    T.FE = liasseBSVariation(ex, 'DP');  // Variation du passif circulant
-    T.ZB = T.FA + T.FB + T.FC + T.FD + T.FE;
-
-    // Activités d'investissement (mouvements bruts de l'exercice : acquisitions / cessions)
-    var R = liasseGetResultat(ex);
-    T.FF = -liasseSumMovementByRef(ex, ['AE','AF','AG','AH'], 'md'); // Acquisitions incorporelles
-    T.FG = -liasseSumMovementByRef(ex, ['AJ','AK','AL','AM','AN'], 'md'); // Acquisitions corporelles
-    T.FH = -liasseSumMovementByRef(ex, ['AR','AS'], 'md'); // Acquisitions financières
-    T.FI = R.TN; // Encaissements cessions incorp./corp. (produits des cessions)
-    T.FJ = liasseSumMovementByRef(ex, ['AR','AS'], 'mc'); // Encaissements cessions financières
-    T.ZC = T.FF + T.FG + T.FH + T.FI + T.FJ;
-
-    // Financement par les capitaux propres
-    var deltaCA = liasseBSVariation(ex, 'CA');
-    T.FK = deltaCA > 0 ? deltaCA : 0;               // Augmentations de capital
-    T.FM = deltaCA < 0 ? deltaCA : 0;               // Prélèvements sur le capital
-    var deltaCL = liasseBSVariation(ex, 'CL');
-    T.FL = deltaCL > 0 ? deltaCL : 0;               // Subventions d'investissement reçues
-    // Dividendes versés = résultat net N-1 affecté, diminué de la variation des réserves/report
-    // à nouveau constatée sur l'exercice ; non calculable pour la colonne N-1 (nécessiterait N-2).
-    if(ex === 'n'){
-        var resN1 = liasseGetResultat('n1').XI;
-        var reservesVar = liasseBSVariation('n','CF') + liasseBSVariation('n','CG') + liasseBSVariation('n','CH');
-        var dividendes = resN1 - reservesVar;
-        T.FN = dividendes > 0 ? -dividendes : 0;
-    } else {
-        T.FN = 0; // non calculable sans la balance N-2
-    }
-    T.ZD = T.FK + T.FL + T.FM + T.FN;
-
-    // Financement par les capitaux étrangers (emprunts / dettes financières)
-    var varEmprunts = liasseRawVariation(ex, ['161','162','1661','1662']);
-    T.FO = varEmprunts > 0 ? varEmprunts : 0;      // Emprunts nouveaux
-    T.FQ = varEmprunts < 0 ? varEmprunts : 0;      // Remboursements
-    T.FP = liasseBSVariation(ex, 'DA') - varEmprunts + liasseBSVariation(ex, 'DB'); // Autres dettes financières diverses
-    T.ZE = T.FO + T.FP + T.FQ;
-
-    T.ZF = T.ZD + T.ZE; // Flux provenant des activités de financement
-    T.ZG = T.ZB + T.ZC + T.ZF; // Variation de la trésorerie nette de la période
-    T.ZH = T.ZA + T.ZG; // Trésorerie nette au 31 décembre
-
-    // Contrôle : trésorerie actif - trésorerie passif à la clôture, doit égaler ZH
-    T.CTRL = liasseBSClosingNet(ex, 'BT') - liasseBSClosingNet(ex, 'DT');
-    T.ECART = T.ZH - T.CTRL;
-    return T;
-}
 function liasseGetTFT(){
     return { n: liasseGetTFTColumn('n'), n1: liasseGetTFTColumn('n1') };
 }
@@ -9431,27 +9134,6 @@ var TFT_LINES = [
     {ref:'ZG', label:"VARIATION DE LA TRESORERIE NETTE DE LA PERIODE (A+B+C+D)", bold:true},
     {ref:'ZH', label:"Trésorerie nette au 31 Décembre", bold:true}
 ];
-function liasseRenderTFT(){
-    var T = liasseGetTFT();
-    var rows = TFT_LINES.map(function(l){
-        if(l.section) return '<tr><td colspan="3" style="background:#f4f1ea;font-weight:700;color:#1B2A4A;">'+l.section+'</td></tr>';
-        var cls = l.bold ? ' class="liasse-total-row"' : '';
-        var vn = T.n[l.ref] || 0, vn1 = T.n1[l.ref] || 0;
-        return '<tr'+cls+'><td>'+l.ref+'</td><td>'+l.label+'</td>'+
-            '<td class="num">'+liasseFmt(vn)+'</td><td class="num">'+liasseFmt(vn1)+'</td></tr>';
-    }).join('');
-    var equilibre = Math.abs(T.n.ECART) < 1;
-    var ctrl = '<div class="'+(equilibre?'status-ok':'status-danger')+'" style="margin-top:10px;font-weight:700;">'+
-        (equilibre ? '✔ Contrôle : Trésorerie nette au 31/12 (G+A) = Trésorerie actif N - Trésorerie passif N'
-                   : '⚠ Écart de contrôle : '+liasseFmt(T.n.ECART)+' — vérifier les balances N / N-1')+'</div>';
-    var notes = '<div style="font-size:11px;color:#666;margin-top:14px;line-height:1.5;">'+
-        '(1) A l\'exclusion des variations des créances et dettes liées aux activités d\'investissement et de financement.<br>'+
-        '(2) Comptes 161, 162, 1661, 1662.<br>'+
-        '(3) Comptes 16 sauf comptes (161, 162, 1661, 1662) et comptes 18.<br>'+
-        'Les dividendes versés (colonne N-1) ne sont pas calculables automatiquement : ils nécessiteraient la balance N-2 (solde d\'ouverture des réserves).</div>';
-    return '<table class="liasse-table"><thead><tr><th>REF</th><th>LIBELLES</th><th>EXERCICE N</th><th>EXERCICE N-1</th></tr></thead><tbody>'+rows+'</tbody></table>'+ctrl+notes;
-}
-
 
 // ============================================================
 // NOTES ANNEXES (NOTE 1 à NOTE 39) — moteur générique
