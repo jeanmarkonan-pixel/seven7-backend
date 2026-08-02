@@ -311,7 +311,7 @@ signification n'étaient **pas** affectés (écart 0 % sur les trois agrégats),
 moteur ne classait **pas** un compte 41 créditeur à l'actif — il lisait `SD(41)`, et l'actif
 sortait juste. Le défaut était au passif.
 
-### ~~2. Découper le monolithe~~ — *fait, commit `df9b3b2`*
+### ~~2. Découper le monolithe~~ — *fait, commit `16413a4`*
 
 `src/app.html` plus 23 fichiers dans `src/js/`, reconstruits par `build/build.mjs`. La
 première construction reproduisait le livrable **à l'octet près** — c'est ce qui a permis de

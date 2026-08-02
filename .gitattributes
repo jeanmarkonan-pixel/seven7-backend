@@ -1,0 +1,4 @@
+# Le livrable et ses sources restent en LF dans le dépôt comme sur le disque.
+# La construction compare dist/ à src/ octet par octet : une conversion de fin
+# de ligne à la sortie ferait échouer `npm run verifier` sur un poste Windows.
+* -text
