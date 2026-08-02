@@ -1,0 +1,1946 @@
+{
+ "n": [
+  {
+   "compte": "10180000",
+   "intitule": "CAPITAL SOUSCRIT SOUMIS A DES CONDI",
+   "od": 0,
+   "oc": 25000000,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 25000000
+  },
+  {
+   "compte": "11100000",
+   "intitule": "RESERVE LEGALE",
+   "od": 0,
+   "oc": 5000000,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 5000000
+  },
+  {
+   "compte": "12100000",
+   "intitule": "REPORT A NOUVEAU CREDITEUR",
+   "od": 0,
+   "oc": 17291540,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 17291540
+  },
+  {
+   "compte": "129100000",
+   "intitule": "REPPORT A NOUVEAU DEBITEUR",
+   "od": 3759434,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 3759434,
+   "sc": 0
+  },
+  {
+   "compte": "19610000",
+   "intitule": "PROVISION POUR PENSION ET OBLIGATIO",
+   "od": 0,
+   "oc": 3346380,
+   "md": 0,
+   "mc": 1188670,
+   "sd": 0,
+   "sc": 4535050
+  },
+  {
+   "compte": "21310000",
+   "intitule": "LOGICIELS",
+   "od": 450000,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 450000,
+   "sc": 0
+  },
+  {
+   "compte": "24410000",
+   "intitule": "MATERIEL DE BUREAU",
+   "od": 955508,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 955508,
+   "sc": 0
+  },
+  {
+   "compte": "24420000",
+   "intitule": "MATERIEL INFORMATIQUE",
+   "od": 6198600,
+   "oc": 0,
+   "md": 1632711,
+   "mc": 0,
+   "sd": 7831311,
+   "sc": 0
+  },
+  {
+   "compte": "24440000",
+   "intitule": "MOBILIER DE BUREAU",
+   "od": 271187,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 271187,
+   "sc": 0
+  },
+  {
+   "compte": "24510000",
+   "intitule": "MATERIEL AUTOMOBILE",
+   "od": 16793502,
+   "oc": 0,
+   "md": 45338982,
+   "mc": 0,
+   "sd": 62132484,
+   "sc": 0
+  },
+  {
+   "compte": "27280000",
+   "intitule": "AUTRES PRETS",
+   "od": 466500,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 466500,
+   "sc": 0
+  },
+  {
+   "compte": "27510000",
+   "intitule": "DEPOT POUR LOYER D'AVANCE",
+   "od": 2000000,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 2000000,
+   "sc": 0
+  },
+  {
+   "compte": "27520000",
+   "intitule": "DEPOT POUR ELECTRICITE",
+   "od": 810190,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 810190,
+   "sc": 0
+  },
+  {
+   "compte": "27530000",
+   "intitule": "DEPOT POUR L'EAU",
+   "od": 128567,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 128567,
+   "sc": 0
+  },
+  {
+   "compte": "27580000",
+   "intitule": "AUTRES DEPOTS ET CAUTIONNEMENT",
+   "od": 13333334,
+   "oc": 0,
+   "md": 100000000,
+   "mc": 0,
+   "sd": 113333334,
+   "sc": 0
+  },
+  {
+   "compte": "28130000",
+   "intitule": "AMORTISSEMENTS  DES LOGICIELS ,INTE",
+   "od": 0,
+   "oc": 90000,
+   "md": 0,
+   "mc": 90000,
+   "sd": 0,
+   "sc": 180000
+  },
+  {
+   "compte": "28441000",
+   "intitule": "AMORT DU MATERIEL DE BUREAU",
+   "od": 0,
+   "oc": 830508,
+   "md": 0,
+   "mc": 125000,
+   "sd": 0,
+   "sc": 955508
+  },
+  {
+   "compte": "28442000",
+   "intitule": "AMORTISSEMENT MATERIEL INFORMATIQUE",
+   "od": 0,
+   "oc": 3602350,
+   "md": 0,
+   "mc": 982412,
+   "sd": 0,
+   "sc": 4584762
+  },
+  {
+   "compte": "28444000",
+   "intitule": "AMORT DU MOBILIER DE BUREAU",
+   "od": 0,
+   "oc": 271187,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 271187
+  },
+  {
+   "compte": "28450000",
+   "intitule": "AMORTISSEMENT MATERIEL DE TRANSPORT",
+   "od": 0,
+   "oc": 4198378,
+   "md": 0,
+   "mc": 4497147,
+   "sd": 0,
+   "sc": 8695525
+  },
+  {
+   "compte": "40110000",
+   "intitule": "FOURNISSEURS",
+   "od": 13414038,
+   "oc": 15544096,
+   "md": 79993971,
+   "mc": 77891179,
+   "sd": 0,
+   "sc": 27266
+  },
+  {
+   "compte": "41110000",
+   "intitule": "CLIENT",
+   "od": 11324440538,
+   "oc": 11254175826,
+   "md": 10850996342,
+   "mc": 10858633699,
+   "sd": 62627355,
+   "sc": 0
+  },
+  {
+   "compte": "41810000",
+   "intitule": "CLIENT FACTURE A ETABLIR",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 113822444,
+   "sd": 0,
+   "sc": 113822444
+  },
+  {
+   "compte": "41910000",
+   "intitule": "CLIENT, AVANCES ET ACOMPTE RECUS",
+   "od": 108076626,
+   "oc": 251348184,
+   "md": 143271558,
+   "mc": 197301471,
+   "sd": 0,
+   "sc": 197301471
+  },
+  {
+   "compte": "421100000",
+   "intitule": "PERSONNEL, AVANCES ET ACOMPTES",
+   "od": 7984000,
+   "oc": 7984000,
+   "md": 2096000,
+   "mc": 2096000,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "42120000",
+   "intitule": "PERSONNEL,ACOMPTES",
+   "od": 150000,
+   "oc": 150000,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "42200000",
+   "intitule": "PERSONNEL, REMUNERATIONS DUES",
+   "od": 0,
+   "oc": 3468005,
+   "md": 44830682,
+   "mc": 44213837,
+   "sd": 0,
+   "sc": 2851160
+  },
+  {
+   "compte": "428100000",
+   "intitule": "DETTES PROVISIONNEES POUR CONGES A",
+   "od": 0,
+   "oc": 1964633,
+   "md": 0,
+   "mc": 3214871,
+   "sd": 0,
+   "sc": 5179504
+  },
+  {
+   "compte": "43110000",
+   "intitule": "PRESTATIONS FAMILIALES",
+   "od": 0,
+   "oc": 142314,
+   "md": 577877,
+   "mc": 564939,
+   "sd": 0,
+   "sc": 129376
+  },
+  {
+   "compte": "43120000",
+   "intitule": "ACCIDENT DE TRAVAIL",
+   "od": 0,
+   "oc": 74250,
+   "md": 301500,
+   "mc": 294750,
+   "sd": 0,
+   "sc": 67500
+  },
+  {
+   "compte": "43130000",
+   "intitule": "CAISSE DE RETRAITE OBLIGATOIRE",
+   "od": 0,
+   "oc": 1501502,
+   "md": 6657122,
+   "mc": 7015189,
+   "sd": 0,
+   "sc": 1859569
+  },
+  {
+   "compte": "43140000",
+   "intitule": "COTISATION CMU",
+   "od": 0,
+   "oc": 5500,
+   "md": 117000,
+   "mc": 145500,
+   "sd": 0,
+   "sc": 34000
+  },
+  {
+   "compte": "441010000",
+   "intitule": "IMPOTS SUR BENEFICE",
+   "od": 0,
+   "oc": 8828736,
+   "md": 8828736,
+   "mc": 6190000,
+   "sd": 0,
+   "sc": 6190000
+  },
+  {
+   "compte": "44211000",
+   "intitule": "TSE",
+   "od": 0,
+   "oc": 0,
+   "md": 15650,
+   "mc": 29603,
+   "sd": 0,
+   "sc": 13953
+  },
+  {
+   "compte": "44212000",
+   "intitule": "FDFP",
+   "od": 0,
+   "oc": 0,
+   "md": 53955,
+   "mc": 53955,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44213000",
+   "intitule": "PATENTE ENTREPRISE",
+   "od": 0,
+   "oc": 1810000,
+   "md": 1810000,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44261000",
+   "intitule": "DROIT ET TAXES DOUANE",
+   "od": 45000,
+   "oc": 45000,
+   "md": 8971107257,
+   "mc": 8971107257,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44261100",
+   "intitule": "DROITS ET TAXES DE DOUANE",
+   "od": 0,
+   "oc": 0,
+   "md": 451952397,
+   "mc": 451952397,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44261200",
+   "intitule": "REDRESSEMENT DROIT DE DOUANES",
+   "od": 0,
+   "oc": 0,
+   "md": 38690700,
+   "mc": 38690700,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44262000",
+   "intitule": "SYDAM DOUANE",
+   "od": 0,
+   "oc": 0,
+   "md": 61260000,
+   "mc": 64940000,
+   "sd": 0,
+   "sc": 3680000
+  },
+  {
+   "compte": "44280000",
+   "intitule": "TAXE D'APPRENTISSAGE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 26977,
+   "sd": 0,
+   "sc": 26977
+  },
+  {
+   "compte": "44281000",
+   "intitule": "TAXE FORMAT PROFES CONTINUE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 40466,
+   "sd": 0,
+   "sc": 40466
+  },
+  {
+   "compte": "44320000",
+   "intitule": "TVA/PRESTATIONS DE SERVICES",
+   "od": 45000,
+   "oc": 45000,
+   "md": 3365256,
+   "mc": 3365256,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44410000",
+   "intitule": "ETAT TVA DUE",
+   "od": 0,
+   "oc": 0,
+   "md": 1248725,
+   "mc": 1248725,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44490000",
+   "intitule": "ETAT,CREDIT DE TVA A REPORTER",
+   "od": 0,
+   "oc": 0,
+   "md": 20360002,
+   "mc": 13885891,
+   "sd": 6474111,
+   "sc": 0
+  },
+  {
+   "compte": "44510000",
+   "intitule": "TVA/IMMOBILISATION",
+   "od": 0,
+   "oc": 0,
+   "md": 8454905,
+   "mc": 8454905,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44520000",
+   "intitule": "TVA/ACHATS",
+   "od": 0,
+   "oc": 0,
+   "md": 216291,
+   "mc": 216291,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44540000",
+   "intitule": "TVA RECUPERABLE SUR SERVICE EXTERIE",
+   "od": 0,
+   "oc": 0,
+   "md": 736691,
+   "mc": 736691,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44710000",
+   "intitule": "IMPOTS GENERAL SUR LE REVENU",
+   "od": 0,
+   "oc": 13748065,
+   "md": 13748065,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44720000",
+   "intitule": "IMPOTS SUR SALAIRE",
+   "od": 0,
+   "oc": 6605599,
+   "md": 11191241,
+   "mc": 5506230,
+   "sd": 0,
+   "sc": 920588
+  },
+  {
+   "compte": "44730000",
+   "intitule": "CONTRIBUTION NATIONALE",
+   "od": 0,
+   "oc": 4486749,
+   "md": 4486749,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "46211000",
+   "intitule": "COMPTE COURANT M.ABOUA YAO",
+   "od": 0,
+   "oc": 11792305,
+   "md": 11792305,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "471130000",
+   "intitule": "PRESTATION DES TRANSITAIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 905094184,
+   "mc": 905094184,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "47114000",
+   "intitule": "COMMISSION DES TRANSITAIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 23103440,
+   "mc": 23103440,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "47120000",
+   "intitule": "CREDITEURS DIVERS",
+   "od": 0,
+   "oc": 0,
+   "md": 66455399,
+   "mc": 66455399,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "52110000",
+   "intitule": "ECOBANK",
+   "od": 43052531,
+   "oc": 0,
+   "md": 9182911734,
+   "mc": 9195768759,
+   "sd": 30195506,
+   "sc": 0
+  },
+  {
+   "compte": "521120000",
+   "intitule": "BANK ATLANTIQUE",
+   "od": 6734113,
+   "oc": 0,
+   "md": 1761482583,
+   "mc": 1715415317,
+   "sd": 52801379,
+   "sc": 0
+  },
+  {
+   "compte": "521121000",
+   "intitule": "BACI SEQUESTRE",
+   "od": 89955000,
+   "oc": 0,
+   "md": 0,
+   "mc": 29955000,
+   "sd": 60000000,
+   "sc": 0
+  },
+  {
+   "compte": "521130000",
+   "intitule": "GTBANK",
+   "od": 936059,
+   "oc": 0,
+   "md": 0,
+   "mc": 858248,
+   "sd": 77811,
+   "sc": 0
+  },
+  {
+   "compte": "57110000",
+   "intitule": "CAISSE",
+   "od": 3350380,
+   "oc": 0,
+   "md": 6163935291,
+   "mc": 6167171728,
+   "sd": 113943,
+   "sc": 0
+  },
+  {
+   "compte": "58500000",
+   "intitule": "VIREMENTS DE FONDS",
+   "od": 0,
+   "oc": 0,
+   "md": 6414274247,
+   "mc": 6414274247,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "60420000",
+   "intitule": "CARBURANT",
+   "od": 0,
+   "oc": 0,
+   "md": 6100000,
+   "mc": 0,
+   "sd": 6100000,
+   "sc": 0
+  },
+  {
+   "compte": "60470000",
+   "intitule": "FOURNITURE DE BUREAU",
+   "od": 0,
+   "oc": 0,
+   "md": 286500,
+   "mc": 0,
+   "sd": 286500,
+   "sc": 0
+  },
+  {
+   "compte": "658800000",
+   "intitule": "AUTRES ACHATS",
+   "od": 0,
+   "oc": 0,
+   "md": 203890,
+   "mc": 0,
+   "sd": 203890,
+   "sc": 0
+  },
+  {
+   "compte": "60510000",
+   "intitule": "ACHAT EAU",
+   "od": 0,
+   "oc": 0,
+   "md": 248626,
+   "mc": 0,
+   "sd": 248626,
+   "sc": 0
+  },
+  {
+   "compte": "60520000",
+   "intitule": "ACHAT ELECTRICITE",
+   "od": 0,
+   "oc": 0,
+   "md": 1848285,
+   "mc": 0,
+   "sd": 1848285,
+   "sc": 0
+  },
+  {
+   "compte": "60550000",
+   "intitule": "FOURNITURES DE BUREAU NON STOCKABLE",
+   "od": 0,
+   "oc": 0,
+   "md": 1204000,
+   "mc": 0,
+   "sd": 1204000,
+   "sc": 0
+  },
+  {
+   "compte": "60560000",
+   "intitule": "ACHATS DE PETIT MATERIEL ET OUTILLA",
+   "od": 0,
+   "oc": 0,
+   "md": 274000,
+   "mc": 0,
+   "sd": 274000,
+   "sc": 0
+  },
+  {
+   "compte": "61400000",
+   "intitule": "TRANSPORT DU PERSONNEL",
+   "od": 0,
+   "oc": 0,
+   "md": 6667500,
+   "mc": 0,
+   "sd": 6667500,
+   "sc": 0
+  },
+  {
+   "compte": "61830000",
+   "intitule": "TRANSPORTS ADMINISTRATIFS",
+   "od": 0,
+   "oc": 0,
+   "md": 3148500,
+   "mc": 0,
+   "sd": 3148500,
+   "sc": 0
+  },
+  {
+   "compte": "62220000",
+   "intitule": "LOCATIONS DE BATIMENTS",
+   "od": 0,
+   "oc": 0,
+   "md": 6000000,
+   "mc": 0,
+   "sd": 6000000,
+   "sc": 0
+  },
+  {
+   "compte": "62480000",
+   "intitule": "AUTRES ENTRETIENS ET REPARATIONS",
+   "od": 0,
+   "oc": 0,
+   "md": 4253000,
+   "mc": 0,
+   "sd": 4253000,
+   "sc": 0
+  },
+  {
+   "compte": "62580000",
+   "intitule": "AUTRES PRIMES D'ASSURANCES",
+   "od": 0,
+   "oc": 0,
+   "md": 1534724,
+   "mc": 0,
+   "sd": 1534724,
+   "sc": 0
+  },
+  {
+   "compte": "62880000",
+   "intitule": "AUTRES FRAIS DE TELEDCOMMUNICATION",
+   "od": 0,
+   "oc": 0,
+   "md": 1793256,
+   "mc": 0,
+   "sd": 1793256,
+   "sc": 0
+  },
+  {
+   "compte": "63180000",
+   "intitule": "AUTRES FRAIS BANCAIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 2745268,
+   "mc": 0,
+   "sd": 2745268,
+   "sc": 0
+  },
+  {
+   "compte": "63280000",
+   "intitule": "REMUNERATIONS DES TRANSITAIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 32700355,
+   "mc": 0,
+   "sd": 32700355,
+   "sc": 0
+  },
+  {
+   "compte": "63240000",
+   "intitule": "HONORAIRES DES PROFESSIONS REGLEMEN",
+   "od": 0,
+   "oc": 0,
+   "md": 5000000,
+   "mc": 0,
+   "sd": 5000000,
+   "sc": 0
+  },
+  {
+   "compte": "63280000",
+   "intitule": "DIVERS FRAIS",
+   "od": 0,
+   "oc": 0,
+   "md": 16314881,
+   "mc": 0,
+   "sd": 16314881,
+   "sc": 0
+  },
+  {
+   "compte": "64130000",
+   "intitule": "TAXES SUR APPROVISION ET SALAIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 145673,
+   "mc": 0,
+   "sd": 145673,
+   "sc": 0
+  },
+  {
+   "compte": "64140000",
+   "intitule": "TAXE D'APPRENTISSAGE",
+   "od": 0,
+   "oc": 0,
+   "md": 48559,
+   "mc": 0,
+   "sd": 48559,
+   "sc": 0
+  },
+  {
+   "compte": "64150000",
+   "intitule": "FORMATION PROFESSIONNELLE CONTINUE",
+   "od": 0,
+   "oc": 0,
+   "md": 72839,
+   "mc": 0,
+   "sd": 72839,
+   "sc": 0
+  },
+  {
+   "compte": "64180000",
+   "intitule": "AUTRES IMPOTS ET TAXES DIRECTS",
+   "od": 0,
+   "oc": 0,
+   "md": 29603,
+   "mc": 0,
+   "sd": 29603,
+   "sc": 0
+  },
+  {
+   "compte": "64610000",
+   "intitule": "DROITS DE MUTATION",
+   "od": 0,
+   "oc": 0,
+   "md": 90000,
+   "mc": 0,
+   "sd": 90000,
+   "sc": 0
+  },
+  {
+   "compte": "64620000",
+   "intitule": "DROITS DE TIMBRE",
+   "od": 0,
+   "oc": 0,
+   "md": 11200,
+   "mc": 0,
+   "sd": 11200,
+   "sc": 0
+  },
+  {
+   "compte": "64630000",
+   "intitule": "TAXES SUR VEHICULE",
+   "od": 0,
+   "oc": 0,
+   "md": 24000,
+   "mc": 0,
+   "sd": 24000,
+   "sc": 0
+  },
+  {
+   "compte": "64800000",
+   "intitule": "AUTRES IMPOTS ET TAXES",
+   "od": 0,
+   "oc": 0,
+   "md": 89329,
+   "mc": 0,
+   "sd": 89329,
+   "sc": 0
+  },
+  {
+   "compte": "651100000",
+   "intitule": "PERTES SUR CREANCES CLIENTS ET AUT",
+   "od": 0,
+   "oc": 0,
+   "md": 542825,
+   "mc": 0,
+   "sd": 542825,
+   "sc": 0
+  },
+  {
+   "compte": "65150000",
+   "intitule": "PERTE",
+   "od": 0,
+   "oc": 0,
+   "md": 31459,
+   "mc": 0,
+   "sd": 31459,
+   "sc": 0
+  },
+  {
+   "compte": "658800000",
+   "intitule": "CHARGES DIVERSES",
+   "od": 0,
+   "oc": 0,
+   "md": 17184000,
+   "mc": 0,
+   "sd": 17184000,
+   "sc": 0
+  },
+  {
+   "compte": "65820000",
+   "intitule": "DONS",
+   "od": 0,
+   "oc": 0,
+   "md": 320000,
+   "mc": 0,
+   "sd": 320000,
+   "sc": 0
+  },
+  {
+   "compte": "66110000",
+   "intitule": "APPOINTEMENT SALAIRES ET COMMISSION",
+   "od": 0,
+   "oc": 0,
+   "md": 42531635,
+   "mc": 0,
+   "sd": 42531635,
+   "sc": 0
+  },
+  {
+   "compte": "66120000",
+   "intitule": "PRIMES ET  GRATIFICATION",
+   "od": 0,
+   "oc": 0,
+   "md": 2663829,
+   "mc": 0,
+   "sd": 2663829,
+   "sc": 0
+  },
+  {
+   "compte": "66130000",
+   "intitule": "CONGES PAYES",
+   "od": 0,
+   "oc": 0,
+   "md": 7792264,
+   "mc": 0,
+   "sd": 7792264,
+   "sc": 0
+  },
+  {
+   "compte": "66381000",
+   "intitule": "INDEMNITE DE TRANSPORT",
+   "od": 0,
+   "oc": 0,
+   "md": 5278754,
+   "mc": 0,
+   "sd": 5278754,
+   "sc": 0
+  },
+  {
+   "compte": "66410000",
+   "intitule": "COTISATIONS CNPS",
+   "od": 0,
+   "oc": 0,
+   "md": 6514292,
+   "mc": 0,
+   "sd": 6514292,
+   "sc": 0
+  },
+  {
+   "compte": "66880000",
+   "intitule": "CHARGES SOCIALES DIVERSES",
+   "od": 0,
+   "oc": 0,
+   "md": 69500,
+   "mc": 0,
+   "sd": 69500,
+   "sc": 0
+  },
+  {
+   "compte": "67450000",
+   "intitule": "INTERETS BANCAIRES ET OPERATION DE",
+   "od": 0,
+   "oc": 0,
+   "md": 7612299,
+   "mc": 0,
+   "sd": 7612299,
+   "sc": 0
+  },
+  {
+   "compte": "681300000",
+   "intitule": "DOT AUX AMORT IMMO CORPOREL",
+   "od": 0,
+   "oc": 0,
+   "md": 5694559,
+   "mc": 0,
+   "sd": 5694559,
+   "sc": 0
+  },
+  {
+   "compte": "69110000",
+   "intitule": "DOTATION PROV DEPR POUR RISQUE ET C",
+   "od": 0,
+   "oc": 0,
+   "md": 1188670,
+   "mc": 0,
+   "sd": 1188670,
+   "sc": 0
+  },
+  {
+   "compte": "70611000",
+   "intitule": "CHIFFRE D'AFFAIRE TAXABLE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 18695870,
+   "sd": 0,
+   "sc": 18695870
+  },
+  {
+   "compte": "70612000",
+   "intitule": "CHIFFRE D'AFFAIRE NON TAXABLE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 181522978,
+   "sd": 0,
+   "sc": 181522978
+  },
+  {
+   "compte": "89500000",
+   "intitule": "IMPOTS SUR BENEFICE",
+   "od": 0,
+   "oc": 0,
+   "md": 6190000,
+   "mc": 0,
+   "sd": 6190000,
+   "sc": 0
+  }
+ ],
+ "n1": [
+  {
+   "compte": "10180000",
+   "intitule": "CAPITAL SOUSCRIT SOUMIS A DES CONDI",
+   "od": 0,
+   "oc": 25000000,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 25000000
+  },
+  {
+   "compte": "11100000",
+   "intitule": "RESERVE LEGALE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 5000000,
+   "sd": 0,
+   "sc": 5000000
+  },
+  {
+   "compte": "12100000",
+   "intitule": "REPORT A NOUVEAU CREDITEUR",
+   "od": 0,
+   "oc": 0,
+   "md": 5000000,
+   "mc": 22291540,
+   "sd": 0,
+   "sc": 17291540
+  },
+  {
+   "compte": "129100000",
+   "intitule": "REPPORT A NOUVEAU DEBITEUR",
+   "od": 1281768,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 1281768,
+   "sc": 0
+  },
+  {
+   "compte": "19610000",
+   "intitule": "PROVISION POUR PENSION ET OBLIGATIO",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 3346380,
+   "sd": 0,
+   "sc": 3346380
+  },
+  {
+   "compte": "21310000",
+   "intitule": "LOGICIELS",
+   "od": 450000,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 450000,
+   "sc": 0
+  },
+  {
+   "compte": "24410000",
+   "intitule": "MATERIEL DE BUREAU",
+   "od": 955508,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 955508,
+   "sc": 0
+  },
+  {
+   "compte": "24420000",
+   "intitule": "MATERIEL INFORMATIQUE",
+   "od": 4993600,
+   "oc": 0,
+   "md": 1205000,
+   "mc": 0,
+   "sd": 6198600,
+   "sc": 0
+  },
+  {
+   "compte": "24440000",
+   "intitule": "MOBILIER DE BUREAU",
+   "od": 271187,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 271187,
+   "sc": 0
+  },
+  {
+   "compte": "24510000",
+   "intitule": "MATERIEL AUTOMOBILE",
+   "od": 16793502,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 16793502,
+   "sc": 0
+  },
+  {
+   "compte": "27280000",
+   "intitule": "AUTRES PRETS",
+   "od": 466500,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 466500,
+   "sc": 0
+  },
+  {
+   "compte": "27510000",
+   "intitule": "DEPOT POUR LOYER D'AVANCE",
+   "od": 2000000,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 2000000,
+   "sc": 0
+  },
+  {
+   "compte": "27520000",
+   "intitule": "DEPOT POUR ELECTRICITE",
+   "od": 810190,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 810190,
+   "sc": 0
+  },
+  {
+   "compte": "27530000",
+   "intitule": "DEPOT POUR L'EAU",
+   "od": 128567,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 128567,
+   "sc": 0
+  },
+  {
+   "compte": "27580000",
+   "intitule": "AUTRES DEPOTS ET CAUTIONNEMENT",
+   "od": 13333334,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 13333334,
+   "sc": 0
+  },
+  {
+   "compte": "28130000",
+   "intitule": "AMORTISSEMENTS  DES LOGICIELS ,INTE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 90000,
+   "sd": 0,
+   "sc": 90000
+  },
+  {
+   "compte": "28441000",
+   "intitule": "AMORT DU MATERIEL DE BUREAU",
+   "od": 0,
+   "oc": 705508,
+   "md": 0,
+   "mc": 125000,
+   "sd": 0,
+   "sc": 830508
+  },
+  {
+   "compte": "28442000",
+   "intitule": "AMORTISSEMENT MATERIEL INFORMATIQUE",
+   "od": 0,
+   "oc": 2583430,
+   "md": 0,
+   "mc": 1018920,
+   "sd": 0,
+   "sc": 3602350
+  },
+  {
+   "compte": "28444000",
+   "intitule": "AMORT DU MOBILIER DE BUREAU",
+   "od": 0,
+   "oc": 271187,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 271187
+  },
+  {
+   "compte": "28450000",
+   "intitule": "AMORTISSEMENT MATERIEL DE TRANSPORT",
+   "od": 0,
+   "oc": 2519028,
+   "md": 0,
+   "mc": 1679350,
+   "sd": 0,
+   "sc": 4198378
+  },
+  {
+   "compte": "40110000",
+   "intitule": "FOURNISSEURS",
+   "od": 3895044,
+   "oc": 5762624,
+   "md": 41811875,
+   "mc": 42074353,
+   "sd": 0,
+   "sc": 2130058
+  },
+  {
+   "compte": "41110000",
+   "intitule": "CLIENT",
+   "od": 5724790751,
+   "oc": 5709644588,
+   "md": 6794036291,
+   "mc": 6738917742,
+   "sd": 70264712,
+   "sc": 0
+  },
+  {
+   "compte": "41910000",
+   "intitule": "CLIENT, AVANCES ET ACOMPTE RECUS",
+   "od": 0,
+   "oc": 108076626,
+   "md": 108076626,
+   "mc": 143271558,
+   "sd": 0,
+   "sc": 143271558
+  },
+  {
+   "compte": "421100000",
+   "intitule": "PERSONNEL, AVANCES ET ACOMPTES",
+   "od": 5888000,
+   "oc": 5888000,
+   "md": 2096000,
+   "mc": 2096000,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "42120000",
+   "intitule": "PERSONNEL,ACOMPTES",
+   "od": 150000,
+   "oc": 150000,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "42200000",
+   "intitule": "PERSONNEL, REMUNERATIONS DUES",
+   "od": 0,
+   "oc": 0,
+   "md": 38494986,
+   "mc": 41962991,
+   "sd": 0,
+   "sc": 3468005
+  },
+  {
+   "compte": "428100000",
+   "intitule": "DETTES PROVISIONNEES POUR CONGES A",
+   "od": 0,
+   "oc": 1051694,
+   "md": 0,
+   "mc": 912939,
+   "sd": 0,
+   "sc": 1964633
+  },
+  {
+   "compte": "43110000",
+   "intitule": "PRESTATIONS FAMILIALES",
+   "od": 0,
+   "oc": 0,
+   "md": 409691,
+   "mc": 552005,
+   "sd": 0,
+   "sc": 142314
+  },
+  {
+   "compte": "43120000",
+   "intitule": "ACCIDENT DE TRAVAIL",
+   "od": 0,
+   "oc": 0,
+   "md": 213750,
+   "mc": 288000,
+   "sd": 0,
+   "sc": 74250
+  },
+  {
+   "compte": "43130000",
+   "intitule": "CAISSE DE RETRAITE OBLIGATOIRE",
+   "od": 0,
+   "oc": 1219743,
+   "md": 9913434,
+   "mc": 10195193,
+   "sd": 0,
+   "sc": 1501502
+  },
+  {
+   "compte": "43140000",
+   "intitule": "COTISATION CMU",
+   "od": 0,
+   "oc": 0,
+   "md": 43000,
+   "mc": 48500,
+   "sd": 0,
+   "sc": 5500
+  },
+  {
+   "compte": "441010000",
+   "intitule": "IMPOTS SUR BENEFICE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 8828736,
+   "sd": 0,
+   "sc": 8828736
+  },
+  {
+   "compte": "44213000",
+   "intitule": "PATENTE ENTREPRISE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 1810000,
+   "sd": 0,
+   "sc": 1810000
+  },
+  {
+   "compte": "44260000",
+   "intitule": "DROITS DE DOUANE",
+   "od": 5120,
+   "oc": 5120,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44261000",
+   "intitule": "DROIT ET TAXES DOUANE",
+   "od": 11365445,
+   "oc": 11365445,
+   "md": 6069286462,
+   "mc": 6069286462,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44261200",
+   "intitule": "REDRESSEMENT DROIT DE DOUANES",
+   "od": 0,
+   "oc": 0,
+   "md": 49984255,
+   "mc": 49984255,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44262000",
+   "intitule": "SYDAM DOUANE",
+   "od": 0,
+   "oc": 0,
+   "md": 48901400,
+   "mc": 48901400,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44320000",
+   "intitule": "TVA/PRESTATIONS DE SERVICES",
+   "od": 45000,
+   "oc": 45000,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44600000",
+   "intitule": "ETAT, AUTRES TAXES SUR LE CA",
+   "od": 0,
+   "oc": 812500,
+   "md": 2981403,
+   "mc": 2168903,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "44710000",
+   "intitule": "IMPOTS GENERAL SUR LE REVENU",
+   "od": 0,
+   "oc": 13748065,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 13748065
+  },
+  {
+   "compte": "44720000",
+   "intitule": "IMPOTS SUR SALAIRE",
+   "od": 0,
+   "oc": 1365169,
+   "md": 0,
+   "mc": 5240430,
+   "sd": 0,
+   "sc": 6605599
+  },
+  {
+   "compte": "44730000",
+   "intitule": "CONTRIBUTION NATIONALE",
+   "od": 0,
+   "oc": 4486749,
+   "md": 0,
+   "mc": 0,
+   "sd": 0,
+   "sc": 4486749
+  },
+  {
+   "compte": "46211000",
+   "intitule": "COMPTE COURANT M.ABOUA YAO",
+   "od": 0,
+   "oc": 0,
+   "md": 2991204,
+   "mc": 14783509,
+   "sd": 0,
+   "sc": 11792305
+  },
+  {
+   "compte": "52110000",
+   "intitule": "ECOBANK",
+   "od": 16364777,
+   "oc": 0,
+   "md": 3343272088,
+   "mc": 3316584334,
+   "sd": 43052531,
+   "sc": 0
+  },
+  {
+   "compte": "521120000",
+   "intitule": "BANK ATLANTIQUE",
+   "od": 21401446,
+   "oc": 0,
+   "md": 3249048897,
+   "mc": 3263716230,
+   "sd": 6734113,
+   "sc": 0
+  },
+  {
+   "compte": "521121000",
+   "intitule": "BACI SEQUESTRE",
+   "od": 89955000,
+   "oc": 0,
+   "md": 0,
+   "mc": 0,
+   "sd": 89955000,
+   "sc": 0
+  },
+  {
+   "compte": "521130000",
+   "intitule": "GTBANK",
+   "od": 1151047,
+   "oc": 0,
+   "md": 1000000,
+   "mc": 1214988,
+   "sd": 936059,
+   "sc": 0
+  },
+  {
+   "compte": "57110000",
+   "intitule": "CAISSE",
+   "od": 496230,
+   "oc": 0,
+   "md": 3008816555,
+   "mc": 3005962405,
+   "sd": 3350380,
+   "sc": 0
+  },
+  {
+   "compte": "58500000",
+   "intitule": "VIREMENTS DE FONDS",
+   "od": 0,
+   "oc": 0,
+   "md": 2924890900,
+   "mc": 2924890900,
+   "sd": 0,
+   "sc": 0
+  },
+  {
+   "compte": "60420000",
+   "intitule": "CARBURANT",
+   "od": 0,
+   "oc": 0,
+   "md": 2840000,
+   "mc": 0,
+   "sd": 2840000,
+   "sc": 0
+  },
+  {
+   "compte": "60470000",
+   "intitule": "FOURNITURE DE BUREAU",
+   "od": 0,
+   "oc": 0,
+   "md": 145000,
+   "mc": 0,
+   "sd": 145000,
+   "sc": 0
+  },
+  {
+   "compte": "658800000",
+   "intitule": "AUTRES ACHATS",
+   "od": 0,
+   "oc": 0,
+   "md": 274300,
+   "mc": 0,
+   "sd": 274300,
+   "sc": 0
+  },
+  {
+   "compte": "60510000",
+   "intitule": "ACHAT EAU",
+   "od": 0,
+   "oc": 0,
+   "md": 248510,
+   "mc": 0,
+   "sd": 248510,
+   "sc": 0
+  },
+  {
+   "compte": "60520000",
+   "intitule": "ACHAT ELECTRICITE",
+   "od": 0,
+   "oc": 0,
+   "md": 1996845,
+   "mc": 0,
+   "sd": 1996845,
+   "sc": 0
+  },
+  {
+   "compte": "60530000",
+   "intitule": "FOURN NON STOCK-AUTRES ENERGIES",
+   "od": 0,
+   "oc": 0,
+   "md": 21000,
+   "mc": 0,
+   "sd": 21000,
+   "sc": 0
+  },
+  {
+   "compte": "60550000",
+   "intitule": "FOURNITURES DE BUREAU NON STOCKABLE",
+   "od": 0,
+   "oc": 0,
+   "md": 1156700,
+   "mc": 0,
+   "sd": 1156700,
+   "sc": 0
+  },
+  {
+   "compte": "60560000",
+   "intitule": "ACHATS DE PETIT MATERIEL ET OUTILLA",
+   "od": 0,
+   "oc": 0,
+   "md": 390381,
+   "mc": 0,
+   "sd": 390381,
+   "sc": 0
+  },
+  {
+   "compte": "61400000",
+   "intitule": "TRANSPORT DU PERSONNEL",
+   "od": 0,
+   "oc": 0,
+   "md": 2400000,
+   "mc": 0,
+   "sd": 2400000,
+   "sc": 0
+  },
+  {
+   "compte": "61830000",
+   "intitule": "TRANSPORTS ADMINISTRATIFS",
+   "od": 0,
+   "oc": 0,
+   "md": 179200,
+   "mc": 0,
+   "sd": 179200,
+   "sc": 0
+  },
+  {
+   "compte": "62220000",
+   "intitule": "LOCATIONS DE BATIMENTS",
+   "od": 0,
+   "oc": 0,
+   "md": 6000000,
+   "mc": 0,
+   "sd": 6000000,
+   "sc": 0
+  },
+  {
+   "compte": "62480000",
+   "intitule": "AUTRES ENTRETIENS ET REPARATIONS",
+   "od": 0,
+   "oc": 0,
+   "md": 819000,
+   "mc": 0,
+   "sd": 819000,
+   "sc": 0
+  },
+  {
+   "compte": "62580000",
+   "intitule": "AUTRES PRIMES D'ASSURANCES",
+   "od": 0,
+   "oc": 0,
+   "md": 8711302,
+   "mc": 0,
+   "sd": 8711302,
+   "sc": 0
+  },
+  {
+   "compte": "62880000",
+   "intitule": "AUTRES FRAIS DE TELEDCOMMUNICATION",
+   "od": 0,
+   "oc": 0,
+   "md": 1883484,
+   "mc": 0,
+   "sd": 1883484,
+   "sc": 0
+  },
+  {
+   "compte": "63180000",
+   "intitule": "AUTRES FRAIS BANCAIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 3585501,
+   "mc": 0,
+   "sd": 3585501,
+   "sc": 0
+  },
+  {
+   "compte": "63270000",
+   "intitule": "REMUNERATIONS DES TRANSITAIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 161899438,
+   "mc": 0,
+   "sd": 161899438,
+   "sc": 0
+  },
+  {
+   "compte": "63240000",
+   "intitule": "HONORAIRES DES PROFESSIONS REGLEMEN",
+   "od": 0,
+   "oc": 0,
+   "md": 3051000,
+   "mc": 0,
+   "sd": 3051000,
+   "sc": 0
+  },
+  {
+   "compte": "63280000",
+   "intitule": "DIVERS FRAIS",
+   "od": 0,
+   "oc": 0,
+   "md": 8782400,
+   "mc": 0,
+   "sd": 8782400,
+   "sc": 0
+  },
+  {
+   "compte": "64120000",
+   "intitule": "PATENTES",
+   "od": 0,
+   "oc": 0,
+   "md": 1810000,
+   "mc": 0,
+   "sd": 1810000,
+   "sc": 0
+  },
+  {
+   "compte": "64180000",
+   "intitule": "AUTRES IMPOTS ET TAXES DIRECTS",
+   "od": 0,
+   "oc": 0,
+   "md": 26857,
+   "mc": 0,
+   "sd": 26857,
+   "sc": 0
+  },
+  {
+   "compte": "64620000",
+   "intitule": "DROITS DE TIMBRE",
+   "od": 0,
+   "oc": 0,
+   "md": 7000,
+   "mc": 0,
+   "sd": 7000,
+   "sc": 0
+  },
+  {
+   "compte": "64630000",
+   "intitule": "TAXES SUR VEHICULE",
+   "od": 0,
+   "oc": 0,
+   "md": 24000,
+   "mc": 0,
+   "sd": 24000,
+   "sc": 0
+  },
+  {
+   "compte": "64640000",
+   "intitule": "VIGNETTE",
+   "od": 0,
+   "oc": 0,
+   "md": 35000,
+   "mc": 0,
+   "sd": 35000,
+   "sc": 0
+  },
+  {
+   "compte": "64680000",
+   "intitule": "AUTRES DROITS",
+   "od": 0,
+   "oc": 0,
+   "md": 157250,
+   "mc": 0,
+   "sd": 157250,
+   "sc": 0
+  },
+  {
+   "compte": "647800000",
+   "intitule": "PENALITE ET AMENDES FISCALES",
+   "od": 0,
+   "oc": 0,
+   "md": 4921934,
+   "mc": 0,
+   "sd": 4921934,
+   "sc": 0
+  },
+  {
+   "compte": "64780000",
+   "intitule": "AUTRES PENALITES ET AMENDES FISCALE",
+   "od": 0,
+   "oc": 0,
+   "md": 13701303,
+   "mc": 0,
+   "sd": 13701303,
+   "sc": 0
+  },
+  {
+   "compte": "64800000",
+   "intitule": "AUTRES IMPOTS ET TAXES",
+   "od": 0,
+   "oc": 0,
+   "md": 8034448,
+   "mc": 0,
+   "sd": 8034448,
+   "sc": 0
+  },
+  {
+   "compte": "658800000",
+   "intitule": "AUTRES CHARGES",
+   "od": 0,
+   "oc": 0,
+   "md": 760100,
+   "mc": 0,
+   "sd": 760100,
+   "sc": 0
+  },
+  {
+   "compte": "651100000",
+   "intitule": "PERTES SUR CREANCES CLIENTS ET AUT",
+   "od": 0,
+   "oc": 0,
+   "md": 20600,
+   "mc": 0,
+   "sd": 20600,
+   "sc": 0
+  },
+  {
+   "compte": "65150000",
+   "intitule": "PERTE",
+   "od": 0,
+   "oc": 0,
+   "md": 11794,
+   "mc": 0,
+   "sd": 11794,
+   "sc": 0
+  },
+  {
+   "compte": "66110000",
+   "intitule": "APPOINTEMENT SALAIRES ET COMMISSION",
+   "od": 0,
+   "oc": 0,
+   "md": 42712616,
+   "mc": 0,
+   "sd": 42712616,
+   "sc": 0
+  },
+  {
+   "compte": "66120000",
+   "intitule": "PRIMES ET  GRATIFICATION",
+   "od": 0,
+   "oc": 0,
+   "md": 2904394,
+   "mc": 0,
+   "sd": 2904394,
+   "sc": 0
+  },
+  {
+   "compte": "66121000",
+   "intitule": "PRIME A CARACTERE DE REMBOURSEMENT",
+   "od": 0,
+   "oc": 0,
+   "md": 687600,
+   "mc": 0,
+   "sd": 687600,
+   "sc": 0
+  },
+  {
+   "compte": "66130000",
+   "intitule": "CONGES PAYES",
+   "od": 0,
+   "oc": 0,
+   "md": 4789996,
+   "mc": 0,
+   "sd": 4789996,
+   "sc": 0
+  },
+  {
+   "compte": "66381000",
+   "intitule": "INDEMNITE DE TRANSPORT",
+   "od": 0,
+   "oc": 0,
+   "md": 3960000,
+   "mc": 0,
+   "sd": 3960000,
+   "sc": 0
+  },
+  {
+   "compte": "66410000",
+   "intitule": "COTISATIONS CNPS",
+   "od": 0,
+   "oc": 0,
+   "md": 9433727,
+   "mc": 0,
+   "sd": 9433727,
+   "sc": 0
+  },
+  {
+   "compte": "67450000",
+   "intitule": "INTERETS BANCAIRES ET OPERATION DE",
+   "od": 0,
+   "oc": 0,
+   "md": 1224957,
+   "mc": 0,
+   "sd": 1224957,
+   "sc": 0
+  },
+  {
+   "compte": "6745000",
+   "intitule": "INTERETS BANCAIRES ET SUR OPERATION",
+   "od": 0,
+   "oc": 0,
+   "md": 2267267,
+   "mc": 0,
+   "sd": 2267267,
+   "sc": 0
+  },
+  {
+   "compte": "681300000",
+   "intitule": "DOT AUX AMORT IMMO CORPOREL",
+   "od": 0,
+   "oc": 0,
+   "md": 2913270,
+   "mc": 0,
+   "sd": 2913270,
+   "sc": 0
+  },
+  {
+   "compte": "69110000",
+   "intitule": "DOTATION PROV DEPR POUR RISQUE ET C",
+   "od": 0,
+   "oc": 0,
+   "md": 3346380,
+   "mc": 0,
+   "sd": 3346380,
+   "sc": 0
+  },
+  {
+   "compte": "70612000",
+   "intitule": "CHIFFRE D'AFFAIRE NON TAXABLE",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 55004088,
+   "sd": 0,
+   "sc": 55004088
+  },
+  {
+   "compte": "70780000",
+   "intitule": "AUTRES PRODUITS ACCESSOIRES",
+   "od": 0,
+   "oc": 0,
+   "md": 0,
+   "mc": 259481536,
+   "sd": 0,
+   "sc": 259481536
+  },
+  {
+   "compte": "89500000",
+   "intitule": "IMPOTS SUR BENEFICE",
+   "od": 0,
+   "oc": 0,
+   "md": 8828736,
+   "mc": 0,
+   "sd": 8828736,
+   "sc": 0
+  }
+ ]
+}
