@@ -4063,7 +4063,7 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "3d9d095",
+    commit:  "2e1a73b",
     date:    "2026-08-03",
     propre:  false
 };
@@ -11046,8 +11046,8 @@ var PARAM_LEGENDE = 'sc<sub>N</sub> = solde créditeur exercice N &nbsp;•&nbsp
 /* ---------- Points de lecture à confirmer sur la planche papier ---------- */
 var PARAM_A_CONFIRMER = [
  ['AJ','Tranché','Formule « dont placement en Net » des Terrains lue « (2881 − 2928p) ». Le compte 2881 est <b>absent des trois feuilles de plan comptable du classeur DGI</b> (PCG, plan comptable, Plan des comptes), tout comme la racine 288 : c’est une erreur de lecture. Le seul compte du plan dont l’intitulé porte « placement » est <b>228 « Terrains-immeubles de placement »</b>, et 2928 « Dépréciation des autres terrains » existe bien. La formule se lit donc <b>(228 − 2928p)</b>. Sans incidence sur les états tant que l’entité n’a pas d’immeuble de placement — MTTCI n’a aucun compte 22.'],
- ['FB','Lecture','Fin de ligne : l’ordre des termes 4791 / 4793 / 4783 reste partiellement illisible. Non testable sur la liasse MTTCI (FB = 0).'],
- ['FI','Lecture','Renvoi <sup>11</sup> porté sur 485 dans une ligne qui concerne les incorporelles et corporelles. Non testable sur la liasse MTTCI (FI = 0).']
+ ['FB','Tranché','Planche relue : <code>+ sd 4781 − sc 4791 + sc 4793 − sd 4783</code>. La version antérieure omettait 4781, lisait 4791 au débit et inversait les signes de 4793 et 4783. Corrigé. Les quatre termes portent le renvoi <sup>4</sup> « quote-part liée aux HAO » : le moteur les prend en totalité, faute de règle de répartition. Non exercé par MTTCI (FB = 0).'],
+ ['FI','Tranché','Renvois décalés sur la planche : le <sup>11</sup> « relatif aux immobilisations financières » figure sur FI, qui traite des incorporelles et corporelles, et le <sup>12</sup> « à l’exception du compte 4856 » sur FJ, qui doit précisément le retenir. Même décalage qu’en FH. Le moteur exclut 4856 de FI : sans cela le préfixe 485 le compterait ici et de nouveau en FJ. Non exercé par MTTCI (FI = 0).']
 ];
 
 /* Divergences ASSUMÉES entre la lettre de la planche et le moteur,
@@ -11425,11 +11425,23 @@ function liasseGetTFTColumn(ex){
     T.FA = (R.XD + XF1 + TO2) - (RP3 + R.RQ + R.RS)
          + tSD(ex, ['654'], 'cur') - tSC(ex, ['754'], 'cur');
 
-    /* FB — Actif circulant HAO (signe -) */
+    /* FB — Actif circulant HAO (signe -)
+       Planche officielle, page 49 :
+         Net bilan actif_N [BA] − net bilan actif_(N-1) [BA]
+         + sd_(N-1) 485 − sd_N 485
+         + sd_N 4781 − sc_N 4791 + sc_N 4793 − sd_N 4783
+       Les quatre derniers termes portent le renvoi 4, « quote-part liée aux
+       HAO » : seule la fraction HAO de ces comptes d'écart de conversion
+       devrait entrer ici. Le moteur les prend en totalité, faute de règle de
+       répartition — même limite que les comptes suffixés « p » (voir P6).
+
+       La version antérieure omettait 4781, lisait 4791 en solde débiteur au
+       lieu de créditeur, et inversait les signes de 4793 et 4783. Sans effet
+       sur MTTCI, où FB = 0 : aucun compte 478/479 n'y figure. */
     var vFB = tPoste(ex, ['BA'], 'net', 'cur') - tPoste(ex, ['BA'], 'net', 'prev')
             + tSD(ex, ['485'], 'prev') - tSD(ex, ['485'], 'cur')
-            + tSD(ex, ['4791'], 'cur') - tSC(ex, ['4793'], 'cur')
-            + tSD(ex, ['4783'], 'cur');
+            + tSD(ex, ['4781'], 'cur') - tSC(ex, ['4791'], 'cur')
+            + tSC(ex, ['4793'], 'cur') - tSD(ex, ['4783'], 'cur');
     T.FB = vFB;   /* affichage en variation brute, conforme à la liasse DGI de référence */
 
     /* FC — Variation des stocks (signe -) */
@@ -11476,9 +11488,20 @@ function liasseGetTFTColumn(ex){
             + tMD(ex, ['26','27','4813'], ['2714','276']) - tMC(ex, ['106','154','4813']);
     T.FH = -vFH;
 
-    /* FI — Cessions d'immobilisations incorporelles et corporelles (signe +) */
+    /* FI — Cessions d'immobilisations incorporelles et corporelles (signe +)
+       Planche : sc_N [754, 821, 822] + mvt crédit_N [414, 485] − mvt débit_N [414, 485]
+
+       4856 « créances sur cessions d'immobilisations financières » est exclu :
+       sans cela il serait compté deux fois, ici par le préfixe 485 et à
+       nouveau en FJ, qui le nomme explicitement. Les renvois imprimés sur ces
+       deux lignes sont décalés — le 11 « relatif aux immobilisations
+       financières » figure sur FI, qui traite des incorporelles et des
+       corporelles, tandis que le 12 « à l'exception du compte 4856 » figure
+       sur FJ, qui doit précisément le retenir. Même décalage de renvoi qu'en
+       FH. L'exclusion retenue ici est la seule lecture qui évite le double
+       emploi ; non vérifiable sur MTTCI, où FI et FJ valent 0. */
     T.FI = tSC(ex, ['754','821','822'], 'cur')
-         + tMC(ex, ['414','485']) - tMD(ex, ['414','485']);
+         + tMC(ex, ['414','485'], ['4856']) - tMD(ex, ['414','485'], ['4856']);
 
     /* FJ — Cessions d'immobilisations financières (signe +) */
     T.FJ = tSC(ex, ['826'], 'cur') + tMC(ex, ['27','4856']) - tMD(ex, ['4856']);
@@ -12931,7 +12954,7 @@ function buildResultatLines(rN, rN1){
         ['602 (SD-SC)',              'Achats de matières premières et fournitures liées  (RC)', 'RC', 0],
         ['6032 (SD-SC)',             'Variation de stocks de matières premières  (RD)', 'RD', 0],
         ['604,605,608 (SD-SC)',      'Autres achats  (RE)', 'RE', 0],
-        ['6033,6038 (SD-SC)',        "Variation de stocks d'autres approvisionnements  (RF)", 'RF', 0],
+        ['6033 (SD-SC)',             "Variation de stocks d'autres approvisionnements  (RF)", 'RF', 0],
         ['61 (SD-SC)',               'Transports  (RG)', 'RG', 0],
         ['62,63 (SD-SC)',            'Services extérieurs  (RH)', 'RH', 0],
         ['64 (SD-SC)',               'Impôts et taxes  (RI)', 'RI', 0],
@@ -12939,8 +12962,8 @@ function buildResultatLines(rN, rN1){
         ['XB+TE..TI-RC..RJ',         'VALEUR AJOUTÉE  (XC)', 'XC', 1],
         ['66 (SD-SC)',               'Charges de personnel  (RK)', 'RK', 0],
         ['XC-RK',                    "EXCÉDENT BRUT D'EXPLOITATION (EBE)  (XD)", 'XD', 1],
-        ['791 (SC)',                 "Reprises d'amortissements, provisions et dépréciations  (TJ)", 'TJ', 0],
-        ['681,69 (SD)',              'Dotations aux amortissements, provisions et dépréciations  (RL)', 'RL', 0],
+        ['791,798,799 (SC)',         "Reprises d'amortissements, provisions et dépréciations  (TJ)", 'TJ', 0],
+        ['681,691 (SD)',             'Dotations aux amortissements, provisions et dépréciations  (RL)', 'RL', 0],
         ['XD+TJ-RL',                 "RÉSULTAT D'EXPLOITATION  (XE)", 'XE', 1],
         ['77 (SC)',                  'Revenus financiers et assimilés  (TK)', 'TK', 0],
         ['797 (SC)',                 'Reprises de provisions et dépréciations financières  (TL)', 'TL', 0],

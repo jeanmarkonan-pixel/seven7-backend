@@ -184,8 +184,8 @@ var PARAM_LEGENDE = 'sc<sub>N</sub> = solde créditeur exercice N &nbsp;•&nbsp
 /* ---------- Points de lecture à confirmer sur la planche papier ---------- */
 var PARAM_A_CONFIRMER = [
  ['AJ','Tranché','Formule « dont placement en Net » des Terrains lue « (2881 − 2928p) ». Le compte 2881 est <b>absent des trois feuilles de plan comptable du classeur DGI</b> (PCG, plan comptable, Plan des comptes), tout comme la racine 288 : c’est une erreur de lecture. Le seul compte du plan dont l’intitulé porte « placement » est <b>228 « Terrains-immeubles de placement »</b>, et 2928 « Dépréciation des autres terrains » existe bien. La formule se lit donc <b>(228 − 2928p)</b>. Sans incidence sur les états tant que l’entité n’a pas d’immeuble de placement — MTTCI n’a aucun compte 22.'],
- ['FB','Lecture','Fin de ligne : l’ordre des termes 4791 / 4793 / 4783 reste partiellement illisible. Non testable sur la liasse MTTCI (FB = 0).'],
- ['FI','Lecture','Renvoi <sup>11</sup> porté sur 485 dans une ligne qui concerne les incorporelles et corporelles. Non testable sur la liasse MTTCI (FI = 0).']
+ ['FB','Tranché','Planche relue : <code>+ sd 4781 − sc 4791 + sc 4793 − sd 4783</code>. La version antérieure omettait 4781, lisait 4791 au débit et inversait les signes de 4793 et 4783. Corrigé. Les quatre termes portent le renvoi <sup>4</sup> « quote-part liée aux HAO » : le moteur les prend en totalité, faute de règle de répartition. Non exercé par MTTCI (FB = 0).'],
+ ['FI','Tranché','Renvois décalés sur la planche : le <sup>11</sup> « relatif aux immobilisations financières » figure sur FI, qui traite des incorporelles et corporelles, et le <sup>12</sup> « à l’exception du compte 4856 » sur FJ, qui doit précisément le retenir. Même décalage qu’en FH. Le moteur exclut 4856 de FI : sans cela le préfixe 485 le compterait ici et de nouveau en FJ. Non exercé par MTTCI (FI = 0).']
 ];
 
 /* Divergences ASSUMÉES entre la lettre de la planche et le moteur,

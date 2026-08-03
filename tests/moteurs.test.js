@@ -110,6 +110,32 @@ test('RÉSULTAT — les alias consommés ailleurs dans l’application existent'
     assert.equal(arrondi(ancienN.RI), REF.resultat.RI[0]);
 });
 
+test('RÉSULTAT — les libellés affichés citent les comptes que le moteur additionne', () => {
+    // L'onglet RESULTAT affiche, en face de chaque ligne, les comptes qui la
+    // composent. C'est une piste d'audit : elle doit dire la vérité.
+    //
+    // Trois libellés avaient divergé du référentiel — RF annonçait 6033 et
+    // 6038 quand le moteur ne prend que 6033, TJ annonçait 791 seul pour
+    // 791/798/799, RL annonçait 69 pour 691. Erreurs d'affichage, sans effet
+    // sur les montants, mais un auditeur qui vérifie le rattachement d'un
+    // compte s'y serait fié.
+    const planche = {};
+    for(const l of JSON.parse(app.evaluer('JSON.stringify(PARAM_RESULTAT)')))
+        if(l.ref && l.cpt) planche[l.ref] = l.cpt;
+
+    const comptes = s => String(s).replace(/\s*\((SD|SC)[^)]*\)/, '')
+                                  .match(/\d+/g)?.sort().join(',') ?? '';
+
+    const ecarts = [];
+    for(const l of JSON.parse(app.evaluer('JSON.stringify(buildResultatLines({}, {}))'))){
+        const code = (l.lib.match(/\(([A-Z]{2})\)$/) || [])[1];
+        if(!code || !planche[code]) continue;
+        if(comptes(l.ref) !== comptes(planche[code]))
+            ecarts.push(`${code} : affiché « ${l.ref} », référentiel « ${planche[code]} »`);
+    }
+    assert.deepEqual(ecarts, []);
+});
+
 test('SEUILS — les agrégats de planification sont ceux de la liasse DGI', () => {
     // updateAllCalculations() dérive les seuils de signification de ces
     // trois agrégats. Un écart ici décale tout le programme de travail.

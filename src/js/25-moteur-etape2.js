@@ -281,11 +281,23 @@ function liasseGetTFTColumn(ex){
     T.FA = (R.XD + XF1 + TO2) - (RP3 + R.RQ + R.RS)
          + tSD(ex, ['654'], 'cur') - tSC(ex, ['754'], 'cur');
 
-    /* FB — Actif circulant HAO (signe -) */
+    /* FB — Actif circulant HAO (signe -)
+       Planche officielle, page 49 :
+         Net bilan actif_N [BA] − net bilan actif_(N-1) [BA]
+         + sd_(N-1) 485 − sd_N 485
+         + sd_N 4781 − sc_N 4791 + sc_N 4793 − sd_N 4783
+       Les quatre derniers termes portent le renvoi 4, « quote-part liée aux
+       HAO » : seule la fraction HAO de ces comptes d'écart de conversion
+       devrait entrer ici. Le moteur les prend en totalité, faute de règle de
+       répartition — même limite que les comptes suffixés « p » (voir P6).
+
+       La version antérieure omettait 4781, lisait 4791 en solde débiteur au
+       lieu de créditeur, et inversait les signes de 4793 et 4783. Sans effet
+       sur MTTCI, où FB = 0 : aucun compte 478/479 n'y figure. */
     var vFB = tPoste(ex, ['BA'], 'net', 'cur') - tPoste(ex, ['BA'], 'net', 'prev')
             + tSD(ex, ['485'], 'prev') - tSD(ex, ['485'], 'cur')
-            + tSD(ex, ['4791'], 'cur') - tSC(ex, ['4793'], 'cur')
-            + tSD(ex, ['4783'], 'cur');
+            + tSD(ex, ['4781'], 'cur') - tSC(ex, ['4791'], 'cur')
+            + tSC(ex, ['4793'], 'cur') - tSD(ex, ['4783'], 'cur');
     T.FB = vFB;   /* affichage en variation brute, conforme à la liasse DGI de référence */
 
     /* FC — Variation des stocks (signe -) */
@@ -332,9 +344,20 @@ function liasseGetTFTColumn(ex){
             + tMD(ex, ['26','27','4813'], ['2714','276']) - tMC(ex, ['106','154','4813']);
     T.FH = -vFH;
 
-    /* FI — Cessions d'immobilisations incorporelles et corporelles (signe +) */
+    /* FI — Cessions d'immobilisations incorporelles et corporelles (signe +)
+       Planche : sc_N [754, 821, 822] + mvt crédit_N [414, 485] − mvt débit_N [414, 485]
+
+       4856 « créances sur cessions d'immobilisations financières » est exclu :
+       sans cela il serait compté deux fois, ici par le préfixe 485 et à
+       nouveau en FJ, qui le nomme explicitement. Les renvois imprimés sur ces
+       deux lignes sont décalés — le 11 « relatif aux immobilisations
+       financières » figure sur FI, qui traite des incorporelles et des
+       corporelles, tandis que le 12 « à l'exception du compte 4856 » figure
+       sur FJ, qui doit précisément le retenir. Même décalage de renvoi qu'en
+       FH. L'exclusion retenue ici est la seule lecture qui évite le double
+       emploi ; non vérifiable sur MTTCI, où FI et FJ valent 0. */
     T.FI = tSC(ex, ['754','821','822'], 'cur')
-         + tMC(ex, ['414','485']) - tMD(ex, ['414','485']);
+         + tMC(ex, ['414','485'], ['4856']) - tMD(ex, ['414','485'], ['4856']);
 
     /* FJ — Cessions d'immobilisations financières (signe +) */
     T.FJ = tSC(ex, ['826'], 'cur') + tMC(ex, ['27','4856']) - tMD(ex, ['4856']);
