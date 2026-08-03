@@ -136,10 +136,12 @@ function progInstallerAssertions(){
             tr.insertBefore(th, c[POS] || null);
             continue;
         }
-        /* bandeau de cycle : une seule cellule fusionnée, on l'élargit */
-        if(tr.className.indexOf('prog-cycle-header') !== -1){
-            if(c[0] && c[0].hasAttribute('colspan'))
-                c[0].setAttribute('colspan', String(parseInt(c[0].getAttribute('colspan'), 10) + 1));
+        /* Toute ligne à cellule fusionnée s'élargit d'une colonne : les
+           bandeaux de cycle, mais aussi les lignes « 📎 Documents requis »
+           qui les suivent. En oublier une désaligne le tableau, et le
+           défaut ne se voit qu'à l'œil, sur la ligne concernée. */
+        if(c[0] && c[0].hasAttribute('colspan')){
+            c[0].setAttribute('colspan', String(parseInt(c[0].getAttribute('colspan'), 10) + 1));
             continue;
         }
         /* ligne de procédure */
