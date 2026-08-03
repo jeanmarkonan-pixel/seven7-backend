@@ -9,3 +9,4 @@ dist/assets/
 dist/index.html
 dist/manifest.json
 dist/sw.js
+.firebase/
