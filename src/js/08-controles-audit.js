@@ -148,6 +148,80 @@ function detecterAnomaliesIntitules(){
     return anomalies;
 }
 
+// ============================================================
+// BLOC 0ter — NUMÉROTATION HÉTÉROGÈNE
+// Un même compte écrit avec un nombre de zéros de fin différent
+// donne deux numéros distincts. Les totaux de la liasse restent
+// justes — le rattachement aux postes se fait par préfixe, qui
+// capte les deux écritures — mais tout ce qui travaille compte par
+// compte se trompe :
+//   · le rapprochement N / N-1 échoue, produisant un faux « compte
+//     nouveau » (T5) et un faux « compte disparu » (T7) ;
+//   · la revue des variations (§5) compare des soldes sans rapport.
+//
+// Observé sur la balance N-1 de MTTCI : 6745000 / 67450000, et
+// 647800000 / 64780000.
+// ============================================================
+function normaliserZerosFin(compte){
+    var m = String(compte === undefined || compte === null ? '' : compte).trim().match(/^\d+/);
+    if(!m) return null;
+    var d = m[0].replace(/0+$/, '');
+    return d === '' ? '0' : d;
+}
+
+function detecterNumerotationHeterogene(){
+    var anomalies = [];
+    var lib = {};
+    ['n', 'n1'].forEach(function(ex){
+        (balanceData[ex] || []).forEach(function(r){
+            lib[String(r.compte || '').trim()] = (r.intitule || '').trim();
+        });
+    });
+
+    // (a) collision au sein d'une même balance
+    ['n', 'n1'].forEach(function(ex){
+        var groupes = {};
+        (balanceData[ex] || []).forEach(function(r){
+            var k = normaliserZerosFin(r.compte);
+            if(k === null) return;
+            var c = String(r.compte || '').trim();
+            (groupes[k] = groupes[k] || {})[c] = true;
+        });
+        Object.keys(groupes).forEach(function(k){
+            var variantes = Object.keys(groupes[k]);
+            if(variantes.length < 2) return;
+            anomalies.push({
+                compte: variantes.join(' / '),
+                intitule: variantes.map(function(c){ return lib[c] || ''; }).join(' / '),
+                type: 'Le même compte est écrit de deux façons dans la balance ' +
+                      (ex === 'n' ? 'N' : 'N-1') + ' (zéros de fin différents) : leurs soldes sont ' +
+                      'comptés séparément dans la revue des variations, alors que la liasse les ' +
+                      'agrège. Harmoniser la numérotation à l’export.'
+            });
+        });
+    });
+
+    // (b) même compte, écriture différente entre N et N-1
+    var parCleN = {}, parCleN1 = {};
+    (balanceData.n  || []).forEach(function(r){ var k = normaliserZerosFin(r.compte); if(k !== null) (parCleN[k]  = parCleN[k]  || {})[String(r.compte).trim()] = true; });
+    (balanceData.n1 || []).forEach(function(r){ var k = normaliserZerosFin(r.compte); if(k !== null) (parCleN1[k] = parCleN1[k] || {})[String(r.compte).trim()] = true; });
+    Object.keys(parCleN).forEach(function(k){
+        if(!parCleN1[k]) return;
+        var enN = Object.keys(parCleN[k]), enN1 = Object.keys(parCleN1[k]);
+        var communs = enN.filter(function(c){ return parCleN1[k][c]; });
+        if(communs.length) return;   // au moins une écriture identique : rapprochement possible
+        anomalies.push({
+            compte: enN.join(' / ') + ' (N) vs ' + enN1.join(' / ') + ' (N-1)',
+            intitule: (lib[enN[0]] || '') + ' / ' + (lib[enN1[0]] || ''),
+            type: 'Le même compte est numéroté différemment en N et en N-1 (zéros de fin) : ' +
+                  'le rapprochement échoue et produit un faux « compte nouveau » et un faux ' +
+                  '« compte disparu ». Harmoniser la numérotation à l’export.'
+        });
+    });
+
+    return anomalies;
+}
+
 function renderContinuite(){
     var result = controlerContinuiteSoldes();
     var banner = document.getElementById('detection-continuite-banner');
@@ -169,10 +243,10 @@ function renderContinuite(){
 
     // Contrôle de cohérence des intitulés (indépendant du blocage de continuité,
     // car il porte sur la qualité des données, pas sur l'équilibre des soldes)
-    var anomIntitules = detecterAnomaliesIntitules();
+    var anomIntitules = detecterAnomaliesIntitules().concat(detecterNumerotationHeterogene());
     var htmlInt = '<tr><th>Compte(s)</th><th>Intitulé(s)</th><th>Anomalie</th></tr>';
     if(anomIntitules.length===0){
-        htmlInt += '<tr><td colspan="3" style="text-align:center;color:#27ae60;">✓ Aucune incohérence d\'intitulé détectée</td></tr>';
+        htmlInt += '<tr><td colspan="3" style="text-align:center;color:#27ae60;">✓ Aucune incohérence d\'intitulé ni de numérotation détectée</td></tr>';
     } else {
         anomIntitules.forEach(function(a){
             htmlInt += '<tr><td>'+esc(a.compte)+'</td><td>'+esc(a.intitule)+'</td><td class="status-danger">'+esc(a.type)+'</td></tr>';

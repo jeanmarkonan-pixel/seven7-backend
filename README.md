@@ -282,6 +282,8 @@ npm test
 | `parsenum.test.js` | 18 formats de montant, cas ambigu, aller-retour, garde sur `parseFloat` | 9 |
 | `cycles.test.js` | rattachement, sept tests par compte, contrôles croisés, risque, variations | 24 |
 | `dom.test.js` | jsdom : SDK, navigation, grille de balance, champs de montant, estampille | 8 |
+| `liasse-points-ouverts.test.js` | ce que MTTCI n’exerce PAS : AJ, FB, FI, comptes en quote-part | 7 |
+| `qualite-donnee.test.js` | doublons, numérotation hétérogène, déséquilibre des mouvements N-1 | 11 |
 
 Les trois fichiers que l'archive de reprise ne contenait pas ont été réécrits. Chacun a été
 vérifié en sens inverse : une régression injectée dans le code source doit faire virer les
@@ -430,19 +432,43 @@ L'invariant tenu par les tests n'est donc pas « tout compte est rattaché » ma
 non rattaché est soldé »**. Un `585` non soldé — virement en transit au 31/12 — ferait diverger
 la trésorerie de la balance de celle de la liasse, sans que rien ne le signale.
 
-### 6. Qualité de donnée observée sur MTTCI
+### ~~6. Qualité de donnée observée sur MTTCI~~ — *détectée, jamais corrigée d'office*
 
-À traiter comme des cas à gérer, pas comme des bugs :
+Le principe retenu est la **détection**, pas la normalisation silencieuse : fusionner deux
+numéros voisins reviendrait à décider à la place de l'auditeur que ce sont bien le même compte.
 
-- compte `63280000` présent **deux fois** dans la balance N, avec deux intitulés différents
-- numérotation hétérogène : `521120000` et `647800000` à 9 chiffres à côté de `52110000` et
-  `64780000` à 8 chiffres
-- balance N-1 déséquilibrée en mouvements : MD 26 019 437 107 contre MC 26 041 728 647,
-  soit 22 291 540 d'écart. Sans incidence sur les soldes, mais un TFT calculé sur N-1 serait
-  faux.
+`detecterNumerotationHeterogene()` est nouvelle et s'affiche dans le même tableau que les
+anomalies d'intitulés, onglet Détection des erreurs.
+
+**Un défaut que le README ne mentionnait pas.** La balance N-1 de MTTCI porte deux paires de
+comptes qui ne diffèrent que par un zéro de fin :
+
+| Écritures | Intitulés | Soldes |
+|---|---|---|
+| `647800000` / `64780000` | « PENALITE ET AMENDES FISCALES » / « AUTRES PENALITES… » | 4 921 934 et 13 701 303 |
+| `6745000` / `67450000` | « INTERETS BANCAIRES ET SUR OPERATION » / « …ET OPERATION DE » | 2 267 267 et 1 224 957 |
+
+Et `6745000` (N-1) correspond à `67450000` (N) : le rapprochement entre exercices échoue, ce
+qui produit **un faux « compte nouveau » et un faux « compte disparu »**.
+
+Les totaux de la liasse, eux, restent justes : le rattachement aux postes se fait par préfixe,
+qui capte les deux écritures. Les deux lignes `6745` totalisent exactement RM N-1 = 3 492 224.
+C'est ce qui rend le défaut invisible sans détection dédiée.
+
+**Les autres défauts, tous couverts par `tests/qualite-donnee.test.js` :**
+
+- `63280000` présent **deux fois** dans la balance N, `658800000` deux fois dans les deux
+  balances, chacun avec des intitulés différents — c'est ce qui les rend repérables. La revue
+  des variations les tague et **refuse de les rapprocher** : sans lever l'ambiguïté, mieux
+  vaut ne rien affirmer.
+- balance N-1 déséquilibrée en mouvements : MD 26 019 437 107 contre MC 26 041 728 647, soit
+  22 291 540 d'écart. Les soldes, eux, sont équilibrés des deux côtés — c'est pourquoi le
+  bilan et le résultat N-1 restent justes, et pourquoi seul un TFT calculé sur N-1 serait faux.
 - colonne N-1 du TFT du classeur de référence incohérente : ZH affiche 261 510 046 alors que
-  la ligne de contrôle donne 144 028 083. La colonne N, elle, se réconcilie parfaitement —
-  c'est sur elle que la validation a été calée.
+  la trésorerie de clôture N-1 vaut 144 028 083 — qui est le ZA de la colonne N. La colonne N
+  se réconcilie parfaitement : c'est sur elle que la validation a été calée. Un test affirme
+  cette incohérence et **échouera si les deux valeurs concordent un jour**, signal que la
+  colonne N-1 devient exploitable.
 
 ---
 
