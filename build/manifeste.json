@@ -29,6 +29,7 @@
     "28-format-montants.js",
     "29-memo-audit.js",
     "30-sdk-guard.js",
-    "31-moteur-unifie.js"
+    "31-moteur-unifie.js",
+    "32-assertions-risques.js"
   ]
 }

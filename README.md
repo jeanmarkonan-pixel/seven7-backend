@@ -134,6 +134,27 @@ pourcentage), rattachement au poste de liasse, commentaire auditeur persistant e
 Les numéros de compte en doublon dans la balance N reçoivent un tag et ne sont rattachés à
 aucun solde N-1 — le rapprochement est impossible sans lever l'ambiguïté.
 
+### Onglet Cartographie des risques → assertions et secteurs *(nouveau)*
+
+`src/js/32-assertions-risques.js` relie trois choses qui ne l'étaient pas : un cycle
+comptable, un risque inhérent, et l'assertion d'audit que la diligence proposée couvre.
+
+- **`ASSERTIONS`** — les treize assertions de la NEP / ISA 315, en trois catégories :
+  flux d'opérations (réalité, exhaustivité, mesure, séparation des exercices,
+  classification), soldes de comptes (existence, droits et obligations, exhaustivité,
+  évaluation et imputation), présentation et informations fournies.
+- **`RISQUES_CYCLE`** — 43 risques inhérents communs, répartis sur les onze cycles.
+- **`SECTEURS`** — 14 secteurs d'activité, 68 risques qui leur sont propres. Le risque
+  inhérent s'apprécie **avant** prise en compte du contrôle interne : c'est la nature de
+  l'activité qui l'engendre.
+
+L'onglet propose un sélecteur de secteur et un bouton qui remplit le tableau : risques de
+cycle, plus ceux du secteur retenu, classés par gravité décroissante, chacun avec sa cotation
+de départ et la diligence recommandée. La cotation est **un point de départ documenté, pas un
+verdict** — l'auditeur la révise et l'application conserve sa saisie.
+
+Un panneau dépliant affiche les treize assertions et leur définition.
+
 ### Onglet Synthèse → mémo de travail *(refondu)*
 
 Dix sections en mise en page de note de cabinet, quatre alimentées automatiquement :
@@ -286,6 +307,7 @@ npm test
 | `dom.test.js` | jsdom : SDK, navigation, grille de balance, champs de montant, estampille | 8 |
 | `liasse-points-ouverts.test.js` | ce que MTTCI n’exerce PAS : AJ, FB, FI, comptes en quote-part | 7 |
 | `qualite-donnee.test.js` | doublons, numérotation hétérogène, déséquilibre des mouvements N-1 | 11 |
+| `assertions-risques.test.js` | intégrité du référentiel d'assertions et de risques, génération de la cartographie | 17 |
 
 Les trois fichiers que l'archive de reprise ne contenait pas ont été réécrits. Chacun a été
 vérifié en sens inverse : une régression injectée dans le code source doit faire virer les

@@ -971,14 +971,27 @@
             <div class="card" data-tab="risques">
                 <h2>🎯 CARTOGRAPHIE DES RISQUES</h2>
                 <div class="alert alert-info">Identifiez, évaluez et priorisez les risques par cycle. Niveau = Probabilité × Impact (1-5). ≥15 Élevé · ≥8 Moyen · sinon Faible.</div>
+
+                <!-- Génération de la cartographie à partir de la bibliothèque de risques
+                     inhérents (module 32) : risques communs à tout cycle, plus ceux propres
+                     au secteur d'activité. -->
+                <div class="card" style="background:#f7f9fc; border:1px solid #dde5f0; padding:12px 14px; margin-bottom:14px;">
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label for="risq-secteur"><strong>Secteur d'activité de l'entité</strong></label>
+                        <select id="risq-secteur" onchange="updateStatus('risques')" style="max-width:520px;"></select>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="risqGenerer()">⚙️ Générer la cartographie</button>
+                    <button type="button" class="btn" onclick="risqGenerer(true)">➕ Ajouter sans effacer</button>
+                    <button type="button" class="btn" onclick="risqAfficherAssertions()">📖 Les assertions d'audit</button>
+                    <p id="risq-info" style="font-size:12px; color:#666; margin:10px 0 0;"></p>
+                    <div id="risq-assertions" style="display:none; margin-top:12px;"></div>
+                </div>
+
                 <table id="table-risques">
-                    <tr><th>Cycle / Section</th><th>Risque identifié</th><th>Probabilité (1-5)</th><th>Impact (1-5)</th><th>Score</th><th>Niveau</th><th>Priorité / Réponse d'audit</th><th></th></tr>
-                    <tr><td><input type="text" value="Capitaux propres" onchange="updateStatus('risques')"></td><td><input type="text" value="Risque d'existence" onchange="updateStatus('risques')"></td><td><input type="number" min="1" max="5" value="3" onchange="calcRisk(this)"></td><td><input type="number" min="1" max="5" value="4" onchange="calcRisk(this)"></td><td class="calculated risk-score">12</td><td class="calculated risk-level">Élevé</td><td><input type="text" onchange="updateStatus('risques')"></td><td><button class="btn btn-danger" onclick="deleteRow(this)">✕</button></td></tr>
-                    <tr><td><input type="text" value="Créances clients" onchange="updateStatus('risques')"></td><td><input type="text" value="Risque de réalisation" onchange="updateStatus('risques')"></td><td><input type="number" min="1" max="5" value="4" onchange="calcRisk(this)"></td><td><input type="number" min="1" max="5" value="5" onchange="calcRisk(this)"></td><td class="calculated risk-score">20</td><td class="calculated risk-level">Élevé</td><td><input type="text" onchange="updateStatus('risques')"></td><td><button class="btn btn-danger" onclick="deleteRow(this)">✕</button></td></tr>
-                    <tr><td><input type="text" value="Stocks" onchange="updateStatus('risques')"></td><td><input type="text" value="Risque d'évaluation" onchange="updateStatus('risques')"></td><td><input type="number" min="1" max="5" value="2" onchange="calcRisk(this)"></td><td><input type="number" min="1" max="5" value="3" onchange="calcRisk(this)"></td><td class="calculated risk-score">6</td><td class="calculated risk-level">Faible</td><td><input type="text" onchange="updateStatus('risques')"></td><td><button class="btn btn-danger" onclick="deleteRow(this)">✕</button></td></tr>
-                    <tr><td><input type="text" value="Trésorerie" onchange="updateStatus('risques')"></td><td><input type="text" value="Risque d'existence" onchange="updateStatus('risques')"></td><td><input type="number" min="1" max="5" value="2" onchange="calcRisk(this)"></td><td><input type="number" min="1" max="5" value="4" onchange="calcRisk(this)"></td><td class="calculated risk-score">8</td><td class="calculated risk-level">Moyen</td><td><input type="text" onchange="updateStatus('risques')"></td><td><button class="btn btn-danger" onclick="deleteRow(this)">✕</button></td></tr>
+                    <tr><th>Origine</th><th>Cycle / Section</th><th>Risque identifié</th><th>Assertions couvertes</th><th>Probabilité (1-5)</th><th>Impact (1-5)</th><th>Score</th><th>Niveau</th><th>Priorité / Réponse d'audit</th><th></th></tr>
+                    <tr id="risq-vide"><td colspan="10" style="text-align:center; color:#888; padding:18px;">Choisissez le secteur d'activité ci-dessus, puis cliquez sur <strong>Générer la cartographie</strong>.</td></tr>
                 </table>
-                <button class="btn btn-primary" onclick="addRow('table-risques', ['text','text','number15-risk','number15-risk','calculated','calculated','text'])">+ Ajouter un risque</button>
+                <button class="btn btn-primary" onclick="addRow('table-risques', ['text','text','text','text','number15-risk','number15-risk','calculated','calculated','text'])">+ Ajouter un risque</button>
             </div>
         </div>
 
