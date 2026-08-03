@@ -8,8 +8,14 @@
     ],
     "headers": [
       {
-        "//": "La page et le service worker ne doivent JAMAIS être resservis depuis un cache sans revalidation : c'est ce qui ferait travailler un cabinet sur un moteur comptable périmé.",
-        "source": "/index.html",
+        "//": "La page et le service worker ne doivent JAMAIS être resservis depuis un cache sans revalidation : c'est ce qui ferait travailler un cabinet sur un moteur comptable périmé. Le motif doit couvrir la racine ET le nom de fichier : une visite sur « / » n'est pas une requête sur « /index.html », et Firebase appliquerait alors son défaut de max-age=3600.",
+        "source": "**/*.@(html)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
         ]
