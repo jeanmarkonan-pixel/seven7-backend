@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "estampiller": "node build/version.mjs",
     "build": "node build/build.mjs",
     "verifier": "node build/build.mjs --verifier",
     "emulateur": "firebase emulators:start --only firestore --project seven7-audit-test",

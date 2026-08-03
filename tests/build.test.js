@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { RACINE, cheminApplication, blocsScript } from './harness.js';
+import { RACINE, cheminApplication, blocsScript, chargerApplication } from './harness.js';
 
 test('BUILD — le livrable correspond exactement à ses sources', () => {
     // Échoue si dist/ a été édité à la main, ou si un fichier de src/js
@@ -58,6 +58,36 @@ test('BUILD — plus aucune fonction n’est déclarée deux fois', () => {
     const doublons = [...vues].filter(([, f]) => f.length > 1)
                               .map(([n, f]) => `${n} (${f.join(', ')})`);
     assert.deepEqual(doublons, [], 'fonctions déclarées plusieurs fois');
+});
+
+test('VERSION — le livrable porte une estampille cohérente avec package.json', () => {
+    // Un cabinet client doit pouvoir dire quelle version il utilise.
+    const app = chargerApplication();
+    const v = app.sandbox.SEVEN7_VERSION;
+    assert.ok(v, 'SEVEN7_VERSION absent — lancez `npm run estampiller` puis `npm run build`');
+
+    const pkg = JSON.parse(fs.readFileSync(path.join(RACINE, 'package.json'), 'utf8'));
+    assert.equal(v.version, pkg.version, 'estampille périmée par rapport à package.json');
+    assert.match(v.commit, /^[0-9a-f]{7,}$|^hors-depot$/, 'hash de commit mal formé');
+    assert.match(v.date, /^\d{4}-\d{2}-\d{2}$/, 'date mal formée');
+    assert.equal(typeof v.propre, 'boolean');
+});
+
+test('VERSION — l’estampille est lisible et signale un livrable bricolé', () => {
+    const app = chargerApplication();
+    const texte = app.evaluer('seven7VersionTexte()');
+    const v = app.sandbox.SEVEN7_VERSION;
+    assert.ok(texte.startsWith('v' + v.version + ' · ' + v.commit), `format inattendu : ${texte}`);
+    assert.equal(texte.includes('+modifié'), !v.propre,
+        'le drapeau « modifié » doit apparaître si et seulement si le dépôt était sale');
+});
+
+test('VERSION — l’application a bien où afficher l’estampille', () => {
+    // seven7AfficherVersion() écrit dans cet élément ; s'il disparaît du
+    // squelette, l'estampille devient invisible sans que rien ne le signale.
+    const html = fs.readFileSync(cheminApplication(), 'utf8');
+    assert.equal(html.split('id="seven7-version"').length - 1, 1,
+        'élément #seven7-version absent ou en double dans src/app.html');
 });
 
 test('BUILD — le livrable garde ses quatre blocs de script inline', () => {

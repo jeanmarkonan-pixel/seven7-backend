@@ -1,5 +1,6 @@
 {
   "NOYAU": [
+    "00-version.js",
     "01-noyau.js",
     "02-balances-modele.js",
     "03-balances-table.js",
