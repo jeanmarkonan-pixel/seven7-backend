@@ -97,12 +97,14 @@ test('SDK — un SDK complet ne déclenche aucun bandeau', () => {
     d.window.close();
 });
 
-test('NAVIGATION — les 34 onglets sont répartis sur trois phases', async () => {
+test('NAVIGATION — les 46 onglets sont répartis sur trois phases', async () => {
     const d = await domPret();
     const w = d.window;
 
     assert.ok(Array.isArray(w.TABS), 'TABS absent');
-    assert.equal(w.TABS.length, 34, 'le nombre d’onglets a changé');
+    // 34 onglets d'origine, plus les 12 sections de diligences normatives
+    // installées par le module 33 au chargement du document.
+    assert.equal(w.TABS.length, 46, 'le nombre d’onglets a changé');
 
     const phases = [...new Set(w.TABS.map(t => t.phase))].sort();
     assert.deepEqual(phases, [1, 2, 3], 'les onglets doivent couvrir trois phases, une par rangée');

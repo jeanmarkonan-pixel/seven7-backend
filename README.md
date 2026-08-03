@@ -134,6 +134,39 @@ pourcentage), rattachement au poste de liasse, commentaire auditeur persistant e
 Les numéros de compte en doublon dans la balance N reçoivent un tag et ne sont rattachés à
 aucun solde N-1 — le rapprochement est impossible sans lever l'ambiguïté.
 
+### Diligences normatives de la mission *(nouveau)*
+
+`src/js/33-diligences-normatives.js` ajoute **12 onglets, 136 diligences**. L'application
+couvrait le contrôle des comptes ; elle ne couvrait pas ce que les normes imposent *autour*
+de ce contrôle, et dont plusieurs sont d'ordre public en zone OHADA.
+
+| Phase | Onglet | Base normative |
+|---|---|---|
+| 1 | Acceptation & Indépendance | ISA 210 · 220 · AUSCGIE art. 694 s. |
+| 1 | Risque de Fraude | ISA 240 · 315 |
+| 1 | Continuité & Procédure d'alerte | ISA 570 · AUSCGIE art. 150 s. |
+| 2 | Parties liées & Conventions réglementées | ISA 550 · AUSCGIE art. 438 s. |
+| 2 | Test des écritures comptables | ISA 240 §32 |
+| 2 | Estimations comptables | ISA 540 |
+| 2 | Événements postérieurs | ISA 560 |
+| 3 | Anomalies non corrigées | ISA 450 · 320 |
+| 3 | Lettre d'affirmation | ISA 580 |
+| 3 | Vérifications spécifiques & obligations légales | AUSCGIE |
+| 3 | Communication à la gouvernance | ISA 260 · 265 |
+| 3 | Revue & documentation du dossier | ISA 220 · 230 |
+
+Les onglets sont **injectés au chargement** — panneau, bouton de navigation et déclaration
+dans `TABS` — plutôt qu'écrits en dur douze fois. L'installation est idempotente et ne touche
+jamais un panneau déjà rempli, pour que le contenu restauré depuis Firestore prime sur le
+gabarit vierge.
+
+**Les références d'articles AUSCGIE sont des repères de travail, pas une source de droit.**
+Elles doivent être confrontées à la version en vigueur de l'Acte uniforme avant usage en
+mission.
+
+Ces onglets suivent le contrôle d'accès par collaborateur comme les autres : l'administrateur
+les voit tous, les collaborateurs doivent recevoir l'accès via « Gérer l'équipe ».
+
 ### Onglet Cartographie des risques → assertions et secteurs *(nouveau)*
 
 `src/js/32-assertions-risques.js` relie trois choses qui ne l'étaient pas : un cycle
@@ -307,7 +340,8 @@ npm test
 | `dom.test.js` | jsdom : SDK, navigation, grille de balance, champs de montant, estampille | 8 |
 | `liasse-points-ouverts.test.js` | ce que MTTCI n’exerce PAS : AJ, FB, FI, comptes en quote-part | 7 |
 | `qualite-donnee.test.js` | doublons, numérotation hétérogène, déséquilibre des mouvements N-1 | 11 |
-| `assertions-risques.test.js` | intégrité du référentiel d'assertions et de risques, génération de la cartographie | 17 |
+| `assertions-risques.test.js` | intégrité du référentiel d’assertions et de risques, génération de la cartographie | 17 |
+| `diligences.test.js` | référentiel des diligences normatives, rendu et installation des onglets | 16 |
 
 Les trois fichiers que l'archive de reprise ne contenait pas ont été réécrits. Chacun a été
 vérifié en sens inverse : une régression injectée dans le code source doit faire virer les
