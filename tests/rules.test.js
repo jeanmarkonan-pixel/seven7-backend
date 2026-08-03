@@ -124,7 +124,7 @@ test('MIGRATION — le pont ne se rejoue pas sur un dossier déjà migré', opts
         .update({ password: 'peu-importe', authUid: B }));
 });
 
-test('CABINETS — le compteur ne monte que de 1 et jamais au-delà du plafond', opts, async () => {
+test('CABINETS — le compteur ne monte que de 1 à la fois', opts, async () => {
     await semer();
     await assertSucceeds(db(A).doc('seven7_cabinets/CAB1').update({ dossiersCreesAnnee: 4 }));
     await semer();
@@ -141,7 +141,27 @@ test('CABINETS — le palier et le plafond ne sont pas modifiables depuis le cli
     await assertFails(db(A).doc('seven7_cabinets/CAB2').set({ palier: 'PRO', plafondDossiers: 50 }));
 });
 
-test('PUBLIC — la vitrine est lisible sans compte, mais pas modifiable', opts, async () => {
+test('CABINETS — le plafond d’abonnement est opposable', opts, async () => {
+    // ⚠ CE TEST ÉCHOUE CONTRE LES RÈGLES DÉPLOYÉES — c'est voulu.
+    //
+    // La version antérieure portait, entre le contrôle d'incrément et le
+    // hasOnly, une troisième condition :
+    //
+    //     && request.resource.data.dossiersCreesAnnee <= resource.data.plafondDossiers
+    //
+    // Elle a disparu de la version en production. Le compteur peut donc
+    // désormais dépasser le plafond du cabinet, un cran à la fois : la
+    // limite commerciale de l'abonnement n'est plus opposable côté serveur.
+    //
+    // Ne pas neutraliser ce test : rétablir la condition dans les règles.
+    await env.withSecurityRulesDisabled(async ctx => {
+        await ctx.firestore().doc('seven7_cabinets/CABPLEIN')
+            .set({ palier: 'PRO', plafondDossiers: 10, dossiersCreesAnnee: 10 });
+    });
+    await assertFails(db(A).doc('seven7_cabinets/CABPLEIN').update({ dossiersCreesAnnee: 11 }));
+});
+
+test('PUBLIC — la vitrine se lit un dossier à la fois, sans compte', opts, async () => {
     await semer();
     await assertSucceeds(db(null).doc('seven7_dossiers_public/dossierA').get());
     await assertFails(db(null).doc('seven7_dossiers_public/dossierA').set({ nomCabinet: 'Faux' }));
@@ -149,27 +169,42 @@ test('PUBLIC — la vitrine est lisible sans compte, mais pas modifiable', opts,
     await assertSucceeds(db(A).doc('seven7_dossiers_public/dossierA').set({ nomCabinet: 'Cabinet A' }));
 });
 
-/* --- Trous constatés dans les règles -------------------------------
-   Ces deux tests décrivent l'état ACTUEL, pas l'état souhaitable : les
-   collections existent dans le code mais aucune règle ne les couvre,
-   donc Firestore refuse tout, y compris au propriétaire légitime.
-   Quand les règles seront complétées, ces tests devront être inversés
-   en assertSucceeds — c'est le signal que le trou est bouché. */
-
-test('TROU — la messagerie est refusée même à son propriétaire', opts, async () => {
+test('PUBLIC — seul le compte du cabinet peut lister ses dossiers', opts, async () => {
+    // `allow get` reste public pour l'écran de connexion, mais `allow list`
+    // est réservé au compte Auth du cabinet : sans cette distinction, un
+    // tiers énumérerait la clientèle entière.
     await semer();
-    await assertFails(db(A).doc('seven7_dossiers/dossierA/conversations/dm__admin__x').get());
-    await assertFails(db(A).doc('seven7_dossiers/dossierA/conversations/dm__admin__x/messages/m1').get());
-    await assertFails(db(A).collection('seven7_dossiers/dossierA/conversations/dm__admin__x/messages')
-        .add({ text: 'bonjour' }));
-    // et un tiers n'y accède pas davantage : le trou ne fuit pas, il bloque
-    await assertFails(db(B).doc('seven7_dossiers/dossierA/conversations/dm__admin__x').get());
+    await assertFails(db(null).collection('seven7_dossiers_public').get());
+    await assertFails(db(A).collection('seven7_dossiers_public').get());
+
+    const cab = env.authenticatedContext('uid-cabinet-CAB1',
+        { email: 'cabinet-cab1@seven7-audit.local' }).firestore();
+    await assertSucceeds(cab.collection('seven7_dossiers_public')
+        .where('cabinetId', '==', 'CAB1').get());
+    // le compte d'un cabinet ne liste pas les dossiers d'un autre
+    await assertFails(cab.collection('seven7_dossiers_public')
+        .where('cabinetId', '==', 'CAB2').get());
 });
 
-test('TROU — la sous-collection cabinets des statistiques est refusée', opts, async () => {
+/* --- Trous refermés depuis --------------------------------------------
+   Ces deux collections existaient dans le code sans règle correspondante,
+   donc refusées à tous, y compris au propriétaire. La version déployée le
+   03/08/2026 les couvre. Les tests le vérifient désormais dans le bon sens. */
+
+test('MESSAGERIE — accessible à son propriétaire, refusée aux autres', opts, async () => {
     await semer();
-    // seven7_usage_stats/{jour} est couvert, mais les règles ne descendent
-    // pas d'elles-mêmes aux sous-collections.
+    await assertSucceeds(db(A).doc('seven7_dossiers/dossierA/conversations/dm__admin__x').get());
+    await assertSucceeds(db(A).doc('seven7_dossiers/dossierA/conversations/dm__admin__x/messages/m1').get());
+    await assertSucceeds(db(A).collection('seven7_dossiers/dossierA/conversations/dm__admin__x/messages')
+        .add({ text: 'bonjour' }));
+    await assertFails(db(B).doc('seven7_dossiers/dossierA/conversations/dm__admin__x').get());
+    await assertFails(db(B).doc('seven7_dossiers/dossierA/conversations/dm__admin__x/messages/m1').get());
+    await assertFails(db(null).doc('seven7_dossiers/dossierA/conversations/dm__admin__x').get());
+});
+
+test('STATISTIQUES — la sous-collection cabinets est couverte', opts, async () => {
+    await semer();
     await assertSucceeds(db(A).doc('seven7_usage_stats/2026-08-03').set({ lectures: 1 }));
-    await assertFails(db(A).doc('seven7_usage_stats/2026-08-03/cabinets/CAB1').set({ lectures: 1 }));
+    await assertSucceeds(db(A).doc('seven7_usage_stats/2026-08-03/cabinets/CAB1').set({ lectures: 1 }));
+    await assertFails(db(null).doc('seven7_usage_stats/2026-08-03/cabinets/CAB1').set({ lectures: 1 }));
 });

@@ -1,68 +1,42 @@
+// Règles déployées sur le projet seven7-audit, relevées dans la console
+// Firebase le 03/08/2026. C'est désormais la référence : toute évolution
+// se fait ici, puis `firebase deploy --only firestore:rules`.
+//
+// Couverture : tests/rules.test.js (émulateur Firestore, JDK requis).
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Petit document PUBLIC (nom du cabinet uniquement, aucune donnée confidentielle) affiché
-    // sur l'écran de connexion avant même la saisie du mot de passe.
     match /seven7_dossiers_public/{dossier} {
-      allow read: if true;
+      allow get: if true;
+      // Nouveau : lister TOUS les dossiers d'un cabinet (tableau de bord cabinet) n'est
+      // autorisé qu'au compte Auth de CE cabinet précis (email fictif cabinet-{code}@...,
+      // même mécanisme que les comptes Auth par dossier). La lecture d'un dossier UN PAR UN
+      // (allow get, ci-dessus) reste publique et inchangée, pour ne rien casser côté écran
+      // de connexion (affichage du nom de cabinet avant authentification).
+      allow list: if request.auth != null
+        && resource.data.cabinetId is string
+        && request.auth.token.email == 'cabinet-' + resource.data.cabinetId.lower() + '@seven7-audit.local';
       allow write: if request.auth != null
         && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
     }
-
     match /seven7_usage_stats/{jour} {
       allow read, write: if request.auth != null;
+      match /cabinets/{cabinetId} {
+        allow read, write: if request.auth != null;
+      }
     }
-
-    // ---- Cabinets clients : palier d'abonnement et compteur de dossiers ----
-    // Aucune donnée confidentielle ici (juste nom de palier, plafond, compteur) : lecture
-    // publique nécessaire car elle a lieu AVANT que le compte Firebase Auth du nouveau
-    // dossier soit créé, donc avant toute authentification possible.
-    match /seven7_cabinets/{codeCabinet} {
-      allow read: if true;
-
-      // Seul le compteur "dossiersCreesAnnee" peut être modifié depuis le client, uniquement
-      // par palier de +1 exactement, et JAMAIS au-delà du plafond du cabinet. Le palier et le
-      // plafond eux-mêmes ne sont modifiables que depuis la console Firebase (aucune règle
-      // "allow write" générique ci-dessous ne les autorise).
-      allow update: if request.auth != null
-        && request.resource.data.dossiersCreesAnnee == resource.data.dossiersCreesAnnee + 1
-        && request.resource.data.dossiersCreesAnnee <= resource.data.plafondDossiers
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dossiersCreesAnnee']);
-
-      // Création et suppression de cabinets réservées à la console Firebase (aucune règle
-      // "allow create/delete" ci-dessus : refusées par défaut depuis le client).
-    }
-
     match /seven7_dossiers/{dossier} {
-
-      // Accès normal (lecture, mise à jour, suppression) : réservé au compte Firebase
-      // Authentication propre à CE dossier (un compte email+mot de passe créé par dossier,
-      // voir collabJoin/index.html). Impossible pour un autre dossier / un tiers non connecté
-      // d'accéder à ces données, même en interrogeant Firestore directement.
       allow read, update, delete: if request.auth != null
         && resource.data.authUid == request.auth.uid;
-
-      // Création d'un nouveau dossier : autorisée uniquement si le créateur inscrit son PROPRE
-      // uid Firebase Auth (celui du compte qu'il vient de créer pour ce dossier) comme authUid.
       allow create: if request.auth != null
         && request.resource.data.authUid == request.auth.uid;
-
-      // ---- Pont de migration pour les dossiers créés AVANT cette mise à jour de sécurité ----
-      // Ces anciens dossiers n'ont pas encore de champ "authUid" et stockent encore un mot de
-      // passe en clair. Cette règle autorise UNE SEULE écriture, qui ne fait qu'ajouter le champ
-      // "authUid", et seulement si la valeur de "password" resoumise par le client est IDENTIQUE
-      // à celle déjà stockée. Comme la règle de lecture ci-dessus interdit tout accès en lecture
-      // à un dossier non migré, la seule façon d'obtenir cette égalité est de connaître déjà le
-      // vrai mot de passe du dossier (saisi par l'utilisateur) : cela équivaut à une vérification
-      // de mot de passe côté serveur, sans jamais exposer sa valeur au client.
       allow update: if request.auth != null
         && !('authUid' in resource.data)
         && resource.data.password is string
         && request.resource.data.password == resource.data.password
         && request.resource.data.authUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authUid']);
-
       match /tabs/{tabId} {
         allow read, write: if request.auth != null
           && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
@@ -83,6 +57,20 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
         }
       }
+      match /conversations/{convId} {
+        allow read, write: if request.auth != null
+          && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
+        match /messages/{msgId} {
+          allow read, write: if request.auth != null
+            && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
+        }
+      }
+    }
+    match /seven7_cabinets/{cabinetId} {
+      allow read: if true;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dossiersCreesAnnee'])
+        && request.resource.data.dossiersCreesAnnee == resource.data.dossiersCreesAnnee + 1;
     }
   }
 }
