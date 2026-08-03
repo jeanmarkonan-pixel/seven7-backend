@@ -155,7 +155,12 @@ chiffres → milliers, sauf lecture décimale stricte (taux et pourcentages, sec
 fins acceptés.
 
 Les 19 `parseFloat` de l'application ont été remplacés par `parseNum`. Il n'en subsiste
-qu'un, à l'intérieur même de `parseNum`.
+qu'un, à l'intérieur même de `parseNum` — et un test échoue si un autre réapparaît.
+
+Attention en lisant `parsenum.test.js` : le test d'aller-retour sur les montants réels de
+MTTCI **ne protège pas** contre cette régression. `fmt()` sépare les milliers par des espaces
+fines, que même un parseur naïf élimine. Seuls les cas portant des points la détectent. La
+brèche était sur les données *importées*, pas sur l'affichage interne.
 
 ### Affichage des montants *(corrigé)*
 
@@ -273,8 +278,8 @@ npm test
 | `liasse.test.js` | bilan, résultat, TFT contre la liasse DGI ; équilibres ; régressions historiques | 10 |
 | `moteurs.test.js` | réconciliation des deux moteurs comptables, seuils, contrat des libellés | 8 |
 | `build.test.js` | dist/ conforme à src/, manifeste, code mort, estampille de version | 8 |
-| `rules.test.js` | règles Firestore sur émulateur : isolation, migration, plafond, messagerie | 14 |
-| `parsenum.test.js` | *à écrire* — 18 formats de montant, cas ambigu, aller-retour | — |
+| `rules.test.js` | règles Firestore sur émulateur : isolation, migration, plafond, messagerie | 15 |
+| `parsenum.test.js` | 18 formats de montant, cas ambigu, aller-retour, garde sur `parseFloat` | 9 |
 | `cycles.test.js` | *à écrire* — rattachement, couverture, contrôles croisés, risque, mémo | — |
 | `dom.test.js` | *à écrire* — jsdom : SDK, navigation, grille de balance, champs de montant | — |
 
