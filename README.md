@@ -280,7 +280,7 @@ npm test
 | `build.test.js` | dist/ conforme à src/, manifeste, code mort, estampille de version | 8 |
 | `rules.test.js` | règles Firestore sur émulateur : isolation, migration, plafond, messagerie | 15 |
 | `parsenum.test.js` | 18 formats de montant, cas ambigu, aller-retour, garde sur `parseFloat` | 9 |
-| `cycles.test.js` | *à écrire* — rattachement, couverture, contrôles croisés, risque, mémo | — |
+| `cycles.test.js` | rattachement, sept tests par compte, contrôles croisés, risque, variations | 24 |
 | `dom.test.js` | *à écrire* — jsdom : SDK, navigation, grille de balance, champs de montant | — |
 
 Sans JDK, les 14 tests de règles se sautent au lieu d'échouer : la suite principale reste
@@ -400,6 +400,17 @@ Six comptes portant le suffixe « p » (quote-part) sont revendiqués par deux p
 2818p, 2918p, 2919p, 2939p, 2949p. Le moteur les rattache en totalité au premier poste
 déclaré et le signale. Si un client utilise ces comptes, une règle de répartition manuelle
 sera nécessaire.
+
+### Comptes hors liasse — invariant à connaître
+
+Un compte que `paramResolve` ne sait pas rattacher **n'entre dans aucun poste du bilan**. Sur
+MTTCI, seul `585` « Virements de fonds » est dans ce cas, et c'est légitime : un compte de
+virement interne n'a pas de poste de liasse, il doit être soldé à la clôture. Ses 6,4 milliards
+de mouvements s'annulent exactement.
+
+L'invariant tenu par les tests n'est donc pas « tout compte est rattaché » mais **« tout compte
+non rattaché est soldé »**. Un `585` non soldé — virement en transit au 31/12 — ferait diverger
+la trésorerie de la balance de celle de la liasse, sans que rien ne le signale.
 
 ### 6. Qualité de donnée observée sur MTTCI
 
