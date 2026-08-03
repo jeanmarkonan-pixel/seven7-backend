@@ -252,15 +252,25 @@ function runCycles(){
     var resultats = {}, tot = {CRITIQUE:0, MAJEUR:0, MINEUR:0};
     CYCLES.forEach(function(c){
         var lignes = [];
+        /* Seuil propre au cycle (ISA 320) : la saisie de l'auditeur dans
+           l'onglet Planification, sinon la proposition déduite du risque,
+           sinon le seuil général saisi au-dessus du tableau. Un seuil
+           saisi explicitement ici, dans le champ « cyc-seuil », reste
+           prioritaire — c'est un réglage ponctuel de lecture. */
+        var seuilCycle = seuil;
+        if(!(champSeuil && champSeuil.value !== '') && typeof seuilDuCycle === 'function'){
+            var sc = seuilDuCycle(c.id);
+            if(sc > 0) seuilCycle = Math.max(sc, 1);
+        }
         parCycle[c.id].forEach(function(r){
             var r1 = mapN1[cycKey(r.compte)];
-            var anos = cycTestsCompte(r, r1, seuil, c.id, mapN);
+            var anos = cycTestsCompte(r, r1, seuilCycle, c.id, mapN);
             if(anos.length){
                 lignes.push({compte:r.compte, intitule:r.intitule, sN:cycSolde(r),
                              sN1:r1 ? cycSolde(r1) : 0, anos:anos});
             }
         });
-        lignes = lignes.concat(cycDisparus(c.id, mapN, rowsN1, seuil));
+        lignes = lignes.concat(cycDisparus(c.id, mapN, rowsN1, seuilCycle));
         lignes.forEach(function(l){ l.anos.forEach(function(a){ tot[a.g]++; }); });
         lignes.sort(function(x, y){
             var gx = Math.min.apply(null, x.anos.map(function(a){ return CYC_GRAV[a.g].o; }));
