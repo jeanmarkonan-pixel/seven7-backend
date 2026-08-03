@@ -281,9 +281,13 @@ npm test
 | `rules.test.js` | règles Firestore sur émulateur : isolation, migration, plafond, messagerie | 15 |
 | `parsenum.test.js` | 18 formats de montant, cas ambigu, aller-retour, garde sur `parseFloat` | 9 |
 | `cycles.test.js` | rattachement, sept tests par compte, contrôles croisés, risque, variations | 24 |
-| `dom.test.js` | *à écrire* — jsdom : SDK, navigation, grille de balance, champs de montant | — |
+| `dom.test.js` | jsdom : SDK, navigation, grille de balance, champs de montant, estampille | 8 |
 
-Sans JDK, les 14 tests de règles se sautent au lieu d'échouer : la suite principale reste
+Les trois fichiers que l'archive de reprise ne contenait pas ont été réécrits. Chacun a été
+vérifié en sens inverse : une régression injectée dans le code source doit faire virer les
+tests au rouge, et leur retrait au vert.
+
+Sans JDK, les 15 tests de règles se sautent au lieu d'échouer : la suite principale reste
 exploitable sur un poste sans Java.
 
 Les trois derniers fichiers n'ont jamais été retrouvés : l'archive de reprise ne contenait
