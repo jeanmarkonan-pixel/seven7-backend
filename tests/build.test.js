@@ -83,11 +83,17 @@ test('VERSION — l’estampille est lisible et signale un livrable bricolé', (
 });
 
 test('VERSION — l’application a bien où afficher l’estampille', () => {
-    // seven7AfficherVersion() écrit dans cet élément ; s'il disparaît du
-    // squelette, l'estampille devient invisible sans que rien ne le signale.
+    // seven7AfficherVersion() écrit dans ces deux éléments ; si l'un
+    // disparaît du squelette, l'estampille devient invisible là où on la
+    // cherche, sans que rien ne le signale.
+    //
+    // L'écran de connexion en porte une copie parce qu'il recouvre
+    // l'en-tête : un client bloqué avant authentification doit pouvoir
+    // lire sa version pour l'indiquer au support.
     const html = fs.readFileSync(cheminApplication(), 'utf8');
-    assert.equal(html.split('id="seven7-version"').length - 1, 1,
-        'élément #seven7-version absent ou en double dans src/app.html');
+    for(const id of ['seven7-version', 'seven7-version-lock'])
+        assert.equal(html.split(`id="${id}"`).length - 1, 1,
+            `élément #${id} absent ou en double dans src/app.html`);
 });
 
 test('BUILD — le livrable garde ses quatre blocs de script inline', () => {

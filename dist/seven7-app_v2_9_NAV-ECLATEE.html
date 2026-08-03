@@ -231,7 +231,11 @@
                 <text x="210" y="233" font-family="DejaVu Sans, Arial, sans-serif" font-size="120" font-weight="700" fill="#FFFFFF" text-anchor="middle">S7</text>
             </svg>
             <h2 id="lock-screen-cabinet-name" style="margin:0 0 2px; color:#1B2A4A; font-size:19px; letter-spacing:1px;">SEVEN7 AUDIT</h2>
-            <p style="margin:0 0 18px; color:#666; font-size:13px;">Chaque cabinet dispose de son propre dossier et de son propre mot de passe.</p>
+            <p style="margin:0 0 4px; color:#666; font-size:13px;">Chaque cabinet dispose de son propre dossier et de son propre mot de passe.</p>
+            <!-- Estampille reprise sur l'écran de connexion : c'est là qu'un client
+                 bloqué appelle le support, avant d'avoir pu accéder à l'en-tête. -->
+            <p id="seven7-version-lock" title="Version de l'application"
+               style="margin:0 0 16px; color:#999; font-size:10px; letter-spacing:.3px;"></p>
             <p id="lock-error" style="color:#c0392b; font-size:12px; margin:0 0 10px; display:none;"></p>
             <div style="text-align:left;">
                 <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">Votre prénom</label>
@@ -4059,9 +4063,9 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "e78b574",
+    commit:  "c59837d",
     date:    "2026-08-03",
-    propre:  true
+    propre:  false
 };
 
 /* Rend l'estampille lisible : "v2.9.0 · bc32dcb · 2026-08-03".
@@ -4074,8 +4078,12 @@ function seven7VersionTexte(){
 }
 
 function seven7AfficherVersion(){
-    var el = document.getElementById('seven7-version');
-    if(el) el.textContent = seven7VersionTexte();
+    var texte = seven7VersionTexte();
+    var ids = ['seven7-version', 'seven7-version-lock'];
+    for(var i = 0; i < ids.length; i++){
+        var el = document.getElementById(ids[i]);
+        if(el) el.textContent = texte;
+    }
 }
 
 /* Auto-branchement : ce module est le premier du bundle, le DOM n'existe

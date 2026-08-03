@@ -68,8 +68,12 @@ function seven7VersionTexte(){
 }
 
 function seven7AfficherVersion(){
-    var el = document.getElementById('seven7-version');
-    if(el) el.textContent = seven7VersionTexte();
+    var texte = seven7VersionTexte();
+    var ids = ['seven7-version', 'seven7-version-lock'];
+    for(var i = 0; i < ids.length; i++){
+        var el = document.getElementById(ids[i]);
+        if(el) el.textContent = texte;
+    }
 }
 
 /* Auto-branchement : ce module est le premier du bundle, le DOM n'existe
