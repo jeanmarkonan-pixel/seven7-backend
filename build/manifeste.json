@@ -31,6 +31,9 @@
     "30-sdk-guard.js",
     "31-moteur-unifie.js",
     "32-assertions-risques.js",
-    "33-diligences-normatives.js"
+    "33-diligences-normatives.js",
+    "34-programme-assertions.js",
+    "35-constatations.js",
+    "36-faits-exercice.js"
   ]
 }
