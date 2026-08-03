@@ -12,14 +12,16 @@ calée sur une liasse fiscale réelle. Il est destiné à être repris dans Clau
 ## 1. Démarrage
 
 ```bash
-npm install          # @firebase/rules-unit-testing, pour les tests de règles
-npm test             # 40 tests — doivent tous passer avant toute livraison
+npm install          # jsdom et @firebase/rules-unit-testing
+npm test             # 100 tests — doivent tous passer avant toute livraison
 npm run build        # régénère dist/ à partir de src/ (voir §5)
 npm run verifier     # dist/ est-il bien à jour de ses sources ?
+npm run estampiller  # fige la version affichée dans l'application (voir §7)
 npm run emulateur    # émulateur Firestore, pour les tests de règles (JDK requis)
 ```
 
-`jsdom` ne sera nécessaire que le jour où les tests d'interface seront écrits (voir §7).
+85 tests tournent sans rien d'autre que Node et jsdom. Les 15 tests de règles Firestore
+demandent un JDK ; sans lui ils se sautent proprement, au lieu de faire échouer la suite.
 
 Le dépôt Git existe depuis le commit `7a27faf`. **Ne modifiez jamais `dist/` à la main** :
 c'est un produit de construction, et un test échoue si le fichier ne correspond plus à ses
