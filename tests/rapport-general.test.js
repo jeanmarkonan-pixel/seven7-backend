@@ -30,7 +30,9 @@ function rapport(champs){
     };
     const tout = Object.assign({}, defauts, champs || {});
     for(const [id, v] of Object.entries(tout)) S.document.getElementById(id).value = v;
-    S.document.getElementById('rap-continuite').checked = !!(champs && champs.continuite);
+    S.document.getElementById('rap-continuite').checked     = !!(champs && champs.continuite);
+    S.document.getElementById('rap-questions-cles').checked  = !!(champs && champs.questionsCles);
+    S.document.getElementById('rap-autres-infos').checked    = !(champs && champs.sansAutresInfos);
     return S.rapGenerer();
 }
 
@@ -39,15 +41,56 @@ test('STRUCTURE — les sections normatives sont toutes présentes', () => {
     // non conforme, et rien à la relecture ne le signale.
     const t = rapport();
     for(const section of [
-        'RAPPORT GÉNÉRAL DU COMMISSAIRE AUX COMPTES',
+        'RAPPORT DU COMMISSAIRE AUX COMPTES, AUDITEUR INDÉPENDANT',
         'Aux actionnaires de',
         'OPINION',
         "FONDEMENT DE L'OPINION",
         'RESPONSABILITÉS DE LA DIRECTION',
-        'RESPONSABILITÉS DU COMMISSAIRE AUX COMPTES',
+        "RESPONSABILITÉS DU COMMISSAIRE AUX COMPTES POUR L'AUDIT DES ÉTATS FINANCIERS",
         'VÉRIFICATIONS SPÉCIFIQUES',
         'Commissaire aux comptes',
     ]) assert.ok(t.includes(section), `section absente : « ${section} »`);
+});
+
+test('ISA 700 §21 — le titre indique clairement l’indépendance de l’auditeur', () => {
+    // Exigence explicite : « un titre qui indique clairement qu'il s'agit
+    // du rapport d'un auditeur indépendant ». Le seul intitulé « rapport
+    // du commissaire aux comptes » n'y suffit pas.
+    assert.match(rapport().split('\n')[0], /INDÉPENDANT/);
+});
+
+test('ISA 700 §28 — le fondement porte les quatre éléments exigés', () => {
+    const t = rapport();
+    assert.match(t, /Normes internationales d'audit \(ISA\)/,
+        'a) la référence aux normes appliquées');
+    assert.match(t, /section « Responsabilités du commissaire aux comptes pour l'audit des états financiers »/,
+        'b) le renvoi à la section des responsabilités');
+    assert.match(t, /Nous sommes indépendants de la société/, 'c) la déclaration d’indépendance');
+    // apostrophe droite ou typographique : le test porte sur le fond, pas sur la saisie
+    assert.match(t, /en République de Côte d['’]Ivoire/,
+        'c) le PAYS d’où émanent les règles de déontologie — exigé, souvent oublié');
+    assert.match(t, /suffisants et appropriés pour fonder notre opinion/,
+        'd) l’appréciation des éléments probants');
+});
+
+test('ISA 720 — la section « Autres informations » est produite par défaut', () => {
+    // En pratique OHADA, il y a toujours un rapport de gestion : la section
+    // s'impose donc presque systématiquement.
+    const t = rapport();
+    assert.ok(t.includes('AUTRES INFORMATIONS'));
+    assert.match(t, /La responsabilité des autres informations incombe à la direction/);
+    assert.match(t, /n'exprimons aucune forme d'assurance/,
+        'le rapport doit dire qu’il ne couvre PAS ces informations');
+    assert.ok(t.indexOf('AUTRES INFORMATIONS') < t.indexOf('RESPONSABILITÉS DE LA DIRECTION'),
+        'la section se place avant les responsabilités');
+});
+
+test('ISA 701 — les questions clés ne sont produites que si demandées', () => {
+    assert.ok(!rapport().includes("QUESTIONS CLÉS DE L'AUDIT"));
+    const t = rapport({ questionsCles: true });
+    assert.ok(t.includes("QUESTIONS CLÉS DE L'AUDIT"));
+    assert.match(t, /nous n'exprimons pas une opinion distincte sur ces questions/,
+        'la réserve d’usage doit figurer, sans quoi la section se lirait comme des opinions');
 });
 
 test('STRUCTURE — l’ordre des sections suit la norme', () => {

@@ -4108,7 +4108,7 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "ee31730",
+    commit:  "5f604a7",
     date:    "2026-08-03",
     propre:  false
 };
@@ -15155,7 +15155,10 @@ function rapGenerer(){
                + (d.capital ? ' au capital de ' + fmt(parseNum(d.capital)) + ' FCFA' : '');
 
     var t = [];
-    t.push("RAPPORT GÉNÉRAL DU COMMISSAIRE AUX COMPTES");
+    /* ISA 700 (révisée) §21 : le titre doit indiquer CLAIREMENT qu'il
+       s'agit du rapport d'un auditeur indépendant. Le seul intitulé
+       « rapport du commissaire aux comptes » n'y suffit pas. */
+    t.push("RAPPORT DU COMMISSAIRE AUX COMPTES, AUDITEUR INDÉPENDANT");
     t.push("SUR LES ÉTATS FINANCIERS DE SYNTHÈSE ANNUELS");
     t.push("Exercice clos le " + (d.cloture || '[date de clôture]'));
     t.push("");
@@ -15192,13 +15195,20 @@ function rapGenerer(){
             });
         }
     }
-    t.push("Nous avons effectué notre audit selon les normes d'audit applicables. "
-         + "Les responsabilités qui nous incombent en vertu de ces normes sont décrites dans la section "
-         + "« Responsabilités du commissaire aux comptes relatives à l'audit des états financiers » du présent rapport.");
+    /* ISA 700 (révisée) §28 : quatre éléments exigés — la référence aux
+       Normes internationales d'audit, le renvoi à la section des
+       responsabilités, la déclaration d'indépendance AVEC LE PAYS d'où
+       émanent les règles de déontologie, et l'appréciation du caractère
+       suffisant des éléments probants. */
+    t.push("Nous avons effectué notre audit selon les Normes internationales d'audit (ISA). "
+         + "Les responsabilités qui nous incombent en vertu de ces normes sont décrites de façon "
+         + "plus détaillée dans la section « Responsabilités du commissaire aux comptes pour l'audit "
+         + "des états financiers » du présent rapport.");
     t.push("Nous sommes indépendants de la société conformément aux règles de déontologie applicables "
-         + "à notre profession, et nous nous sommes acquittés des autres responsabilités éthiques qui "
-         + "nous incombent. Nous estimons que les éléments probants que nous avons obtenus sont "
-         + (op.code === 'IMPOSS' ? "insuffisants" : "suffisants et appropriés")
+         + "à l'audit des états financiers en " + (rapVal('rap-pays') || 'République de Côte d\'Ivoire')
+         + ", et nous nous sommes acquittés des autres responsabilités déontologiques qui nous "
+         + "incombent selon ces règles. Nous estimons que les éléments probants que nous avons obtenus "
+         + "sont " + (op.code === 'IMPOSS' ? "insuffisants" : "suffisants et appropriés")
          + " pour fonder notre opinion.");
     t.push("");
 
@@ -15211,6 +15221,40 @@ function rapGenerer(){
              + "Notre opinion n'est pas modifiée à l'égard de ce point.");
         t.push("[Préciser les faits : capitaux propres, trésorerie prévisionnelle, soutien des associés, "
              + "procédure d'alerte engagée le cas échéant.]");
+        t.push("");
+    }
+
+    /* 3 bis. Questions clés de l'audit — ISA 700 §30, renvoi à ISA 701.
+       Obligatoire pour l'audit d'une entité cotée ; facultatif sinon. */
+    if(document.getElementById('rap-questions-cles') && document.getElementById('rap-questions-cles').checked){
+        t.push("QUESTIONS CLÉS DE L'AUDIT");
+        t.push("Les questions clés de l'audit sont les questions qui, selon notre jugement "
+             + "professionnel, ont été les plus importantes dans l'audit des états financiers de "
+             + "l'exercice. Ces questions ont été traitées dans le contexte de notre audit des états "
+             + "financiers pris dans leur ensemble et aux fins de la formation de notre opinion sur "
+             + "ceux-ci ; nous n'exprimons pas une opinion distincte sur ces questions.");
+        t.push("[Pour chaque question retenue : l'exposer, indiquer pourquoi elle a compté parmi les "
+             + "plus importantes, et décrire la façon dont elle a été traitée dans l'audit.]");
+        t.push("");
+    }
+
+    /* 3 ter. Autres informations — ISA 700 §32, renvoi à ISA 720 (révisée).
+       En pratique OHADA, le rapport de gestion entre dans ce champ. */
+    if(document.getElementById('rap-autres-infos') && document.getElementById('rap-autres-infos').checked){
+        t.push("AUTRES INFORMATIONS");
+        t.push("La responsabilité des autres informations incombe à la direction. Les autres "
+             + "informations se composent du rapport de gestion et des documents adressés aux "
+             + "actionnaires, mais ne comprennent pas les états financiers ni notre rapport sur "
+             + "ces états.");
+        t.push("Notre opinion sur les états financiers ne s'étend pas aux autres informations et nous "
+             + "n'exprimons aucune forme d'assurance que ce soit sur ces informations.");
+        t.push("En ce qui concerne notre audit des états financiers, notre responsabilité consiste à "
+             + "lire les autres informations et, ce faisant, à apprécier s'il existe une incohérence "
+             + "significative entre celles-ci et les états financiers ou la connaissance que nous "
+             + "avons acquise au cours de l'audit, ou encore si les autres informations semblent "
+             + "autrement comporter une anomalie significative.");
+        t.push("[Si une anomalie significative est relevée dans les autres informations : la décrire "
+             + "ici. À défaut, indiquer qu'il n'y a rien à signaler.]");
         t.push("");
     }
 
@@ -15236,7 +15280,11 @@ function rapGenerer(){
     t.push("");
 
     /* 6. Responsabilités du commissaire aux comptes */
-    t.push("RESPONSABILITÉS DU COMMISSAIRE AUX COMPTES RELATIVES À L'AUDIT DES ÉTATS FINANCIERS");
+    /* ISA 700 §37 : intitulé « Responsabilités de l'auditeur pour l'audit
+       des états financiers ». La désignation est adaptée au contexte
+       juridique — ici le commissaire aux comptes — mais la formulation
+       doit rester reconnaissable, et le renvoi du fondement pointe dessus. */
+    t.push("RESPONSABILITÉS DU COMMISSAIRE AUX COMPTES POUR L'AUDIT DES ÉTATS FINANCIERS");
     t.push("Notre objectif est d'obtenir l'assurance raisonnable que les états financiers pris dans "
          + "leur ensemble ne comportent pas d'anomalies significatives, que celles-ci proviennent de "
          + "fraudes ou résultent d'erreurs, et de délivrer un rapport contenant notre opinion. "
@@ -15352,9 +15400,21 @@ function rapInstaller(){
     + '<div class="form-group" style="max-width:240px;"><label>Nom du fichier</label>'
     + '<input type="text" id="rap-nom" data-fmt="non" value="Rapport_general"></div>'
     + '</div>'
+    + '<div class="form-row">'
+    + '<div class="form-group" style="max-width:340px;"><label>Pays des règles de déontologie</label>'
+    + '<input type="text" id="rap-pays" data-fmt="non" value="République de Côte d’Ivoire" onchange="rapAfficher()"></div>'
+    + '</div>'
     + '<div class="form-group"><label>'
     + '<input type="checkbox" id="rap-continuite" onchange="rapAfficher()"> '
     + 'Incertitude significative liée à la continuité d’exploitation</label></div>'
+    + '<div class="form-group"><label>'
+    + '<input type="checkbox" id="rap-questions-cles" onchange="rapAfficher()"> '
+    + 'Questions clés de l’audit <span style="font-weight:normal; color:#777;">— '
+    + 'obligatoire pour une entité cotée (ISA 701)</span></label></div>'
+    + '<div class="form-group"><label>'
+    + '<input type="checkbox" id="rap-autres-infos" checked onchange="rapAfficher()"> '
+    + 'Autres informations <span style="font-weight:normal; color:#777;">— '
+    + 'rapport de gestion et documents aux actionnaires (ISA 720)</span></label></div>'
     + '<div class="form-group"><label>Observation à porter au rapport (facultatif)</label>'
     + '<textarea id="rap-observation" rows="2" onchange="rapAfficher()"></textarea></div>'
     + '<p id="rap-info" style="font-size:12px; color:#666;"></p>'
