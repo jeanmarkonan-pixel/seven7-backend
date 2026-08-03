@@ -388,22 +388,36 @@ changeraient à chaque construction et `npm run verifier` ne pourrait plus rien 
 livrable construit sur un dépôt modifié porte un suffixe `+modifié` visible dans
 l'application.
 
-### 5. Points ouverts sur la liasse
+### ~~5. Points ouverts sur la liasse~~ — *un tranché, deux toujours ouverts*
 
-Trois lectures de la planche papier restent à confirmer, signalées dans le bloc P6 de
-l'onglet PARAMÈTRES :
+**AJ est tranché, sur pièce.** La planche portait « dont placement en Net ……… (2881 − 2928p) ».
+Le compte `2881` est **absent des trois feuilles de plan comptable du classeur DGI** (`PCG`,
+`plan comptable`, `Plan des comptes`), la racine `288` aussi. Le seul compte du plan dont
+l'intitulé porte « placement » est `228` **« Terrains-immeubles de placement »**, et
+`2928` « Dépréciation des autres terrains » existe bien. La formule se lit donc **(228 − 2928p)**.
+Corrigé dans la planche affichée et dans le bloc P6.
 
-- **AJ** — « dont placement en Net (2881 − 2928p) » : le compte 2881 n'existe pas au PCG.
-  Sans incidence tant que l'entité n'a pas d'immeuble de placement.
-- **FB** — ordre et sens des comptes 4791 / 4793 / 4783 en fin de ligne. Non testable sur
-  MTTCI, où FB = 0.
-- **FI** — renvoi ¹¹ porté sur 485 dans une ligne qui concerne les incorporelles et
-  corporelles. Non testable sur MTTCI, où FI = 0.
+**FB et FI restent ouverts** : ce sont des illisibilités de la planche papier, que ni le
+classeur ni le code ne permettent de lever.
 
-Six comptes portant le suffixe « p » (quote-part) sont revendiqués par deux postes :
-2818p, 2918p, 2919p, 2939p, 2949p. Le moteur les rattache en totalité au premier poste
-déclaré et le signale. Si un client utilise ces comptes, une règle de répartition manuelle
-sera nécessaire.
+Ces trois points, comme les six comptes en quote-part, **ne sont pas exercés par MTTCI** :
+aucun compte `22`, `228`, `485`, `479`, ni aucun `2818` / `2918` / `2919` / `2939` / `2949` /
+`2928`. FB, FI, AJ, AK et BA sortent tous à zéro.
+
+Une suite verte ne les valide donc pas. `tests/liasse-points-ouverts.test.js` affirme cette
+absence de couverture, et **échouera le jour où un jeu d'essai les exercera** — ce sera le
+signal qu'on peut enfin trancher.
+
+**Ce qui reste à lever, et comment :**
+
+- **FB** — ordre et sens des comptes `4791` / `4793` / `4783` en fin de ligne. Demande une
+  relecture de la planche officielle, ou une liasse de référence dont FB ≠ 0.
+- **FI** — renvoi ¹¹ porté sur `485` dans une ligne qui concerne les incorporelles et
+  corporelles. Même remarque.
+- **Six comptes en quote-part** — `2818p`, `2918p`, `2919p`, `2939p`, `2949p`, `2928p` sont
+  revendiqués chacun par deux postes. Le moteur ignore le suffixe « p » et les rattache **en
+  totalité au premier poste déclaré**, de façon déterministe quel que soit le sens du solde.
+  Si un client les utilise, une règle de répartition manuelle sera nécessaire.
 
 ### Comptes hors liasse — invariant à connaître
 

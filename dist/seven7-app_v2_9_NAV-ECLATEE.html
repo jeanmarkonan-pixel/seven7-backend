@@ -4063,9 +4063,9 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "5be11cb",
+    commit:  "c263664",
     date:    "2026-08-03",
-    propre:  true
+    propre:  false
 };
 
 /* Rend l'estampille lisible : "v2.9.0 · bc32dcb · 2026-08-03".
@@ -10803,7 +10803,7 @@ var PARAM_BILAN_ACTIF = [
  {ref:'AG', lib:'Fonds commercial et droit au bail', brut:'215, 216', amort:'2815, 2816, 2915, 2916'},
  {ref:'AH', lib:'Autres immobilisations incorporelles', brut:'217, 218 (sauf 2181), 2198', amort:'2817, 2818p, 2917, 2918p, 2919p'},
  {ref:'AI', lib:'IMMOBILISATIONS CORPORELLES', tot:true, brut:'', amort:''},
- {ref:'AJ', lib:'Terrains<br><span class="param-sub">dont placement en Net ……… (2881 − 2928p)</span>', brut:'22', amort:'282, 292', flag:'AJ'},
+ {ref:'AJ', lib:'Terrains<br><span class="param-sub">dont placement en Net ……… (228 − 2928p)</span>', brut:'22', amort:'282, 292', flag:'AJ'},
  {ref:'AK', lib:'Bâtiments<br><span class="param-sub">dont placement en Net ……… (2315 + 2325 − 2831p − 2832p)</span>', brut:'231, 232, 233, 237, 2391', amort:'2831, 2832, 2833, 2837, 2931, 2932, 2933, 2937, 2939p'},
  {ref:'AL', lib:'Aménagements, agencements et installations', brut:'234, 235, 238, 2392, 2393', amort:'2834, 2835, 2838, 2934, 2935, 2938, 2939p'},
  {ref:'AM', lib:'Matériel, mobilier et actifs biologiques', brut:'24 (sauf 245 et 2495)', amort:'284 (sauf 2845), 294 (sauf 2945, 2949p)'},
@@ -10971,7 +10971,7 @@ var PARAM_LEGENDE = 'sc<sub>N</sub> = solde créditeur exercice N &nbsp;•&nbsp
 
 /* ---------- Points de lecture à confirmer sur la planche papier ---------- */
 var PARAM_A_CONFIRMER = [
- ['AJ','Lecture','Formule « dont placement en Net » des Terrains lue « (2881 − 2928p) ». Le compte 2881 n’existe pas au PCG SYSCOHADA : à relire sur la planche (2288 ou 2286 ?). Sans incidence sur les états tant que l’entité n’a pas d’immeuble de placement.'],
+ ['AJ','Tranché','Formule « dont placement en Net » des Terrains lue « (2881 − 2928p) ». Le compte 2881 est <b>absent des trois feuilles de plan comptable du classeur DGI</b> (PCG, plan comptable, Plan des comptes), tout comme la racine 288 : c’est une erreur de lecture. Le seul compte du plan dont l’intitulé porte « placement » est <b>228 « Terrains-immeubles de placement »</b>, et 2928 « Dépréciation des autres terrains » existe bien. La formule se lit donc <b>(228 − 2928p)</b>. Sans incidence sur les états tant que l’entité n’a pas d’immeuble de placement — MTTCI n’a aucun compte 22.'],
  ['FB','Lecture','Fin de ligne : l’ordre des termes 4791 / 4793 / 4783 reste partiellement illisible. Non testable sur la liasse MTTCI (FB = 0).'],
  ['FI','Lecture','Renvoi <sup>11</sup> porté sur 485 dans une ligne qui concerne les incorporelles et corporelles. Non testable sur la liasse MTTCI (FI = 0).']
 ];
