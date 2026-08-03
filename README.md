@@ -12,14 +12,14 @@ calée sur une liasse fiscale réelle. Il est destiné à être repris dans Clau
 ## 1. Démarrage
 
 ```bash
-npm test             # 23 tests — doivent tous passer avant toute livraison
+npm install          # @firebase/rules-unit-testing, pour les tests de règles
+npm test             # 40 tests — doivent tous passer avant toute livraison
 npm run build        # régénère dist/ à partir de src/ (voir §5)
 npm run verifier     # dist/ est-il bien à jour de ses sources ?
+npm run emulateur    # émulateur Firestore, pour les tests de règles (JDK requis)
 ```
 
-Aucune dépendance à installer pour l'état actuel : tout tourne sur le lanceur de tests
-intégré à Node. `jsdom` ne sera nécessaire que le jour où les tests d'interface seront
-écrits (voir §7).
+`jsdom` ne sera nécessaire que le jour où les tests d'interface seront écrits (voir §7).
 
 Le dépôt Git existe depuis le commit `7a27faf`. **Ne modifiez jamais `dist/` à la main** :
 c'est un produit de construction, et un test échoue si le fichier ne correspond plus à ses
@@ -272,10 +272,14 @@ npm test
 |---|---|---|
 | `liasse.test.js` | bilan, résultat, TFT contre la liasse DGI ; équilibres ; régressions historiques | 10 |
 | `moteurs.test.js` | réconciliation des deux moteurs comptables, seuils, contrat des libellés | 8 |
-| `build.test.js` | dist/ conforme à src/, manifeste, marqueurs, absence de code mort | 5 |
+| `build.test.js` | dist/ conforme à src/, manifeste, code mort, estampille de version | 8 |
+| `rules.test.js` | règles Firestore sur émulateur : isolation, migration, plafond, messagerie | 14 |
 | `parsenum.test.js` | *à écrire* — 18 formats de montant, cas ambigu, aller-retour | — |
 | `cycles.test.js` | *à écrire* — rattachement, couverture, contrôles croisés, risque, mémo | — |
 | `dom.test.js` | *à écrire* — jsdom : SDK, navigation, grille de balance, champs de montant | — |
+
+Sans JDK, les 14 tests de règles se sautent au lieu d'échouer : la suite principale reste
+exploitable sur un poste sans Java.
 
 Les trois derniers fichiers n'ont jamais été retrouvés : l'archive de reprise ne contenait
 que `harness.js` et `liasse.test.js`.
@@ -321,16 +325,40 @@ retirées.
 Le découpage s'arrête à des scripts classiques concaténés, pas des modules ES : voir §2 pour
 la raison. C'est le seul point où je me suis écarté de la consigne d'origine.
 
-### 3. Tester les règles Firestore
+### ~~3. Tester les règles Firestore~~ — *fait*
 
-Les règles de sécurité et les comptes Auth par dossier n'ont aucune couverture. L'émulateur
-Firebase permet de vérifier qu'un cabinet ne peut pas lire le dossier d'un autre — infaisable
-sans environnement local.
+`firestore.rules` est entré dans le dépôt : il vivait jusque-là hors version, dans un dossier
+de déploiement. 14 tests tournent contre l'émulateur Firestore, jamais contre le projet réel.
 
-### 4. Versionner le livrable
+Le fichier initialement repris était périmé. La version relevée en console couvrait déjà les
+deux trous que l'analyse statique avait signalés (`conversations`/`messages`, et la
+sous-collection `cabinets` des statistiques), mais avait **perdu le contrôle du plafond**
+d'abonnement sur `seven7_cabinets` : le compteur pouvait dépasser la limite du palier, un
+cran à la fois. La condition est rétablie, et le test qui la couvre a été vérifié dans les
+deux sens — rouge sans elle, vert avec.
 
-Afficher un numéro de version dans l'application et le rattacher au commit. Vos cabinets
-clients doivent pouvoir dire quelle version ils utilisent.
+```bash
+npm run emulateur      # premier terminal (JDK requis)
+npm run test:regles    # second
+```
+
+**Le dépôt et la production divergent** tant que
+`firebase deploy --only firestore:rules` n'a pas été lancé.
+
+### ~~4. Versionner le livrable~~ — *fait*
+
+L'en-tête et l'écran de connexion affichent `v2.9.0 · <commit> · <date>`. L'écran de
+connexion en porte une copie parce qu'il recouvre l'en-tête : un client bloqué avant
+authentification doit pouvoir lire sa version.
+
+```bash
+npm run estampiller && npm run build && git commit
+```
+
+L'estampille est un fichier versionné, pas un produit du build : sinon la date et le hash
+changeraient à chaque construction et `npm run verifier` ne pourrait plus rien comparer. Un
+livrable construit sur un dépôt modifié porte un suffixe `+modifié` visible dans
+l'application.
 
 ### 5. Points ouverts sur la liasse
 
