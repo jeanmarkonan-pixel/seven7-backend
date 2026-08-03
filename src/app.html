@@ -453,8 +453,7 @@
                 <button class="tab-btn phase2" onclick="showTab('resultat')">💰 RESULTAT</button>
                 <button class="tab-btn phase2" onclick="showTab('detection')">🔎 Détection Erreurs</button>
                 <button class="tab-btn phase2" onclick="showTab('revue')">📊 Revue Analytique</button>
-                <button class="tab-btn phase2" onclick="showTab('charges')">💸 CHARGES À CONTRÔLER</button>
-                <button class="tab-btn phase2" onclick="showTab('ventes')">💵 VENTES À CONTRÔLER</button>
+                <button class="tab-btn phase2" onclick="showTab('charges')">🧾 Échantillon Charges &amp; Ventes</button>
                 <button class="tab-btn phase2" onclick="showTab('impots')">🏛️ IMPÔTS ET TAXES</button>
                 <button class="tab-btn phase2" onclick="showTab('calendrier')">📆 Calendrier Fiscal</button>
                 <button class="tab-btn phase2" onclick="showTab('referentiel')">📚 Référentiel Juridique &amp; Fiscal</button>
@@ -1493,6 +1492,13 @@
 
         <!-- ==================== CHARGES A CONTROLER ==================== -->
         <div id="charges" class="tab-content">
+            <div class="card">
+                <h2>🧾 ÉCHANTILLON CHARGES &amp; VENTES</h2>
+                <div class="alert alert-info">Échantillon extrait du Grand Livre par nature d'écriture, trié par montant décroissant. Choisissez la nature à examiner ; les deux échantillons se conservent séparément.</div>
+                <button type="button" class="btn btn-primary" id="ech-btn-charge" onclick="echAfficher('Charge')">💸 Charges</button>
+                <button type="button" class="btn" id="ech-btn-vente" onclick="echAfficher('Vente')">💵 Ventes</button>
+            </div>
+            <div id="charges-bloc" class="ech-bloc">
             <div class="card" data-tab="charges">
                 <h2>💸 CHARGES À CONTRÔLER</h2>
                 <div class="alert alert-info">Échantillon extrait automatiquement du Grand Livre (écritures classées « Charge »), trié par montant décroissant, en fonction des seuils ci-dessous. La liste se met à jour automatiquement à chaque saisie dans le Grand Livre. Statuez la <strong>conclusion</strong> de chaque écriture contrôlée (Conforme / Anomalie / À documenter) et ajoutez une observation si besoin. La colonne <strong>📷 Facture</strong> permet de photographier la facture justificative puis de saisir son montant (ou de le faire lire automatiquement par IA si configuré) : il est automatiquement comparé au montant de l'écriture, avec une alerte en cas d'écart.</div>
@@ -1522,9 +1528,7 @@
                 </div>
             </div>
         </div>
-
-        <!-- ==================== VENTES A CONTROLER ==================== -->
-        <div id="ventes" class="tab-content">
+        <div id="ventes" class="ech-bloc" style="display:none;">
             <div class="card" data-tab="ventes">
                 <h2>💵 VENTES À CONTRÔLER</h2>
                 <div class="alert alert-info">Échantillon extrait automatiquement du Grand Livre (écritures classées « Vente »), trié par montant décroissant, en fonction des seuils ci-dessous. La liste se met à jour automatiquement à chaque saisie dans le Grand Livre. Statuez la <strong>conclusion</strong> de chaque écriture contrôlée (Conforme / Anomalie / À documenter) et ajoutez une observation si besoin. La colonne <strong>📷 Facture</strong> permet de photographier la facture justificative puis de saisir son montant (ou de le faire lire automatiquement par IA si configuré) : il est automatiquement comparé au montant de l'écriture, avec une alerte en cas d'écart.</div>
@@ -1554,7 +1558,9 @@
                 </div>
             </div>
         </div>
+        </div>
 
+        <!-- ==================== VENTES A CONTROLER ==================== -->
         <!-- ==================== IMPOTS ET TAXES ==================== -->
         <div id="impots" class="tab-content">
             <div class="card" data-tab="impots">
