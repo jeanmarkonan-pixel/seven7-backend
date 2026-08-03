@@ -4,3 +4,8 @@ firebase-debug.log
 firestore-debug.log
 .DS_Store
 Thumbs.db
+
+dist/assets/
+dist/index.html
+dist/manifest.json
+dist/sw.js

@@ -73,4 +73,45 @@ if(verifier){
     fs.mkdirSync(path.dirname(SORTIE), { recursive: true });
     fs.writeFileSync(SORTIE, html, 'utf8');
     console.log(`✓ dist/${path.basename(SORTIE)} — ${totalFichiers} fichiers, ${(html.length/1024/1024).toFixed(2)} Mo`);
+    ecrireStatiques(html);
+}
+
+/* ==================================================================
+   Fichiers d'hébergement et d'installation mobile
+
+   Firebase Hosting sert index.html à la racine : sans lui, le site
+   répond 404 alors que le livrable est bien déployé. Le manifest et
+   les icônes rendent l'application installable sur téléphone ; le
+   service worker porte le numéro de version, pour que chaque
+   construction invalide les caches de la précédente.
+   ================================================================== */
+function ecrireStatiques(contenu){
+    const dist = path.dirname(SORTIE);
+    const statique = path.join(RACINE, 'src', 'statique');
+
+    /* index.html : copie exacte du livrable nommé. */
+    fs.writeFileSync(path.join(dist, 'index.html'), contenu, 'utf8');
+
+    /* Version, reprise de l'estampille pour nommer le cache. */
+    let version = '0.0.0';
+    try{
+        const v = fs.readFileSync(path.join(RACINE, 'src', 'js', '00-version.js'), 'utf8');
+        const mv = /version:\s*"([^"]+)"/.exec(v), mc = /commit:\s*"([^"]+)"/.exec(v);
+        if(mv) version = mv[1] + (mc ? '-' + mc[1] : '');
+    }catch(e){}
+
+    const sw = fs.readFileSync(path.join(statique, 'sw.js'), 'utf8')
+                 .replace('@@VERSION@@', version);
+    fs.writeFileSync(path.join(dist, 'sw.js'), sw, 'utf8');
+    fs.copyFileSync(path.join(statique, 'manifest.json'), path.join(dist, 'manifest.json'));
+
+    const srcAssets = path.join(statique, 'assets');
+    const dstAssets = path.join(dist, 'assets');
+    fs.mkdirSync(dstAssets, { recursive: true });
+    let n = 0;
+    for(const f of fs.readdirSync(srcAssets)){
+        fs.copyFileSync(path.join(srcAssets, f), path.join(dstAssets, f));
+        n++;
+    }
+    console.log(`✓ dist/index.html, manifest.json, sw.js (cache « seven7-${version} ») et ${n} ressources`);
 }

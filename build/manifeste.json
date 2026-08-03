@@ -39,6 +39,7 @@
     "38-rapport-general.js",
     "39-echantillon-fusion.js",
     "40-rapport-special.js",
-    "41-echantillonnage.js"
+    "41-echantillonnage.js",
+    "42-mobile-pwa.js"
   ]
 }

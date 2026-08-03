@@ -2,8 +2,21 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- viewport-fit=cover : sur iPhone, évite que la barre de navigation
+         passe sous l'encoche une fois l'application installée. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>SEVEN7 - Outil d'Audit Externe Automatisé</title>
+
+    <!-- Application installable sur mobile (Android et iOS). -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1B2A4A">
+    <meta name="description" content="Dossier de travail du commissaire aux comptes — référentiel SYSCOHADA révisé / OHADA">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/seven7-icon-192.png">
+    <!-- iOS ignore le manifest : il lui faut ses propres balises. -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SEVEN7">
+    <link rel="apple-touch-icon" href="assets/seven7-icon-180.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f6fa; color: #2c3e50; }
@@ -136,6 +149,19 @@
         .date-input { width: 130px !important; }
         @media print { .tabs-container, .btn { display: none; } .tab-content { display: block !important; } }
         .scroll-table { overflow-x: auto; max-height: 500px; overflow-y: auto; }
+        /* Défilement horizontal seul, posé automatiquement sur les tableaux
+           plus larges que l'écran (voir pwaEnvelopperTableaux). Sans hauteur
+           maximale : un tableau court ne doit pas gagner un ascenseur vertical.
+           -webkit-overflow-scrolling donne l'inertie tactile sur iOS. */
+        .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        @media (max-width: 900px){
+            .scroll-x table, .scroll-table table { min-width: 640px; }
+            .header h1 { font-size: 19px; }
+            .header p { font-size: 12px; }
+            .tab-btn { padding: 10px 12px; font-size: 11px; }
+            .card { padding: 12px; }
+            .grid-3 { grid-template-columns: 1fr; }
+        }
         #pcg-syscohada tr.pcg-row { cursor: pointer; }
         .prog-cycle-header td { background: #2c3e50 !important; color: #fff !important; padding: 10px 12px; }
         .prog-docreq td { background: #fff8e1 !important; color: #6d4c00 !important; padding: 6px 12px; font-style: italic; }
