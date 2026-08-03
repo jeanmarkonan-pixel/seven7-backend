@@ -72,14 +72,20 @@ service cloud.firestore {
       // +1 exactement, et JAMAIS au-delà du plafond du cabinet. Le palier et le plafond
       // eux-mêmes ne se changent que depuis la console : aucune règle ne les autorise ici.
       //
-      // La troisième condition avait disparu d'une version déployée : sans elle, le
-      // compteur montait indéfiniment un cran à la fois et le plafond d'abonnement
-      // n'était plus opposable côté serveur. Couverte par le test
-      // « CABINETS — le plafond d'abonnement est opposable ».
+      // La troisième condition avait disparu d'une version déployée. Son rétablissement
+      // le 03/08/2026 est un CHOIX COMMERCIAL ASSUMÉ : le plafond bloque, un client qui
+      // l'atteint doit changer de palier. La grille tarifaire annonçait jusqu'ici un
+      // dépassement « facturé à l'unité » — cette possibilité n'existe plus côté serveur,
+      // et la grille doit être mise à jour en conséquence.
+      // Couverte par le test « CABINETS — le plafond d'abonnement est opposable ».
       //
-      // NB : un document de cabinet dépourvu de "plafondDossiers" fait échouer
-      // l'évaluation, donc refuse l'écriture. C'est le bon sens de défaut, mais cela
-      // suppose que tout cabinet créé en console porte ce champ.
+      // DEUX CONDITIONS SUR LA DONNÉE, sous peine de bloquer des clients légitimes :
+      //   · tout cabinet doit porter "plafondDossiers" — un document qui en est dépourvu
+      //     fait échouer l'évaluation, donc refuse la création de dossier ;
+      //   · le palier « Cabinet Plus » est illimité au tarif, mais pas dans le code : il
+      //     se représente par un plafond très grand. Voir SEUIL_ILLIMITE = 9999 dans
+      //     src/js/10-config-collaboration.js, au-delà duquel l'interface affiche
+      //     « illimité » au lieu d'un chiffre.
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dossiersCreesAnnee'])
         && request.resource.data.dossiersCreesAnnee == resource.data.dossiersCreesAnnee + 1

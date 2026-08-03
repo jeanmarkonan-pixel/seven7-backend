@@ -332,18 +332,37 @@ de déploiement. 14 tests tournent contre l'émulateur Firestore, jamais contre 
 
 Le fichier initialement repris était périmé. La version relevée en console couvrait déjà les
 deux trous que l'analyse statique avait signalés (`conversations`/`messages`, et la
-sous-collection `cabinets` des statistiques), mais avait **perdu le contrôle du plafond**
-d'abonnement sur `seven7_cabinets` : le compteur pouvait dépasser la limite du palier, un
-cran à la fois. La condition est rétablie, et le test qui la couvre a été vérifié dans les
-deux sens — rouge sans elle, vert avec.
+sous-collection `cabinets` des statistiques), mais n'avait plus le contrôle du plafond
+d'abonnement sur `seven7_cabinets`.
 
 ```bash
 npm run emulateur      # premier terminal (JDK requis)
 npm run test:regles    # second
 ```
 
-**Le dépôt et la production divergent** tant que
-`firebase deploy --only firestore:rules` n'a pas été lancé.
+Règles déployées le 03/08/2026 : dépôt et production sont alignés.
+
+### Le plafond bloque — décision commerciale du 03/08/2026
+
+La condition de plafond a été rétablie **délibérément** : un cabinet qui atteint sa limite
+annuelle ne peut plus créer de dossier et doit changer de palier.
+
+| Palier | Plafond annuel |
+|---|---|
+| Starter | 5 dossiers |
+| Cabinet | 20 dossiers |
+| Cabinet Plus | illimité → `plafondDossiers` très grand, voir ci-dessous |
+
+**Deux conditions sur la donnée, sous peine de bloquer un client qui paie :**
+
+1. Tout cabinet doit porter `plafondDossiers`. Un document qui en est dépourvu fait échouer
+   l'évaluation de la règle, donc **refuse toute création de dossier**.
+2. « Cabinet Plus » est illimité au tarif mais pas dans le code : il se représente par un
+   plafond très grand. `SEUIL_ILLIMITE = 9999` dans `src/js/10-config-collaboration.js`
+   est le seuil au-delà duquel l'interface affiche « illimité » plutôt qu'un chiffre.
+
+**La grille tarifaire est à corriger.** `seven7-tarifs.html` annonce encore qu'un dossier
+au-delà du plafond est « facturé à l'unité ». Ce n'est plus possible : le serveur refuse.
 
 ### ~~4. Versionner le livrable~~ — *fait*
 

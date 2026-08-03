@@ -142,23 +142,33 @@ test('CABINETS — le palier et le plafond ne sont pas modifiables depuis le cli
 });
 
 test('CABINETS — le plafond d’abonnement est opposable', opts, async () => {
-    // ⚠ CE TEST ÉCHOUE CONTRE LES RÈGLES DÉPLOYÉES — c'est voulu.
+    // Choix commercial arrêté le 03/08/2026 : le plafond bloque pour de bon.
+    // Un cabinet qui l'atteint doit changer de palier — il n'y a plus de
+    // dépassement facturé à l'unité, que la grille tarifaire annonçait.
     //
-    // La version antérieure portait, entre le contrôle d'incrément et le
-    // hasOnly, une troisième condition :
-    //
-    //     && request.resource.data.dossiersCreesAnnee <= resource.data.plafondDossiers
-    //
-    // Elle a disparu de la version en production. Le compteur peut donc
-    // désormais dépasser le plafond du cabinet, un cran à la fois : la
-    // limite commerciale de l'abonnement n'est plus opposable côté serveur.
-    //
-    // Ne pas neutraliser ce test : rétablir la condition dans les règles.
+    // Ne pas neutraliser ce test sans décision commerciale explicite : il
+    // garde la condition que la production avait perdue une fois déjà.
     await env.withSecurityRulesDisabled(async ctx => {
         await ctx.firestore().doc('seven7_cabinets/CABPLEIN')
-            .set({ palier: 'PRO', plafondDossiers: 10, dossiersCreesAnnee: 10 });
+            .set({ palier: 'Cabinet', plafondDossiers: 20, dossiersCreesAnnee: 20 });
     });
-    await assertFails(db(A).doc('seven7_cabinets/CABPLEIN').update({ dossiersCreesAnnee: 11 }));
+    await assertFails(db(A).doc('seven7_cabinets/CABPLEIN').update({ dossiersCreesAnnee: 21 }));
+});
+
+test('CABINETS — le palier illimité n’est pas bloqué par le plafond', opts, async () => {
+    // « Cabinet Plus » est illimité au tarif mais pas dans le code : il se
+    // représente par un plafond très grand (SEUIL_ILLIMITE = 9999 dans
+    // src/js/10-config-collaboration.js). Ce test fixe la convention — un
+    // Cabinet Plus créé sans plafondDossiers serait bloqué net.
+    await env.withSecurityRulesDisabled(async ctx => {
+        await ctx.firestore().doc('seven7_cabinets/CABPLUS')
+            .set({ palier: 'Cabinet Plus', plafondDossiers: 999999, dossiersCreesAnnee: 250 });
+        await ctx.firestore().doc('seven7_cabinets/CABSANSPLAFOND')
+            .set({ palier: 'Cabinet Plus', dossiersCreesAnnee: 3 });
+    });
+    await assertSucceeds(db(A).doc('seven7_cabinets/CABPLUS').update({ dossiersCreesAnnee: 251 }));
+    // sans plafondDossiers, l'évaluation échoue : le cabinet est bloqué
+    await assertFails(db(A).doc('seven7_cabinets/CABSANSPLAFOND').update({ dossiersCreesAnnee: 4 }));
 });
 
 test('PUBLIC — la vitrine se lit un dossier à la fois, sans compte', opts, async () => {
