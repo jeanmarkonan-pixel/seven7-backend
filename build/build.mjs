@@ -114,4 +114,20 @@ function ecrireStatiques(contenu){
         n++;
     }
     console.log(`✓ dist/index.html, manifest.json, sw.js (cache « seven7-${version} ») et ${n} ressources`);
+    ecrireVitrine(srcAssets);
+}
+
+/* La vitrine est un site distinct — seven7.ci — servi par un autre site
+   d'hébergement que l'application. Elle ne contient aucune donnée de
+   mission : une page unique et les icônes. */
+function ecrireVitrine(srcAssets){
+    const src = path.join(RACINE, 'src', 'vitrine', 'index.html');
+    if(!fs.existsSync(src)) return;
+    const dest = path.join(RACINE, 'dist-vitrine');
+    const destAssets = path.join(dest, 'assets');
+    fs.mkdirSync(destAssets, { recursive: true });
+    fs.copyFileSync(src, path.join(dest, 'index.html'));
+    for(const f of fs.readdirSync(srcAssets))
+        fs.copyFileSync(path.join(srcAssets, f), path.join(destAssets, f));
+    console.log(`✓ dist-vitrine/index.html et ses ressources`);
 }

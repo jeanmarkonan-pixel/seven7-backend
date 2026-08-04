@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "seven7-audit"
-  }
+  },
+  "targets": {
+    "seven7-audit": {
+      "hosting": {
+        "app": [
+          "seven7-audit"
+        ],
+        "vitrine": [
+          "seven7-vitrine"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

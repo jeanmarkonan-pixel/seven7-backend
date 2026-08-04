@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEVEN7 — Outil d'audit externe · SYSCOHADA révisé</title>
+<meta name="description" content="Dossier de travail du commissaire aux comptes, conforme au référentiel SYSCOHADA révisé. Liasse fiscale, programme de travail, détection des anomalies, rapports normatifs.">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/seven7-icon-192.png">
+<link rel="apple-touch-icon" href="assets/seven7-icon-180.png">
+<meta name="theme-color" content="#1B2B45">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2B45;
+    --paper:#F4F6EF;
+    --ledger-line:#C9D4C1;
+    --ledger-line-strong:#9FAF95;
+    --gold:#A9792C;
+    --gold-deep:#8A6222;
+    --verified:#2E6B4C;
+    --muted:#5B6470;
+    --card:#FBFCF8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image: repeating-linear-gradient(to bottom,
+      rgba(159,175,149,0.09) 0px, rgba(159,175,149,0.09) 1px,
+      transparent 1px, transparent 34px);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding: 48px 24px 72px;
+    line-height:1.55;
+  }
+  .wrap{ max-width: 1080px; margin: 0 auto; }
+
+  /* ---------- Masthead ---------- */
+  .masthead{ text-align:center; margin-bottom: 8px; }
+  .logo{ width:74px; height:74px; margin: 0 auto 20px; display:block; }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--gold-deep); margin:0 0 14px;
+  }
+  h1{
+    font-family:'Source Serif 4', serif; font-weight:600;
+    font-size: clamp(34px, 5.4vw, 54px); margin:0 0 14px; letter-spacing:-.01em;
+  }
+  .lede{ font-size:17px; color:var(--muted); max-width:620px; margin:0 auto 30px; }
+  .rule{ height:3px; background:var(--ink); max-width:220px; margin:0 auto 4px; }
+  .rule.thin{ height:1px; background:var(--ledger-line-strong); max-width:220px; margin:0 auto 48px; }
+
+  /* ---------- Accès ---------- */
+  .acces{ text-align:center; margin: 0 0 60px; }
+  .btn{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:13px;
+    letter-spacing:.06em; text-transform:uppercase; text-decoration:none;
+    padding:15px 34px; border-radius:2px; transition:background .18s, color .18s;
+  }
+  .btn-primaire{ background:var(--ink); color:#fff; border:2px solid var(--ink); }
+  .btn-primaire:hover{ background:#12203a; }
+  .btn-secondaire{ background:transparent; color:var(--ink); border:2px solid var(--ledger-line-strong); margin-left:10px; }
+  .btn-secondaire:hover{ border-color:var(--ink); }
+  .acces-note{ font-size:13px; color:var(--muted); margin-top:16px; }
+
+  /* ---------- Sections ---------- */
+  h2{
+    font-family:'Source Serif 4', serif; font-weight:600; font-size:28px;
+    margin:0 0 6px; text-align:center;
+  }
+  .section-lede{ text-align:center; color:var(--muted); font-size:15px; max-width:600px; margin:0 auto 34px; }
+  section{ margin-bottom: 72px; }
+
+  /* ---------- Capacités ---------- */
+  .grille{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+    border-top:2px solid var(--ink); border-bottom:2px solid var(--ink);
+  }
+  .bloc{
+    background:var(--card); padding:28px 26px;
+    border-right:1px solid var(--ledger-line-strong);
+  }
+  .bloc:nth-child(3n){ border-right:none; }
+  .bloc:nth-child(-n+3){ border-bottom:1px solid var(--ledger-line-strong); }
+  .bloc-num{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--gold-deep);
+    letter-spacing:.1em; margin:0 0 10px;
+  }
+  .bloc h3{ font-family:'Source Serif 4', serif; font-size:19px; font-weight:600; margin:0 0 8px; }
+  .bloc p{ font-size:14px; color:var(--muted); margin:0; }
+
+  /* ---------- Chiffres ---------- */
+  .chiffres{ display:grid; grid-template-columns:repeat(4,1fr); gap:0; border-top:1px solid var(--ledger-line-strong); }
+  .chiffre{ text-align:center; padding:26px 12px; border-right:1px solid var(--ledger-line); }
+  .chiffre:last-child{ border-right:none; }
+  .chiffre .n{ font-family:'IBM Plex Mono', monospace; font-size:30px; font-weight:600; color:var(--ink); display:block; }
+  .chiffre .l{ font-size:12.5px; color:var(--muted); margin-top:4px; display:block; }
+
+  /* ---------- Tarifs ---------- */
+  .tiers{ display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+          border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); }
+  .tier{ background:var(--card); padding:36px 28px 32px; position:relative;
+         border-right:1px solid var(--ledger-line-strong); display:flex; flex-direction:column; }
+  .tier:last-child{ border-right:none; }
+  .tier.featured{ background:#FFFFFF; box-shadow: inset 0 3px 0 var(--gold); }
+  .stamp{
+    position:absolute; top:22px; right:22px; width:78px; height:78px; border-radius:50%;
+    border:2px solid var(--gold-deep); color:var(--gold-deep);
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; line-height:1.25;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    text-transform:uppercase; letter-spacing:.06em; transform:rotate(-9deg); opacity:.9;
+  }
+  .tier-name{ font-family:'Source Serif 4', serif; font-size:23px; font-weight:600; margin:0 0 4px; }
+  .tier-scope{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--gold-deep);
+               letter-spacing:.05em; margin:0 0 22px; }
+  .price-row{ display:flex; align-items:baseline; gap:8px; margin-bottom:2px; }
+  .price{ font-family:'IBM Plex Mono', monospace; font-size:34px; font-weight:600; }
+  .price-unit{ font-size:13px; color:var(--muted); }
+  .price-annual{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--verified);
+                 margin:6px 0 22px; display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .price-annual .note{ color:var(--muted); font-family:'Inter',sans-serif; font-size:12px; }
+  .features{ list-style:none; padding:0; margin:0 0 26px; flex:1; }
+  .features li{ display:flex; gap:9px; font-size:14px; margin-bottom:11px; color:var(--ink); }
+  .tick{ width:15px; height:15px; flex-shrink:0; margin-top:3px; fill:none;
+         stroke:var(--verified); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .cta{
+    display:block; text-align:center; text-decoration:none; padding:13px;
+    border:2px solid var(--ink); color:var(--ink); font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px; letter-spacing:.06em; text-transform:uppercase;
+    transition:background .18s, color .18s;
+  }
+  .cta:hover{ background:var(--ink); color:#fff; }
+
+  /* ---------- Notes ---------- */
+  .footnotes{ display:flex; gap:44px; justify-content:space-between; margin-top:34px; flex-wrap:wrap; }
+  .footnote{ font-size:13px; color:var(--muted); max-width:320px; }
+  .footnote strong{
+    color:var(--ink); font-family:'IBM Plex Mono', monospace; font-weight:600;
+    display:block; margin-bottom:4px; font-size:12px; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .signoff{ text-align:center; margin-top:56px; font-family:'Source Serif 4', serif;
+            font-style:italic; color:var(--muted); font-size:14px; }
+  a{ color:var(--gold-deep); }
+
+  @media (max-width: 900px){
+    .grille{ grid-template-columns:repeat(2,1fr); }
+    .bloc:nth-child(3n){ border-right:1px solid var(--ledger-line-strong); }
+    .bloc:nth-child(2n){ border-right:none; }
+    .chiffres{ grid-template-columns:repeat(2,1fr); }
+    .chiffre:nth-child(2n){ border-right:none; }
+  }
+  @media (max-width: 780px){
+    body{ padding:36px 18px 56px; }
+    .tiers{ grid-template-columns:1fr; }
+    .tier{ border-right:none; border-bottom:1px solid var(--ledger-line-strong); }
+    .tier:last-child{ border-bottom:none; }
+    .grille{ grid-template-columns:1fr; }
+    .bloc{ border-right:none !important; border-bottom:1px solid var(--ledger-line-strong); }
+    .bloc:last-child{ border-bottom:none; }
+    .footnotes{ flex-direction:column; gap:18px; }
+    .btn-secondaire{ margin-left:0; margin-top:10px; }
+  }
+  @media (prefers-reduced-motion: reduce){ .cta, .btn{ transition:none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ==================== EN-TÊTE ==================== -->
+  <div class="masthead">
+    <svg class="logo" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg" aria-label="SEVEN7">
+      <circle cx="210" cy="195" r="150" fill="#1B2B45"/>
+      <circle cx="210" cy="195" r="150" fill="none" stroke="#A9792C" stroke-width="5"/>
+      <circle cx="210" cy="195" r="134" fill="none" stroke="#A9792C" stroke-width="1.5"/>
+      <text x="210" y="233" font-family="IBM Plex Mono, monospace" font-size="120"
+            font-weight="700" fill="#FFFFFF" text-anchor="middle">S7</text>
+    </svg>
+    <p class="eyebrow">Outil d'audit externe · Conforme SYSCOHADA révisé</p>
+    <h1>Le dossier de travail<br>du commissaire aux comptes</h1>
+    <p class="lede">
+      De la balance générale aux rapports signés : liasse fiscale conforme, programme de travail
+      par cycle, détection des anomalies et diligences normatives, dans un seul dossier partagé
+      par votre équipe.
+    </p>
+  </div>
+  <div class="rule"></div>
+  <div class="rule thin"></div>
+
+  <div class="acces">
+    <a class="btn btn-primaire" href="https://app.seven7.ci">Ouvrir l'application</a>
+    <a class="btn btn-secondaire" href="#tarifs">Voir les tarifs</a>
+    <p class="acces-note">
+      Accès par dossier, protégé par mot de passe. Fonctionne sur ordinateur, tablette et
+      téléphone — et s'installe sur l'écran d'accueil.
+    </p>
+  </div>
+
+  <!-- ==================== CE QUE FAIT L'OUTIL ==================== -->
+  <section>
+    <h2>Ce que l'outil prend en charge</h2>
+    <p class="section-lede">
+      Chaque état est calculé à partir de vos balances N et N-1, selon les tableaux officiels de
+      correspondance postes/comptes du SYSCOHADA révisé.
+    </p>
+
+    <div class="grille">
+      <div class="bloc">
+        <p class="bloc-num">01</p>
+        <h3>Liasse fiscale complète</h3>
+        <p>Bilan, compte de résultat, tableau des flux de trésorerie et notes annexes, calculés
+           depuis la balance et exportables pour la télédéclaration.</p>
+      </div>
+      <div class="bloc">
+        <p class="bloc-num">02</p>
+        <h3>Programme de travail</h3>
+        <p>Douze cycles, objectifs, diligences et documents requis — chaque étape rattachée à
+           l'assertion d'audit qu'elle couvre.</p>
+      </div>
+      <div class="bloc">
+        <p class="bloc-num">03</p>
+        <h3>Détection des anomalies</h3>
+        <p>Continuité des soldes, rapprochements croisés, comptes au sens anormal, variations
+           inexpliquées : l'outil signale, l'auditeur tranche.</p>
+      </div>
+      <div class="bloc">
+        <p class="bloc-num">04</p>
+        <h3>Risques par secteur</h3>
+        <p>Une bibliothèque de risques inhérents propres à quatorze secteurs d'activité, cotés et
+           reliés aux diligences qui les couvrent.</p>
+      </div>
+      <div class="bloc">
+        <p class="bloc-num">05</p>
+        <h3>Diligences normatives</h3>
+        <p>Acceptation, fraude, continuité, parties liées, événements postérieurs, lettre
+           d'affirmation, revue du dossier — avec leur base normative.</p>
+      </div>
+      <div class="bloc">
+        <p class="bloc-num">06</p>
+        <h3>Rapports</h3>
+        <p>Rapport général structuré selon ISA 700 révisée et rapport spécial sur les conventions
+           réglementées, exportables en Word.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== CHIFFRES ==================== -->
+  <section>
+    <div class="chiffres">
+      <div class="chiffre"><span class="n">12</span><span class="l">cycles comptables couverts</span></div>
+      <div class="chiffre"><span class="n">39</span><span class="l">notes annexes de la liasse</span></div>
+      <div class="chiffre"><span class="n">14</span><span class="l">secteurs d'activité</span></div>
+      <div class="chiffre"><span class="n">13</span><span class="l">assertions d'audit</span></div>
+    </div>
+  </section>
+
+  <!-- ==================== TARIFS ==================== -->
+  <section id="tarifs">
+    <h2>Grille tarifaire</h2>
+    <p class="section-lede">
+      Trois formules pensées pour accompagner votre cabinet, du dossier isolé au portefeuille de
+      missions le plus dense.
+    </p>
+
+    <div class="tiers">
+
+      <div class="tier">
+        <p class="tier-name">Starter</p>
+        <p class="tier-scope">Jusqu'à 5 dossiers / an</p>
+        <div class="price-row"><span class="price">20 000</span><span class="price-unit">FCFA / mois</span></div>
+        <p class="price-annual"><span class="amount">200 000 FCFA / an</span><span class="note">— 2 mois offerts</span></p>
+        <ul class="features">
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>1 à 2 comptes utilisateurs</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Moteur d'audit complet (Bilan, Résultat, Programme de travail, Questionnaire CI)</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Export Word / Excel standard</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Logo du cabinet sur les rapports</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Support par email, réponse en 48-72h</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Historique conservé 12 mois</li>
+        </ul>
+        <a class="cta" href="mailto:jeanmarkonan@gmail.com?subject=SEVEN7%20-%20Formule%20Starter">Choisir Starter</a>
+      </div>
+
+      <div class="tier featured">
+        <div class="stamp">Le<br>plus<br>choisi</div>
+        <p class="tier-name">Cabinet</p>
+        <p class="tier-scope">Jusqu'à 20 dossiers / an</p>
+        <div class="price-row"><span class="price">50 000</span><span class="price-unit">FCFA / mois</span></div>
+        <p class="price-annual"><span class="amount">500 000 FCFA / an</span><span class="note">— 2 mois offerts</span></p>
+        <ul class="features">
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>5 à 8 comptes utilisateurs</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Tout Starter, + modules avancés (Circularisation, Anormaux Fournisseurs/Clients, Calendrier Fiscal)</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Modèle de rapport personnalisable</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Plusieurs collaborateurs sur un même dossier</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Support prioritaire, réponse en 24h</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Historique 24 mois + export des données</li>
+        </ul>
+        <a class="cta" href="mailto:jeanmarkonan@gmail.com?subject=SEVEN7%20-%20Formule%20Cabinet">Choisir Cabinet</a>
+      </div>
+
+      <div class="tier">
+        <p class="tier-name">Cabinet Plus</p>
+        <p class="tier-scope">Dossiers illimités</p>
+        <div class="price-row"><span class="price">120 000</span><span class="price-unit">FCFA / mois</span></div>
+        <p class="price-annual"><span class="amount">1 200 000 FCFA / an</span><span class="note">— 2 mois offerts</span></p>
+        <ul class="features">
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Comptes utilisateurs illimités</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Accès prioritaire aux nouvelles fonctionnalités</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Rapports à la charte graphique complète du cabinet</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Gestion multi-bureaux et permissions par utilisateur</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Ligne de support dédiée + formation initiale des équipes</li>
+          <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Conservation illimitée + sauvegardes automatiques</li>
+        </ul>
+        <a class="cta" href="mailto:jeanmarkonan@gmail.com?subject=SEVEN7%20-%20Formule%20Cabinet%20Plus">Choisir Cabinet Plus</a>
+      </div>
+
+    </div>
+
+    <div class="footnotes">
+      <div class="footnote">
+        <strong>Facturation</strong>
+        Tarifs hors taxes. 2 mois offerts sur tout engagement annuel.
+      </div>
+      <div class="footnote">
+        <strong>Dépassement de palier</strong>
+        Le plafond annuel de votre palier est ferme. Pour créer des dossiers supplémentaires, il
+        suffit de passer au palier supérieur : contactez-nous, le changement prend effet
+        immédiatement.
+      </div>
+      <div class="footnote">
+        <strong>Besoin spécifique</strong>
+        Cabinets multi-bureaux, réseaux régionaux ou volumes atypiques : devis sur mesure sur
+        simple demande.
+      </div>
+      <div class="footnote">
+        <strong>Contact</strong>
+        <a href="mailto:jeanmarkonan@gmail.com">jeanmarkonan@gmail.com</a><br>
+        WhatsApp : <a href="https://wa.me/2250789746930">07 89 74 69 30</a>
+      </div>
+    </div>
+  </section>
+
+  <p class="signoff">— Chaque chiffre de vos dossiers, pointé et vérifié.</p>
+
+</div>
+
+</body>
+</html>

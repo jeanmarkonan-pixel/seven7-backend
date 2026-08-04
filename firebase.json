@@ -1,46 +1,81 @@
 {
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "headers": [
-      {
-        "//": "La page et le service worker ne doivent JAMAIS être resservis depuis un cache sans revalidation : c'est ce qui ferait travailler un cabinet sur un moteur comptable périmé. Le motif doit couvrir la racine ET le nom de fichier : une visite sur « / » n'est pas une requête sur « /index.html », et Firebase appliquerait alors son défaut de max-age=3600.",
-        "source": "**/*.@(html)",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      },
-      {
-        "source": "/",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      },
-      {
-        "source": "/sw.js",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      },
-      {
-        "source": "/manifest.json",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache" }
-        ]
-      },
-      {
-        "//": "Les icônes, elles, ne changent pas : un an de cache.",
-        "source": "/assets/**",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-        ]
-      }
-    ]
-  },
+  "hosting": [
+    {
+      "//": "L'APPLICATION — destinée à app.seven7.ci. Le livrable et ses ressources d'installation mobile sont produits par build/build.mjs dans dist/.",
+      "target": "app",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "//": "La page et le service worker ne doivent JAMAIS être resservis depuis un cache sans revalidation : c'est ce qui ferait travailler un cabinet sur un moteur comptable périmé. Le motif doit couvrir la racine ET le nom de fichier : une visite sur « / » n'est pas une requête sur « /index.html », et Firebase appliquerait alors son défaut de max-age=3600.",
+          "source": "**/*.@(html)",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "/",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "/sw.js",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "/manifest.json",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "//": "Les icônes, elles, ne changent pas : un an de cache.",
+          "source": "/assets/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          ]
+        }
+      ]
+    },
+    {
+      "//": "LA VITRINE — destinée à seven7.ci et www.seven7.ci. Site public, sans donnée de mission.",
+      "target": "vitrine",
+      "public": "dist-vitrine",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "//": "Une page commerciale se corrige souvent : revalidation à chaque visite, mais le cache reste utilisable si le réseau flanche.",
+          "source": "**/*.@(html)",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/assets/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          ]
+        }
+      ]
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules"
   },

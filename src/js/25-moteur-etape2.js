@@ -179,8 +179,22 @@ function liasseSumByRef(ex, ref, col, sens, which){
         var sd = parseNum(rows[i][dF]) || 0;
         var sc = parseNum(rows[i][cF]) || 0;
         var m = paramResolve(rows[i].compte, sd, sc);
-        if(!m || m.ref !== ref || m.col !== col) continue;
-        total += (sens === 'SC-SD') ? (sc - sd) : (sd - sc);
+        if(!m || m.col !== col) continue;
+        var montant = (sens === 'SC-SD') ? (sc - sd) : (sd - sc);
+
+        /* Comptes revendiqués par plusieurs postes (suffixe « p ») : si
+           l'auditeur a arbitré leur répartition, le montant se ventile
+           selon sa décision. Sinon repQuoteParts rend null et le compte
+           reste rattaché au premier poste déclaré — le total du bilan
+           demeure juste, la ventilation est signalée comme approchée.
+           Voir src/js/43-repartition.js. */
+        var parts = (typeof repQuoteParts === 'function') ? repQuoteParts(rows[i].compte) : null;
+        if(parts){
+            if(parts[ref]) total += montant * parts[ref];
+            continue;
+        }
+        if(m.ref !== ref) continue;
+        total += montant;
     }
     return total;
 }

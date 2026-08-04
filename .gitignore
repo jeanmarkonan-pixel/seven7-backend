@@ -10,3 +10,4 @@ dist/index.html
 dist/manifest.json
 dist/sw.js
 .firebase/
+dist-vitrine/
