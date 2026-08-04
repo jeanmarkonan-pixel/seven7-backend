@@ -4108,7 +4108,7 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "a39f587",
+    commit:  "c07c1ce",
     date:    "2026-08-04",
     propre:  false
 };
@@ -9204,6 +9204,30 @@ function liasseFmt(n){
 }
 
 // ---------- Rendu HTML ----------
+/* Formules d'agrégation de la planche officielle. Elles servent à
+   MARQUER les lignes qui sont des sommes.
+
+   Sans ce marquage, un lecteur qui additionne toutes les lignes
+   affichées compte deux fois : AD porte déjà AE+AF+AG+AH, et figure
+   pourtant au-dessus d'elles. Le gras seul ne dit pas « ceci est un
+   total » — il peut se lire comme une simple mise en avant. */
+var LIASSE_SOMMES = {
+    AD:'AE + AF + AG + AH',   AI:'AJ + AK + AL + AM + AN',  AQ:'AR + AS',
+    AZ:'AD + AI + AP + AQ',   BG:'BH + BI + BJ',            BK:'BA + BB + BG',
+    BT:'BQ + BR + BS',        BZ:'AZ + BK + BT + BU',
+    CP:'CA à CM',             DD:'DA + DB + DC',            DF:'CP + DD',
+    DP:'DH à DN',             DT:'DQ + DR',                 DZ:'DF + DP + DT + DV'
+};
+/* Pastille « Σ » posée sur toute ligne qui totalise d'autres lignes. */
+function liasseMarqueSomme(ref){
+    var f = LIASSE_SOMMES[ref];
+    if(!f) return '';
+    return ' <span class="liasse-somme" title="Ligne de total : ' + esc(ref) + ' = ' + esc(f)
+         + '.\nNe l’additionnez pas avec les lignes qu’elle regroupe."'
+         + ' style="font-size:10px; color:#8A6222; font-weight:600; letter-spacing:.04em;">Σ '
+         + esc(f) + '</span>';
+}
+
 function liasseRenderActif(){
     var vN = liasseGetActif('n'), vN1 = liasseGetActif('n1');
     var rows = LIASSE_DATA.actifLines.map(function(l){
@@ -9211,7 +9235,7 @@ function liasseRenderActif(){
         var n1 = vN1[l.ref] || {brut:0,amort:0,net:0};
         var cls = l.bold ? ' class="liasse-total-row"' : '';
         var pad = 10 + (l.indent||0)*14;
-        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+'</td>'+
+        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+liasseMarqueSomme(l.ref)+'</td>'+
             '<td class="num">'+liasseFmt(n.brut)+'</td><td class="num">'+liasseFmt(n.amort)+'</td>'+
             '<td class="num">'+liasseFmt(n.net)+'</td><td class="num">'+liasseFmt(n1.net)+'</td></tr>';
     }).join('');
@@ -9225,7 +9249,7 @@ function liasseRenderPassif(){
         var n1 = vN1[l.ref] || {net:0};
         var cls = l.bold ? ' class="liasse-total-row"' : '';
         var pad = 10 + (l.indent||0)*14;
-        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+'</td>'+
+        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+liasseMarqueSomme(l.ref)+'</td>'+
             '<td class="num">'+liasseFmt(n.net)+'</td><td class="num">'+liasseFmt(n1.net)+'</td></tr>';
     }).join('');
     return '<table class="liasse-table"><thead><tr><th>REF</th><th>PASSIF</th><th>NET N</th><th>NET N-1</th></tr></thead><tbody>'+rows+'</tbody></table>';
@@ -11472,7 +11496,13 @@ var PARAM_SPEC = {
  AE:{b:{i:['211','2181','2191']},                 a:{i:['2811','2818p','2911','2918p','2919p']}},
  AF:{b:{i:['212','213','214','2193']},            a:{i:['2812','2813','2814','2912','2913','2914','2919p']}},
  AG:{b:{i:['215','216']},                         a:{i:['2815','2816','2915','2916']}},
- AH:{b:{i:['217','218'],e:['2181']},              a:{i:['2817','2818p','2917','2918p','2919p']}},
+ /* 2198 « autres immobilisations incorporelles en cours » : présent au
+    référentiel DGI pour AH, il manquait ici et ne résolvait NULLE PART —
+    son montant quittait le bilan, qui cessait alors d'équilibrer.
+    2949 relève désormais du module de répartition (43-repartition.js) :
+    l'exclusion ci-dessous ne vaut que comme repli tant qu'aucun
+    arbitrage n'a été rendu. */
+ AH:{b:{i:['217','218','2198'],e:['2181']},       a:{i:['2817','2818p','2917','2918p','2919p']}},
  AJ:{b:{i:['22']},                                a:{i:['282','292']}},
  AK:{b:{i:['231','232','233','237','2391']},      a:{i:['2831','2832','2833','2837','2931','2932','2933','2937','2939p']}},
  AL:{b:{i:['234','235','238','2392','2393']},     a:{i:['2834','2835','2838','2934','2935','2938','2939p']}},

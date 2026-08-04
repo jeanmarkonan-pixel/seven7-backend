@@ -146,6 +146,30 @@ function liasseFmt(n){
 }
 
 // ---------- Rendu HTML ----------
+/* Formules d'agrégation de la planche officielle. Elles servent à
+   MARQUER les lignes qui sont des sommes.
+
+   Sans ce marquage, un lecteur qui additionne toutes les lignes
+   affichées compte deux fois : AD porte déjà AE+AF+AG+AH, et figure
+   pourtant au-dessus d'elles. Le gras seul ne dit pas « ceci est un
+   total » — il peut se lire comme une simple mise en avant. */
+var LIASSE_SOMMES = {
+    AD:'AE + AF + AG + AH',   AI:'AJ + AK + AL + AM + AN',  AQ:'AR + AS',
+    AZ:'AD + AI + AP + AQ',   BG:'BH + BI + BJ',            BK:'BA + BB + BG',
+    BT:'BQ + BR + BS',        BZ:'AZ + BK + BT + BU',
+    CP:'CA à CM',             DD:'DA + DB + DC',            DF:'CP + DD',
+    DP:'DH à DN',             DT:'DQ + DR',                 DZ:'DF + DP + DT + DV'
+};
+/* Pastille « Σ » posée sur toute ligne qui totalise d'autres lignes. */
+function liasseMarqueSomme(ref){
+    var f = LIASSE_SOMMES[ref];
+    if(!f) return '';
+    return ' <span class="liasse-somme" title="Ligne de total : ' + esc(ref) + ' = ' + esc(f)
+         + '.\nNe l’additionnez pas avec les lignes qu’elle regroupe."'
+         + ' style="font-size:10px; color:#8A6222; font-weight:600; letter-spacing:.04em;">Σ '
+         + esc(f) + '</span>';
+}
+
 function liasseRenderActif(){
     var vN = liasseGetActif('n'), vN1 = liasseGetActif('n1');
     var rows = LIASSE_DATA.actifLines.map(function(l){
@@ -153,7 +177,7 @@ function liasseRenderActif(){
         var n1 = vN1[l.ref] || {brut:0,amort:0,net:0};
         var cls = l.bold ? ' class="liasse-total-row"' : '';
         var pad = 10 + (l.indent||0)*14;
-        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+'</td>'+
+        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+liasseMarqueSomme(l.ref)+'</td>'+
             '<td class="num">'+liasseFmt(n.brut)+'</td><td class="num">'+liasseFmt(n.amort)+'</td>'+
             '<td class="num">'+liasseFmt(n.net)+'</td><td class="num">'+liasseFmt(n1.net)+'</td></tr>';
     }).join('');
@@ -167,7 +191,7 @@ function liasseRenderPassif(){
         var n1 = vN1[l.ref] || {net:0};
         var cls = l.bold ? ' class="liasse-total-row"' : '';
         var pad = 10 + (l.indent||0)*14;
-        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+'</td>'+
+        return '<tr'+cls+'><td>'+l.ref+'</td><td style="padding-left:'+pad+'px;">'+l.label+liasseMarqueSomme(l.ref)+'</td>'+
             '<td class="num">'+liasseFmt(n.net)+'</td><td class="num">'+liasseFmt(n1.net)+'</td></tr>';
     }).join('');
     return '<table class="liasse-table"><thead><tr><th>REF</th><th>PASSIF</th><th>NET N</th><th>NET N-1</th></tr></thead><tbody>'+rows+'</tbody></table>';

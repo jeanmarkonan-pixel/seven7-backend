@@ -16,7 +16,13 @@ var PARAM_SPEC = {
  AE:{b:{i:['211','2181','2191']},                 a:{i:['2811','2818p','2911','2918p','2919p']}},
  AF:{b:{i:['212','213','214','2193']},            a:{i:['2812','2813','2814','2912','2913','2914','2919p']}},
  AG:{b:{i:['215','216']},                         a:{i:['2815','2816','2915','2916']}},
- AH:{b:{i:['217','218'],e:['2181']},              a:{i:['2817','2818p','2917','2918p','2919p']}},
+ /* 2198 « autres immobilisations incorporelles en cours » : présent au
+    référentiel DGI pour AH, il manquait ici et ne résolvait NULLE PART —
+    son montant quittait le bilan, qui cessait alors d'équilibrer.
+    2949 relève désormais du module de répartition (43-repartition.js) :
+    l'exclusion ci-dessous ne vaut que comme repli tant qu'aucun
+    arbitrage n'a été rendu. */
+ AH:{b:{i:['217','218','2198'],e:['2181']},       a:{i:['2817','2818p','2917','2918p','2919p']}},
  AJ:{b:{i:['22']},                                a:{i:['282','292']}},
  AK:{b:{i:['231','232','233','237','2391']},      a:{i:['2831','2832','2833','2837','2931','2932','2933','2937','2939p']}},
  AL:{b:{i:['234','235','238','2392','2393']},     a:{i:['2834','2835','2838','2934','2935','2938','2939p']}},
