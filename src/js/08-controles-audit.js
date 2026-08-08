@@ -222,6 +222,82 @@ function detecterNumerotationHeterogene(){
     return anomalies;
 }
 
+// ============================================================
+// BLOC 0quater — COMPTES NON RATTACHÉS À UN POSTE DE LIASSE
+//
+// paramResolve() ignore silencieusement tout compte qu'aucun poste ne
+// revendique : son montant n'atteint ni le bilan, ni le résultat, ni
+// le TFT. Le reste du moteur reste interne cohérent — détail et total
+// continuent de s'accorder — mais le bilan ne recoupe plus la balance
+// réelle, sans qu'aucun message ne le dise.
+//
+// Cas réel qui a révélé le trou : une balance 2025 dont le total
+// actif ressortait à 2 662 152 560 contre un total passif de
+// 2 728 121 651, écart de 65 969 091. Trois comptes hors référentiel
+// en étaient la cause exacte — 239800 « installations en cours »
+// (2 500 000), 606100/606110/606300/606800 « fournitures non
+// stockables » sous une numérotation propre au client (864 660), et
+// surtout 999999 « profits/pertes non distribués » (62 604 431), un
+// compte de purge généré par le logiciel comptable du client, sans
+// existence en SYSCOHADA. Les trois exclus expliquaient l'écart au
+// franc près.
+//
+// Le principe reste la DÉTECTION, jamais la correction automatique :
+// c'est à l'auditeur de dire à quel poste rattacher un compte que le
+// référentiel ne connaît pas, pas à l'outil de le deviner.
+// ============================================================
+function detecterComptesNonRattaches(){
+    var out = { n: [], n1: [] };
+    ['n', 'n1'].forEach(function(ex){
+        var vus = {};
+        (balanceData[ex] || []).forEach(function(r){
+            var c = String(r.compte || '').trim();
+            if(!c || vus[c]) return;
+            vus[c] = 1;
+            if(paramResolve(r.compte, r.sd, r.sc)) return;   // rattaché : rien à signaler
+            var solde = (parseNum(r.sd) || 0) - (parseNum(r.sc) || 0);
+            if(Math.abs(solde) < 1) return;                  // compte soldé : sans incidence
+            out[ex].push({ compte:c, intitule:(r.intitule || '').trim(), solde:solde });
+        });
+        out[ex].sort(function(a, b){ return Math.abs(b.solde) - Math.abs(a.solde); });
+    });
+    return out;
+}
+
+function renderComptesNonRattaches(){
+    var det = detecterComptesNonRattaches();
+    var banner = document.getElementById('detection-nonrattaches-banner');
+    var table = document.getElementById('detection-nonrattaches-table');
+    if(!banner || !table) return det.n.length === 0 && det.n1.length === 0;
+
+    var total = det.n.length + det.n1.length;
+    var sommeN  = det.n.reduce(function(s, r){ return s + Math.abs(r.solde); }, 0);
+    var sommeN1 = det.n1.reduce(function(s, r){ return s + Math.abs(r.solde); }, 0);
+
+    if(total === 0){
+        banner.innerHTML = '<div class="alert" style="background:#d4edda;color:#155724;border:1px solid #27ae60;padding:10px;border-radius:6px;margin-bottom:10px;">✓ Tous les comptes des deux balances sont rattachés à un poste de la liasse.</div>';
+        setHtml('detection-nonrattaches-table', '<tr><td colspan="4" style="text-align:center;color:#27ae60;">✓ Aucun compte orphelin</td></tr>');
+        return true;
+    }
+
+    banner.innerHTML = '<div class="alert" style="background:#f8d7da;color:#721c24;border:1px solid #c0392b;padding:10px;border-radius:6px;margin-bottom:10px;">'
+        + '⚠ BLOQUANT — ' + total + ' compte(s) au solde non nul ne correspondent à aucun poste de la liasse SYSCOHADA '
+        + '(' + fmt(sommeN + sommeN1) + ' FCFA au total). Leur montant est absent du bilan, du résultat et du TFT : '
+        + 'les totaux affichés ne recoupent PAS la balance réelle tant que ce point n\'est pas résolu. '
+        + 'Rattachez chaque compte à son poste — plan comptable non standard, sous-compte trop spécifique, '
+        + 'ou compte de purge généré par un autre logiciel.</div>';
+
+    var html = '<tr><th>Exercice</th><th>Compte</th><th>Intitulé</th><th>Solde</th></tr>';
+    ['n', 'n1'].forEach(function(ex){
+        det[ex].forEach(function(r){
+            html += '<tr><td>' + (ex === 'n' ? 'N' : 'N-1') + '</td><td>' + esc(r.compte) + '</td>'
+                  + '<td>' + esc(r.intitule) + '</td><td class="number status-danger">' + fmt(r.solde) + '</td></tr>';
+        });
+    });
+    setHtml('detection-nonrattaches-table', html);
+    return false;
+}
+
 function renderContinuite(){
     var result = controlerContinuiteSoldes();
     var banner = document.getElementById('detection-continuite-banner');
@@ -259,9 +335,11 @@ function renderContinuite(){
 
 function runDetection(){
     var continuiteOk = renderContinuite();
+    var rattachesOk = renderComptesNonRattaches();
     try{ runCycles(); }catch(e){ console.error('runCycles', e); }
     try{ runCyclesVariations(); }catch(e){ console.error('runCyclesVariations', e); }
     if(!continuiteOk) return; // BLOQUANT : on n'exécute pas les contrôles suivants tant que la continuité n'est pas résolue
+    if(!rattachesOk) return;  // BLOQUANT : un bilan calculé sur des comptes orphelins ne recoupe pas la balance
 
     var rows = balanceData.n || [];
     var rowsN1 = balanceData.n1 || [];

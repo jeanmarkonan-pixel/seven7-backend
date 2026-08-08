@@ -1366,6 +1366,15 @@
                     </table>
                 </div>
 
+                <h3>0ter. 🧩 Comptes non rattachés à un poste de liasse</h3>
+                <p style="font-size:12px;color:#666;margin-bottom:8px;">Contrôle bloquant : un compte qu'aucun poste SYSCOHADA ne revendique voit son montant disparaître silencieusement du bilan, du résultat et du TFT — sans que rien ne le signale ailleurs. Plan comptable non standard, sous-compte trop spécifique, ou compte de purge propre au logiciel du client en sont les causes les plus courantes.</p>
+                <div id="detection-nonrattaches-banner"></div>
+                <div class="scroll-table">
+                    <table id="detection-nonrattaches-table">
+                        <tr><th>Exercice</th><th>Compte</th><th>Intitulé</th><th>Solde</th></tr>
+                    </table>
+                </div>
+
                 <h3>0bis. 🏷️ Cohérence des intitulés de comptes</h3>
                 <p style="font-size:12px;color:#666;margin-bottom:8px;">Détecte les comptes de codes différents partageant le même intitulé (risque de doublon / compte scindé), ainsi qu'un même compte dont l'intitulé diffère entre la balance N et la balance N-1, ou au sein d'une même balance. Contrôle non bloquant.</p>
                 <div class="scroll-table">
