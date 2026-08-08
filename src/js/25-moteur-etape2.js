@@ -204,12 +204,19 @@ function liasseSumByRef(ex, ref, col, sens, which){
     }
     return total;
 }
-function liasseSumMovementByRef(ex, refList, field){
+/* col par défaut 'brut' (NOTE 3A : acquisitions/cessions sur les comptes
+   d'immobilisation eux-mêmes). NOTE 3C (dotations/reprises) doit lire les
+   MOUVEMENTS DES COMPTES D'AMORTISSEMENT, pas des comptes bruts — sans quoi
+   ces colonnes restent à zéro quelle que soit la balance (bug réel constaté :
+   dotation de 90 000 sur le compte 28130000, MTTCI, restituée à 0 avant ce
+   correctif, faute de filtrer sur col:'amort'). */
+function liasseSumMovementByRef(ex, refList, field, col){
+    col = col || 'brut';
     var rows = paramRows(ex);
     var total = 0;
     for(var i=0;i<rows.length;i++){
         var m = paramResolve(rows[i].compte, rows[i].sd, rows[i].sc);
-        if(!m || m.col !== 'brut' || refList.indexOf(m.ref) === -1) continue;
+        if(!m || m.col !== col || refList.indexOf(m.ref) === -1) continue;
         total += parseNum(rows[i][field]) || 0;
     }
     return total;
