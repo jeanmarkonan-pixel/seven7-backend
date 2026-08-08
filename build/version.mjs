@@ -35,6 +35,19 @@ const git = (...args) => {
     catch { return ''; }
 };
 
+/* Distinct de git() : `git status --porcelain` porte un sens dans les
+   deux premiers caractères de CHAQUE ligne (le code de statut), y
+   compris la première. Un .trim() global sur toute la sortie grignote
+   l'espace en tête de cette première ligne — décalant le slice(3) plus
+   bas d'un caractère, et cassant la comparaison qui détecte un dépôt
+   propre. Bug réel corrigé le 8 août 2026 : l'estampille affichait
+   « +modifié » sur un dépôt pourtant propre, dès que le seul fichier
+   modifié était justement celui que ce filtre est censé ignorer. */
+const gitBrut = (...args) => {
+    try { return execFileSync('git', args, { cwd: RACINE, encoding: 'utf8' }); }
+    catch { return ''; }
+};
+
 const commit = git('rev-parse', '--short', 'HEAD') || 'hors-depot';
 const date   = new Date().toISOString().slice(0, 10);
 
@@ -42,7 +55,7 @@ const date   = new Date().toISOString().slice(0, 10);
    deux chemins sont donc toujours modifiés à cet instant et ne disent rien
    de l'état réel du travail. On ne regarde que le reste — c'est là qu'un
    livrable bricolé se trahit. */
-const propre = git('status', '--porcelain')
+const propre = gitBrut('status', '--porcelain')
     .split('\n')
     .map(l => l.slice(3).trim())
     .filter(Boolean)
