@@ -376,6 +376,7 @@
                 <span onclick="closeCabinetDashboard()" style="cursor:pointer; font-size:24px; color:#999;">&times;</span>
             </div>
             <p style="font-size:11px; color:#888; margin-bottom:12px;">Ce compte cabinet affiche la liste de vos dossiers — il ne donne pas un accès direct à leur contenu. Le mot de passe de chaque dossier reste nécessaire pour l'ouvrir.</p>
+            <div id="cabinet-dash-nouveau-modele" style="display:none;"></div>
             <div id="cabinet-dash-login">
                 <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔖 Code cabinet</label>
                 <input type="text" id="cabinet-dash-code" placeholder="Ex: KONAN2026" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px; text-transform:uppercase;">
@@ -7709,6 +7710,8 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         document.getElementById('cabinet-dash-error').style.display = 'none';
         document.getElementById('cabinet-dash-code').value = '';
         document.getElementById('cabinet-dash-password').value = '';
+        var nouveauModeleEl = document.getElementById('cabinet-dash-nouveau-modele');
+        if(nouveauModeleEl){ nouveauModeleEl.style.display = 'none'; nouveauModeleEl.innerHTML = ''; }
     };
 
     window.closeCabinetDashboard = function(){
@@ -7735,7 +7738,18 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         }
         var btn = document.querySelector('#cabinet-dash-login .btn-primary');
         if(btn){ btn.disabled = true; btn.textContent = '⏳ Vérification…'; }
-        firebase.auth().signInWithEmailAndPassword(cabinetAuthEmail(code), pass).then(function(){
+        var uidConnecte = null;
+        firebase.auth().signInWithEmailAndPassword(cabinetAuthEmail(code), pass).then(function(cred){
+            uidConnecte = cred.user.uid;
+            // Nouveau modèle (phase 2/3) : ce même compte Auth est aussi celui de
+            // l'administrateur du cabinet dans cabinets/{code}/membres/{uid}, s'il a
+            // été migré. Les deux mondes coexistent : un cabinet pas encore migré
+            // n'a simplement pas ce document, et la suite se comporte à l'identique
+            // qu'avant (liste des dossiers de l'ancien modèle uniquement).
+            return db.collection('cabinets').doc(code).collection('membres').doc(uidConnecte).get();
+        }).then(function(membreDoc){
+            trackReads(1);
+            renderNouveauModeleCabinet(membreDoc.exists ? membreDoc.data() : null, code);
             return db.collection('seven7_dossiers_public').where('cabinetId', '==', code).get();
         }).then(function(snap){
             trackReads(Math.max(1, snap.size));
@@ -7753,6 +7767,36 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             if(btn){ btn.disabled = false; btn.textContent = '🔓 Voir mes dossiers'; }
         });
     };
+
+    // ---------- Nouveau modèle (phase 3) : bandeau membre/rôle/quota -----------
+    // N'affiche rien si membre === null (cabinet pas encore migré, ou compte
+    // Auth cabinet sans document membre) : l'écran garde alors exactement son
+    // comportement d'avant cette phase, ancien modèle seul.
+    function renderNouveauModeleCabinet(membre, code){
+        var el = document.getElementById('cabinet-dash-nouveau-modele');
+        if(!el) return;
+        if(!membre){ el.style.display = 'none'; el.innerHTML = ''; return; }
+        var roleLabel = membre.role === 'ADMIN' ? 'Administrateur principal' : 'Collaborateur';
+        var nomHtml = String(membre.nom || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        el.style.display = 'block';
+        el.innerHTML = '<div style="background:#F5EFE2; border:1px solid #B8975A; border-radius:6px; padding:10px 12px; margin-bottom:12px; text-align:left;">' +
+            '<div style="font-weight:700; font-size:12.5px; color:#1B2A4A;">🏢 Espace cabinet — nouveau modèle</div>' +
+            '<div style="font-size:12px; color:#555; margin-top:4px;">' + nomHtml + ' · <strong>' + roleLabel + '</strong></div>' +
+            '<div id="cabinet-dash-quota-nouveau" style="font-size:11px; color:#888; margin-top:4px;">Chargement du quota…</div>' +
+            '</div>';
+        db.collection('cabinets').doc(code).get().then(function(cabDoc){
+            trackReads(1);
+            var quotaEl = document.getElementById('cabinet-dash-quota-nouveau');
+            if(!quotaEl || !cabDoc.exists) return;
+            var c = cabDoc.data();
+            var plafond = typeof c.quotaDossiers === 'number' ? c.quotaDossiers : 0;
+            var utilises = typeof c.dossiersUtilises === 'number' ? c.dossiersUtilises : 0;
+            var libellePlan = c.plan || '?';
+            quotaEl.textContent = (plafond >= SEUIL_ILLIMITE ? (utilises + ' dossier(s) — illimité') : (utilises + ' / ' + plafond + ' dossiers'))
+                + ' — plan ' + libellePlan
+                + (c.statut !== 'ACTIF' ? ' — ⚠ ' + c.statut : '');
+        }).catch(function(){ /* affichage dégradé : le rôle reste visible sans le quota */ });
+    }
 
     function renderCabinetDashboardList(snap, code){
         document.getElementById('cabinet-dash-login').style.display = 'none';

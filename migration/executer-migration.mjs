@@ -86,21 +86,49 @@ async function seedPlans(db) {
     console.log(`  /plans : ${PLANS.length} palier(s) écrit(s) (STARTER, PRO, CABINET)`);
 }
 
-async function assurerCompteAdmin(auth, email, motDePasse, nom) {
+/**
+ * Email de connexion CODE_CABINET, jamais utilisé pour envoyer un vrai
+ * e-mail — même convention, au caractère près, que cabinetAuthEmail()
+ * dans src/js/10-config-collaboration.js (déjà utilisée par l'écran
+ * « Vous êtes admin de cabinet ? »). La réutiliser ici, plutôt que
+ * d'inventer une seconde convention, est ce qui rend l'authentification
+ * par CODE_CABINET (§4) possible : l'app doit résoudre un email à
+ * partir du seul code, AVANT toute authentification — elle ne peut donc
+ * pas lire emailContact (qui vit dans un document Firestore protégé par
+ * des règles exigeant justement d'être déjà connecté).
+ */
+function cabinetAuthEmail(codeCabinet) {
+    return 'cabinet-' + String(codeCabinet).toLowerCase() + '@seven7-audit.local';
+}
+
+/**
+ * @param emailContact  adresse RÉELLE de contact — stockée dans Firestore
+ *   (cabinets/{code}.emailContact, membres/{uid}.email), jamais utilisée
+ *   comme identifiant Auth. Un compte Auth dont l'email serait cette
+ *   adresse ne pourrait pas se connecter par CODE_CABINET : rien ne
+ *   permettrait de la retrouver avant authentification.
+ */
+async function assurerCompteAdmin(auth, codeCabinet, emailContact, motDePasse, nom) {
+    const emailAuth = cabinetAuthEmail(codeCabinet);
     try {
-        const existant = await auth.getUserByEmail(email);
-        console.log(`  compte Auth admin déjà existant : ${email} (uid ${existant.uid})`);
+        const existant = await auth.getUserByEmail(emailAuth);
+        console.log(`  compte Auth admin déjà existant : ${emailAuth} (uid ${existant.uid})`);
         return existant.uid;
     } catch (erreur) {
         if (erreur.code !== 'auth/user-not-found') throw erreur;
     }
     if (!motDePasse) {
         throw new Error(
-            `Aucun compte Auth pour ${email}, et --motDePasseAdmin non fourni pour en créer un. `
+            `Aucun compte Auth pour ${emailAuth}, et --motDePasseAdmin non fourni pour en créer un. `
           + `Fournissez un mot de passe provisoire (l'administrateur devra le changer à la première connexion).`);
     }
-    const cree = await auth.createUser({ email, password: motDePasse, displayName: nom });
-    console.log(`  compte Auth admin créé : ${email} (uid ${cree.uid})`);
+    // displayName porte l'email de contact réel : c'est ce que la console
+    // Firebase affiche, pour qu'un opérateur SEVEN7 retrouve la personne
+    // derrière emailAuth sans avoir à ouvrir Firestore.
+    const cree = await auth.createUser({
+        email: emailAuth, password: motDePasse, displayName: `${nom} <${emailContact}>`,
+    });
+    console.log(`  compte Auth admin créé : ${emailAuth} (uid ${cree.uid}) — contact réel : ${emailContact}`);
     return cree.uid;
 }
 
@@ -130,7 +158,8 @@ async function migrer(args) {
 
     await seedPlans(db);
 
-    const uidAdmin = await assurerCompteAdmin(auth, args.email, args.motDePasseAdmin, args.nomAdmin || codeCabinet);
+    const uidAdmin = await assurerCompteAdmin(
+        auth, codeCabinet, args.email, args.motDePasseAdmin, args.nomAdmin || codeCabinet);
 
     const { document, avertissements } = migrerCabinet(ancien.data(), {
         codeCabinet,

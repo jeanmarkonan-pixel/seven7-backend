@@ -19,6 +19,16 @@ crée uniquement :
   `/plans`, crée le compte Auth de l'administrateur si besoin, et
   écrit `cabinets/{code}` + `cabinets/{code}/membres/{uid}`.
 
+  **Correctif du 9 août 2026** : le compte Auth de l'admin est créé
+  avec l'email de connexion déterministe `cabinet-{code}@seven7-audit.local`
+  (même convention que `cabinetAuthEmail()` déjà utilisée par l'écran
+  « Vous êtes admin de cabinet ? »), pas avec `--email`. C'est ce qui
+  permet la connexion par CODE_CABINET seul (§4) : l'app doit pouvoir
+  résoudre un email à partir du code AVANT toute authentification, donc
+  sans lire Firestore. `--email` reste obligatoire mais ne sert plus
+  qu'à peupler `emailContact` (adresse réelle de contact, jamais un
+  identifiant de connexion).
+
 ## Ce qui ne peut pas être déduit automatiquement
 
 L'ancien schéma (`{ palier, plafondDossiers, dossiersCreesAnnee }`) ne
