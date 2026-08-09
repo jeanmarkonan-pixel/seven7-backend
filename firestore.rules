@@ -154,17 +154,37 @@ service cloud.firestore {
         // un non-admin, empêche un cabinet de se retrouver sans aucun
         // administrateur actif. Affiné en phase 4 (désactivation d'un
         // collègue, affectation de dossiers).
-        allow read: if estMembre(code);
+        //
+        // Chacun peut TOUJOURS lire SON PROPRE document membre, même
+        // s'il n'appartient pas à ce cabinet (le document n'existe alors
+        // pas, et la lecture renvoie simplement « inexistant »). Sans
+        // cette clause, estMembre() interrogeait un document que la règle
+        // refusait ensuite de lire : l'écran de connexion recevait
+        // « permission-denied » là où il devait distinguer « vous n'êtes
+        // pas membre de ce cabinet » — un message que l'utilisateur peut
+        // corriger seul, en vérifiant le code saisi. Aucune information
+        // n'est exposée : on ne peut lire que le document portant son
+        // propre uid, jamais celui d'autrui.
+        allow read: if estMembre(code) || (request.auth != null && uid == request.auth.uid);
         allow create, update: if estAdmin(code) && uid != request.auth.uid;
         allow delete: if false;
       }
 
       match /dossiers/{dossierId} {
-        // Un ADMIN lit tout ; un COLLABORATEUR ne lit que les dossiers
-        // listés dans SON PROPRE document membre — jamais un tableau
-        // fourni par le client, toujours relu en base.
+        // Un ADMIN lit tout ; un COLLABORATEUR ACTIF ne lit que les
+        // dossiers listés dans SON PROPRE document membre — jamais un
+        // tableau fourni par le client, toujours relu en base.
+        //
+        // « actif == true » explicite ici, pas seulement estMembre() :
+        // estMembre() ne vérifie que l'EXISTENCE du document (utile pour
+        // qu'un collègue désactivé reste visible dans la liste de
+        // l'équipe), donc à elle seule elle laisserait un collaborateur
+        // désactivé continuer de lire les dossiers déjà affectés. Trouvé
+        // en écrivant le test « COLLABORATEUR DÉSACTIVÉ » — corrigé ici,
+        // pas seulement documenté.
         allow read: if estAdmin(code)
-          || (estMembre(code) && dossierId in donneesMembre(code).dossiersAffectes);
+          || (estMembre(code) && donneesMembre(code).actif == true
+              && dossierId in donneesMembre(code).dossiersAffectes);
 
         // E2 : seul l'ADMIN crée un dossier, jamais un collaborateur, ni
         // par l'interface ni par appel direct — c'est ici, pas dans

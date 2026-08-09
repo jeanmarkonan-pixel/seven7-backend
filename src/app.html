@@ -378,13 +378,38 @@
             <p style="font-size:11px; color:#888; margin-bottom:12px;">Ce compte cabinet affiche la liste de vos dossiers — il ne donne pas un accès direct à leur contenu. Le mot de passe de chaque dossier reste nécessaire pour l'ouvrir.</p>
             <div id="cabinet-dash-nouveau-modele" style="display:none;"></div>
             <div id="cabinet-dash-login">
-                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔖 Code cabinet</label>
-                <input type="text" id="cabinet-dash-code" placeholder="Ex: KONAN2026" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px; text-transform:uppercase;">
-                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔑 Mot de passe cabinet</label>
-                <input type="password" id="cabinet-dash-password" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;" onkeydown="if(event.key==='Enter') cabinetDashboardLogin()">
-                <p id="cabinet-dash-error" style="color:#c0392b; font-size:12px; margin:8px 0 0; display:none;"></p>
-                <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="cabinetDashboardLogin()">🔓 Voir mes dossiers</button>
-                <p style="font-size:10px; color:#888; margin-top:10px;">Ce mot de passe cabinet vous est communiqué par SEVEN7, séparément du mot de passe de chaque dossier.</p>
+                <!-- Deux façons d'entrer dans l'espace cabinet (§4 du cahier des charges) :
+                     l'administrateur par CODE CABINET, les collaborateurs par leur e-mail
+                     nominatif. Le rôle réel n'est jamais déduit de l'onglet choisi ici : il
+                     est relu dans cabinets/{code}/membres/{uid} après authentification, et
+                     c'est lui seul, via les règles Firestore, qui gouverne les droits. -->
+                <div style="display:flex; gap:6px; margin-bottom:12px;">
+                    <button type="button" id="cabinet-onglet-admin" class="btn" style="flex:1; margin:0; font-size:12px; padding:7px 6px;" onclick="cabinetSwitchMode('admin')">🔖 Par code cabinet</button>
+                    <button type="button" id="cabinet-onglet-collab" class="btn" style="flex:1; margin:0; font-size:12px; padding:7px 6px;" onclick="cabinetSwitchMode('collab')">✉️ Par e-mail</button>
+                </div>
+
+                <div id="cabinet-mode-admin">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔖 Code cabinet</label>
+                    <input type="text" id="cabinet-dash-code" placeholder="Ex: KONAN2026" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px; text-transform:uppercase;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔑 Mot de passe cabinet</label>
+                    <input type="password" id="cabinet-dash-password" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;" onkeydown="if(event.key==='Enter') cabinetDashboardLogin()">
+                    <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="cabinetDashboardLogin()">🔓 Voir mes dossiers</button>
+                    <p style="font-size:10px; color:#888; margin-top:10px;">Ce mot de passe cabinet vous est communiqué par SEVEN7, séparément du mot de passe de chaque dossier.</p>
+                </div>
+
+                <div id="cabinet-mode-collab" style="display:none;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔖 Code cabinet</label>
+                    <input type="text" id="cabinet-collab-code" placeholder="Ex: KONAN2026" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px; text-transform:uppercase;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">✉️ Votre adresse e-mail</label>
+                    <input type="email" id="cabinet-collab-email" placeholder="prenom.nom@cabinet.ci" autocomplete="username" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔑 Votre mot de passe</label>
+                    <input type="password" id="cabinet-collab-password" autocomplete="current-password" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;" onkeydown="if(event.key==='Enter') cabinetCollaborateurLogin()">
+                    <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="cabinetCollaborateurLogin()">🔓 Accéder à mes dossiers</button>
+                    <p style="font-size:10px; margin-top:8px;"><a href="#" onclick="cabinetCollabResetPassword(); return false;" style="color:#2980b9;">Mot de passe oublié ?</a></p>
+                    <p style="font-size:10px; color:#888; margin-top:6px;">Votre compte est créé par l'administrateur principal de votre cabinet. Vous n'accédez qu'aux dossiers qu'il vous a affectés.</p>
+                </div>
+
+                <p id="cabinet-dash-error" style="color:#c0392b; font-size:12px; margin:10px 0 0; display:none;"></p>
             </div>
             <div id="cabinet-dash-list" style="display:none;">
                 <div id="cabinet-dash-list-content"></div>

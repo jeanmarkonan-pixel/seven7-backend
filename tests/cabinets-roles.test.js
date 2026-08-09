@@ -274,6 +274,48 @@ test('MEMBRES — un admin peut désactiver un collaborateur', opts, async () =>
     await assertSucceeds(db(ADM).doc('cabinets/KONAN2026/membres/' + COL).update({ actif: false }));
 });
 
+/* ---------- Connexion collaborateur par e-mail (phase 3) ------------------ */
+
+test('MEMBRES — un utilisateur authentifié lit TOUJOURS son propre document membre, même absent', opts, async () => {
+    await semer();
+    // C'est ce que fait l'écran de connexion juste après signInWithEmailAndPassword,
+    // AVANT de savoir si la personne appartient à ce cabinet : la lecture doit
+    // réussir et renvoyer « inexistant », jamais lever une exception — sinon
+    // impossible d'afficher « vous n'êtes pas membre de ce cabinet » plutôt
+    // qu'une erreur technique.
+    const snap = await db(AUTRE_ADM).doc('cabinets/KONAN2026/membres/' + AUTRE_ADM).get();
+    assert.equal(snap.exists, false);
+});
+
+test('MEMBRES — un utilisateur ne peut pas lire le document membre de quelqu’un d’autre par ce biais', opts, async () => {
+    await semer();
+    await assertFails(db(AUTRE_ADM).doc('cabinets/KONAN2026/membres/' + ADM).get());
+    await assertFails(db(AUTRE_ADM).doc('cabinets/KONAN2026/membres/' + COL).get());
+});
+
+test('COLLABORATEUR — lit son dossier affecté, jamais un autre, jamais un autre cabinet', opts, async () => {
+    await semer();
+    await assertSucceeds(db(COL).doc('cabinets/KONAN2026/dossiers/1').get());
+    await assertFails(db(COL).doc('cabinets/KONAN2026/dossiers/2').get());
+    await assertFails(db(COL).doc('cabinets/AUTRE/dossiers/1').get());
+});
+
+test('COLLABORATEUR DÉSACTIVÉ — perd l’accès à ses dossiers dès la désactivation, pas seulement à l’écran', opts, async () => {
+    await semer();
+    // Avant désactivation : accès normal.
+    await assertSucceeds(db(COL).doc('cabinets/KONAN2026/dossiers/1').get());
+
+    await db(ADM).doc('cabinets/KONAN2026/membres/' + COL).update({ actif: false });
+
+    // Le document membre reste lisible par son propriétaire (il doit pouvoir
+    // savoir POURQUOI il est refusé, pas recevoir une erreur muette), mais
+    // dit actif: false — et la règle de lecture du DOSSIER, elle, se ferme
+    // réellement : ce n'est pas l'écran qui protège, c'est la règle.
+    const snap = await db(COL).doc('cabinets/KONAN2026/membres/' + COL).get();
+    assert.equal(snap.data().actif, false);
+    await assertFails(db(COL).doc('cabinets/KONAN2026/dossiers/1').get());
+});
+
 test('CABINET — création et suppression du document cabinet lui-même sont toujours refusées côté client', opts, async () => {
     await semer();
     await assertFails(db(ADM).doc('cabinets/NOUVEAU').set({

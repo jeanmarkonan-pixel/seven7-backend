@@ -378,13 +378,38 @@
             <p style="font-size:11px; color:#888; margin-bottom:12px;">Ce compte cabinet affiche la liste de vos dossiers — il ne donne pas un accès direct à leur contenu. Le mot de passe de chaque dossier reste nécessaire pour l'ouvrir.</p>
             <div id="cabinet-dash-nouveau-modele" style="display:none;"></div>
             <div id="cabinet-dash-login">
-                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔖 Code cabinet</label>
-                <input type="text" id="cabinet-dash-code" placeholder="Ex: KONAN2026" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px; text-transform:uppercase;">
-                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔑 Mot de passe cabinet</label>
-                <input type="password" id="cabinet-dash-password" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;" onkeydown="if(event.key==='Enter') cabinetDashboardLogin()">
-                <p id="cabinet-dash-error" style="color:#c0392b; font-size:12px; margin:8px 0 0; display:none;"></p>
-                <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="cabinetDashboardLogin()">🔓 Voir mes dossiers</button>
-                <p style="font-size:10px; color:#888; margin-top:10px;">Ce mot de passe cabinet vous est communiqué par SEVEN7, séparément du mot de passe de chaque dossier.</p>
+                <!-- Deux façons d'entrer dans l'espace cabinet (§4 du cahier des charges) :
+                     l'administrateur par CODE CABINET, les collaborateurs par leur e-mail
+                     nominatif. Le rôle réel n'est jamais déduit de l'onglet choisi ici : il
+                     est relu dans cabinets/{code}/membres/{uid} après authentification, et
+                     c'est lui seul, via les règles Firestore, qui gouverne les droits. -->
+                <div style="display:flex; gap:6px; margin-bottom:12px;">
+                    <button type="button" id="cabinet-onglet-admin" class="btn" style="flex:1; margin:0; font-size:12px; padding:7px 6px;" onclick="cabinetSwitchMode('admin')">🔖 Par code cabinet</button>
+                    <button type="button" id="cabinet-onglet-collab" class="btn" style="flex:1; margin:0; font-size:12px; padding:7px 6px;" onclick="cabinetSwitchMode('collab')">✉️ Par e-mail</button>
+                </div>
+
+                <div id="cabinet-mode-admin">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔖 Code cabinet</label>
+                    <input type="text" id="cabinet-dash-code" placeholder="Ex: KONAN2026" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px; text-transform:uppercase;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔑 Mot de passe cabinet</label>
+                    <input type="password" id="cabinet-dash-password" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;" onkeydown="if(event.key==='Enter') cabinetDashboardLogin()">
+                    <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="cabinetDashboardLogin()">🔓 Voir mes dossiers</button>
+                    <p style="font-size:10px; color:#888; margin-top:10px;">Ce mot de passe cabinet vous est communiqué par SEVEN7, séparément du mot de passe de chaque dossier.</p>
+                </div>
+
+                <div id="cabinet-mode-collab" style="display:none;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔖 Code cabinet</label>
+                    <input type="text" id="cabinet-collab-code" placeholder="Ex: KONAN2026" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px; text-transform:uppercase;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">✉️ Votre adresse e-mail</label>
+                    <input type="email" id="cabinet-collab-email" placeholder="prenom.nom@cabinet.ci" autocomplete="username" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:10px;">
+                    <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">🔑 Votre mot de passe</label>
+                    <input type="password" id="cabinet-collab-password" autocomplete="current-password" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;" onkeydown="if(event.key==='Enter') cabinetCollaborateurLogin()">
+                    <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="cabinetCollaborateurLogin()">🔓 Accéder à mes dossiers</button>
+                    <p style="font-size:10px; margin-top:8px;"><a href="#" onclick="cabinetCollabResetPassword(); return false;" style="color:#2980b9;">Mot de passe oublié ?</a></p>
+                    <p style="font-size:10px; color:#888; margin-top:6px;">Votre compte est créé par l'administrateur principal de votre cabinet. Vous n'accédez qu'aux dossiers qu'il vous a affectés.</p>
+                </div>
+
+                <p id="cabinet-dash-error" style="color:#c0392b; font-size:12px; margin:10px 0 0; display:none;"></p>
             </div>
             <div id="cabinet-dash-list" style="display:none;">
                 <div id="cabinet-dash-list-content"></div>
@@ -7710,8 +7735,15 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         document.getElementById('cabinet-dash-error').style.display = 'none';
         document.getElementById('cabinet-dash-code').value = '';
         document.getElementById('cabinet-dash-password').value = '';
+        ['cabinet-collab-code', 'cabinet-collab-email', 'cabinet-collab-password'].forEach(function(id){
+            var el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        var errEl = document.getElementById('cabinet-dash-error');
+        if(errEl) errEl.style.color = '#c0392b'; // annule un éventuel message vert de réinitialisation
         var nouveauModeleEl = document.getElementById('cabinet-dash-nouveau-modele');
         if(nouveauModeleEl){ nouveauModeleEl.style.display = 'none'; nouveauModeleEl.innerHTML = ''; }
+        cabinetSwitchMode('admin');
     };
 
     window.closeCabinetDashboard = function(){
@@ -7767,6 +7799,167 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             if(btn){ btn.disabled = false; btn.textContent = '🔓 Voir mes dossiers'; }
         });
     };
+
+    // ---------- Connexion COLLABORATEUR par e-mail nominatif (§4) --------------
+    // L'administrateur entre par CODE CABINET (ci-dessus), les collaborateurs par
+    // leur e-mail personnel : eux ont une vraie adresse, connue d'eux seuls, et
+    // peuvent donc réinitialiser leur mot de passe sans passer par SEVEN7.
+    //
+    // Le code cabinet est demandé EN PLUS de l'e-mail : Firestore ne permet pas de
+    // retrouver à quel cabinet appartient un uid sans parcourir tous les cabinets
+    // (ce qu'aucune règle ne peut autoriser sans ouvrir la lecture croisée que le
+    // §6 interdit). Le demander explicitement est le prix, assumé, de l'isolation
+    // stricte entre cabinets.
+    //
+    // Le rôle n'est JAMAIS déduit de cet écran : il est relu dans le document
+    // membre, et seules les règles Firestore l'appliquent réellement.
+    window.cabinetSwitchMode = function(mode){
+        var admin = document.getElementById('cabinet-mode-admin');
+        var collab = document.getElementById('cabinet-mode-collab');
+        var ongletAdmin = document.getElementById('cabinet-onglet-admin');
+        var ongletCollab = document.getElementById('cabinet-onglet-collab');
+        var errEl = document.getElementById('cabinet-dash-error');
+        if(errEl) errEl.style.display = 'none';
+        var estAdmin = (mode !== 'collab');
+        if(admin) admin.style.display = estAdmin ? 'block' : 'none';
+        if(collab) collab.style.display = estAdmin ? 'none' : 'block';
+        if(ongletAdmin) ongletAdmin.className = estAdmin ? 'btn btn-primary' : 'btn';
+        if(ongletCollab) ongletCollab.className = estAdmin ? 'btn' : 'btn btn-primary';
+    };
+
+    window.cabinetCollaborateurLogin = function(){
+        var errEl = document.getElementById('cabinet-dash-error');
+        errEl.style.display = 'none';
+        var code = document.getElementById('cabinet-collab-code').value.trim().toUpperCase();
+        var email = document.getElementById('cabinet-collab-email').value.trim();
+        var pass = document.getElementById('cabinet-collab-password').value;
+        if(!code || !email || !pass){
+            errEl.textContent = 'Merci de renseigner le code cabinet, votre e-mail et votre mot de passe.';
+            errEl.style.display = 'block';
+            return;
+        }
+        if(!collabInitFirebase()){
+            errEl.textContent = 'Configuration Firebase manquante.';
+            errEl.style.display = 'block';
+            return;
+        }
+        var btn = document.querySelector('#cabinet-mode-collab .btn-primary');
+        if(btn){ btn.disabled = true; btn.textContent = '⏳ Vérification…'; }
+        var uidConnecte = null;
+        firebase.auth().signInWithEmailAndPassword(email, pass).then(function(cred){
+            uidConnecte = cred.user.uid;
+            return db.collection('cabinets').doc(code).collection('membres').doc(uidConnecte).get();
+        }).then(function(membreDoc){
+            trackReads(1);
+            // Authentifié mais pas membre de CE cabinet : on referme la session
+            // plutôt que de laisser une session Auth ouverte sans habilitation.
+            if(!membreDoc.exists){
+                return firebase.auth().signOut().catch(function(){}).then(function(){
+                    throw { code: 'seven7/non-membre' };
+                });
+            }
+            var membre = membreDoc.data() || {};
+            if(membre.actif === false){
+                return firebase.auth().signOut().catch(function(){}).then(function(){
+                    throw { code: 'seven7/compte-desactive' };
+                });
+            }
+            renderNouveauModeleCabinet(membre, code);
+            renderDossiersAffectes(membre, code);
+        }).catch(function(err){
+            var msg = 'Connexion refusée.';
+            if(err && (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential')){
+                msg = 'E-mail ou mot de passe incorrect.';
+            } else if(err && err.code === 'auth/user-not-found'){
+                msg = "Aucun compte pour cette adresse. Demandez à l'administrateur de votre cabinet de vous créer un accès.";
+            } else if(err && err.code === 'auth/invalid-email'){
+                msg = "Cette adresse e-mail n'est pas valide.";
+            } else if(err && err.code === 'auth/too-many-requests'){
+                msg = 'Trop de tentatives. Réessayez dans quelques minutes.';
+            } else if(err && err.code === 'seven7/non-membre'){
+                msg = "Votre compte n'appartient pas au cabinet « " + code + " ». Vérifiez le code cabinet saisi.";
+            } else if(err && err.code === 'seven7/compte-desactive'){
+                msg = "Votre accès a été désactivé par l'administrateur de votre cabinet.";
+            }
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+        }).then(function(){
+            if(btn){ btn.disabled = false; btn.textContent = '🔓 Accéder à mes dossiers'; }
+        });
+    };
+
+    window.cabinetCollabResetPassword = function(){
+        var errEl = document.getElementById('cabinet-dash-error');
+        var email = document.getElementById('cabinet-collab-email').value.trim();
+        if(!email){
+            errEl.textContent = "Saisissez d'abord votre adresse e-mail, puis relancez la réinitialisation.";
+            errEl.style.display = 'block';
+            return;
+        }
+        if(!collabInitFirebase()) return;
+        firebase.auth().sendPasswordResetEmail(email).then(function(){
+            errEl.style.color = '#1e7a4c';
+            errEl.textContent = 'Un e-mail de réinitialisation vous a été envoyé. Pensez à vérifier vos indésirables.';
+            errEl.style.display = 'block';
+        }).catch(function(){
+            // Message volontairement identique en cas de succès comme d'échec :
+            // révéler qu'une adresse est inconnue permettrait d'énumérer les
+            // comptes du cabinet.
+            errEl.style.color = '#1e7a4c';
+            errEl.textContent = 'Un e-mail de réinitialisation vous a été envoyé. Pensez à vérifier vos indésirables.';
+            errEl.style.display = 'block';
+        });
+    };
+
+    // Liste des dossiers du NOUVEAU modèle réellement affectés au membre. Un
+    // collaborateur ne voit que dossiersAffectes ; un admin voit tout le cabinet.
+    // Les règles Firestore appliquent exactement la même restriction : ce qui est
+    // affiché ici n'est jamais ce qui autorise l'accès.
+    function renderDossiersAffectes(membre, code){
+        document.getElementById('cabinet-dash-login').style.display = 'none';
+        var listEl = document.getElementById('cabinet-dash-list');
+        var contentEl = document.getElementById('cabinet-dash-list-content');
+        listEl.style.display = 'block';
+        contentEl.innerHTML = '<p style="font-size:12px; color:#888;">Chargement de vos dossiers…</p>';
+
+        var affectes = (membre && membre.dossiersAffectes) ? membre.dossiersAffectes : [];
+        if(membre && membre.role !== 'ADMIN' && !affectes.length){
+            contentEl.innerHTML = '<p style="font-size:12px; color:#888;">Aucun dossier ne vous est affecté pour le moment. '
+                + "Demandez à l'administrateur principal de votre cabinet de vous en affecter.</p>";
+            return;
+        }
+
+        var ref = db.collection('cabinets').doc(code).collection('dossiers');
+        var lecture = (membre.role === 'ADMIN')
+            ? ref.get()
+            : Promise.all(affectes.map(function(id){ return ref.doc(id).get(); }))
+                .then(function(docs){ return { forEach: function(cb){ docs.filter(function(d){ return d.exists; }).forEach(cb); } }; });
+
+        lecture.then(function(snap){
+            var rows = [];
+            snap.forEach(function(doc){
+                var d = doc.data() || {};
+                rows.push({ id: doc.id, intitule: d.intitule || doc.id, client: d.clientAudite || '', exercice: d.exercice || '', statut: d.statut || '' });
+            });
+            trackReads(Math.max(1, rows.length));
+            if(!rows.length){
+                contentEl.innerHTML = '<p style="font-size:12px; color:#888;">Aucun dossier dans cet espace cabinet pour le moment.</p>';
+                return;
+            }
+            rows.sort(function(a, b){ return String(a.intitule).localeCompare(String(b.intitule)); });
+            var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+            contentEl.innerHTML = '<p style="font-size:11px; color:#888; margin-bottom:10px;">' + rows.length + ' dossier(s) accessible(s).</p>'
+                + rows.map(function(r){
+                    return '<div style="border:1px solid #eee; border-radius:6px; padding:8px 10px; margin-bottom:6px; text-align:left;">'
+                        + '<div style="font-weight:600; font-size:13px; color:#1B2A4A;">📁 ' + esc(r.intitule) + '</div>'
+                        + '<div style="font-size:11px; color:#888;">' + esc(r.client) + (r.exercice ? ' · exercice ' + esc(r.exercice) : '') + (r.statut ? ' · ' + esc(r.statut) : '') + '</div>'
+                        + '</div>';
+                }).join('');
+        }).catch(function(err){
+            contentEl.innerHTML = '<p style="font-size:12px; color:#c0392b;">Impossible de charger vos dossiers : '
+                + String(err && err.message ? err.message : err).replace(/</g,'&lt;') + '</p>';
+        });
+    }
 
     // ---------- Nouveau modèle (phase 3) : bandeau membre/rôle/quota -----------
     // N'affiche rien si membre === null (cabinet pas encore migré, ou compte
