@@ -91,5 +91,124 @@ service cloud.firestore {
         && request.resource.data.dossiersCreesAnnee == resource.data.dossiersCreesAnnee + 1
         && request.resource.data.dossiersCreesAnnee <= resource.data.plafondDossiers;
     }
+
+    // ================================================================
+    // NOUVEAU MODÈLE — phase 2 (schéma cabinets/rôles/paliers)
+    //
+    // Coexiste avec seven7_cabinets/seven7_dossiers ci-dessus, qu'il ne
+    // modifie ni ne remplace : la période de transition (phase 3) exige
+    // que l'ancien mécanisme de connexion reste fonctionnel. Un cabinet
+    // migré porte migreDepuisAncienSchema: true (voir migration/) mais
+    // son ancien document seven7_cabinets/{code} n'est jamais touché.
+    //
+    // Pas de Cloud Functions (plan Spark) : tout est porté par get() et
+    // par la forme des écritures autorisées. Les limites précises de ce
+    // choix sont documentées à l'endroit où elles s'appliquent, jamais
+    // passées sous silence.
+    // ================================================================
+
+    function estMembre(code) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/cabinets/$(code)/membres/$(request.auth.uid));
+    }
+    function donneesMembre(code) {
+      return get(/databases/$(database)/documents/cabinets/$(code)/membres/$(request.auth.uid)).data;
+    }
+    function estAdmin(code) {
+      return estMembre(code) && donneesMembre(code).role == 'ADMIN' && donneesMembre(code).actif == true;
+    }
+    function donneesCabinet(code) {
+      return get(/databases/$(database)/documents/cabinets/$(code)).data;
+    }
+    function cabinetActif(code) {
+      return donneesCabinet(code).statut == 'ACTIF';
+    }
+    function quotaDisponible(code) {
+      return donneesCabinet(code).dossiersUtilises < donneesCabinet(code).quotaDossiers;
+    }
+
+    match /cabinets/{code} {
+      // Un membre lit son propre cabinet (nom, palier, quota affiché à
+      // l'écran) ; la création/suppression d'un cabinet n'est jamais une
+      // action client — c'est SEVEN7 qui l'exécute via le script de
+      // migration ou l'onboarding, avec des identifiants de service.
+      allow read: if estMembre(code);
+      allow create, delete: if false;
+
+      // Seul le compteur dossiersUtilises est modifiable depuis le
+      // client, par pas de +1 exactement, jamais au-delà du quota — même
+      // mécanisme, déjà éprouvé, que seven7_cabinets ci-dessus. plan,
+      // quotaDossiers, statut, dateFin : AUCUNE règle ne les autorise ici,
+      // ils sont donc en lecture seule côté client, sans exception.
+      allow update: if estAdmin(code)
+        && cabinetActif(code)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dossiersUtilises'])
+        && request.resource.data.dossiersUtilises == resource.data.dossiersUtilises + 1
+        && request.resource.data.dossiersUtilises <= resource.data.quotaDossiers;
+
+      match /membres/{uid} {
+        // Un membre voit la liste de ses collègues (nom, rôle — pas de
+        // secret ici) ; seul un ADMIN peut créer ou modifier un membre,
+        // et jamais désactiver ou changer le rôle de SON PROPRE compte —
+        // ce qui, combiné à l'interdiction de créer un second admin par
+        // un non-admin, empêche un cabinet de se retrouver sans aucun
+        // administrateur actif. Affiné en phase 4 (désactivation d'un
+        // collègue, affectation de dossiers).
+        allow read: if estMembre(code);
+        allow create, update: if estAdmin(code) && uid != request.auth.uid;
+        allow delete: if false;
+      }
+
+      match /dossiers/{dossierId} {
+        // Un ADMIN lit tout ; un COLLABORATEUR ne lit que les dossiers
+        // listés dans SON PROPRE document membre — jamais un tableau
+        // fourni par le client, toujours relu en base.
+        allow read: if estAdmin(code)
+          || (estMembre(code) && dossierId in donneesMembre(code).dossiersAffectes);
+
+        // E2 : seul l'ADMIN crée un dossier, jamais un collaborateur, ni
+        // par l'interface ni par appel direct — c'est ici, pas dans
+        // l'écran, que ça se joue réellement (§5 du cahier des charges).
+        //
+        // numeroSequence doit égaler dossiersUtilises + 1 du cabinet AU
+        // MOMENT DE LA LECTURE (get(), donc l'état d'AVANT la transaction
+        // côté règles — Firestore ne laisse pas une règle voir l'effet
+        // d'une autre écriture de la même transaction, y compris
+        // l'incrément du compteur fait dans le même lot applicatif). La
+        // valeur sert de piste d'audit et rend une incohérence visible
+        // a posteriori (deux dossiers au même numéro = quelque chose a
+        // sauté l'incrément), pas un verrou d'unicité — Firestore
+        // n'offre pas de contrainte d'unicité sur un CHAMP, seulement sur
+        // l'identifiant du document, et lier les deux sans Cloud Function
+        // se paie en fragilité plus grande que le gain (essayé, retiré).
+        //
+        // RISQUE RÉSIDUEL ASSUMÉ, SANS CLOUD FUNCTION : rien n'empêche un
+        // client techniquement outillé de créer un dossier valide sans
+        // jamais incrémenter le compteur dans le même lot — la règle ne
+        // peut pas vérifier qu'une AUTRE écriture a eu lieu. C'est
+        // exactement le même résidu que celui, déjà accepté, de
+        // seven7_cabinets ci-dessus ; signalé en toutes lettres dans la
+        // réponse à la section 9, jamais vendu comme une garantie absolue.
+        allow create: if estAdmin(code)
+          && cabinetActif(code)
+          && quotaDisponible(code)
+          && request.resource.data.creePar == request.auth.uid
+          && request.resource.data.liasseVerrouillee == true
+          && request.resource.data.numeroSequence == donneesCabinet(code).dossiersUtilises + 1;
+
+        // E3 : la liasse (et le reste du dossier) n'est modifiable que
+        // par l'ADMIN. liasseVerrouillee par dossier (phase 6) affinera
+        // une ouverture ponctuelle à un collaborateur ; par défaut,
+        // aucune règle ici ne permet à un COLLABORATEUR d'écrire quoi
+        // que ce soit sur un dossier, lecture seule stricte. creePar et
+        // numeroSequence, une fois posés à la création, ne sont plus
+        // modifiables — ce sont des faits historiques, pas des champs
+        // de travail.
+        allow update: if estAdmin(code) && cabinetActif(code)
+          && request.resource.data.creePar == resource.data.creePar
+          && request.resource.data.numeroSequence == resource.data.numeroSequence;
+        allow delete: if estAdmin(code);
+      }
+    }
   }
 }
