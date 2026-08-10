@@ -4186,8 +4186,8 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "0274ca5",
-    date:    "2026-08-08",
+    commit:  "1ca54cf",
+    date:    "2026-08-10",
     propre:  true
 };
 
@@ -7448,6 +7448,24 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     var configReady = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('COLLEZ_') !== 0;
     var originalShowTab = window.showTab;
 
+    // ---------- Phase 5 : session « pont » (dossier ouvert via un cabinet) ----------
+    // Un membre de cabinet qui ouvre un dossier lié (cabinetOuvrirDossierPonte, plus
+    // bas) n'est PAS authentifié comme le dossier (contrairement à collabJoin) : son
+    // rôle vient de son document membre, pas d'un nom auto-déclaré comparé à
+    // permData.admin. pontActif distingue les deux mondes partout où isAdmin/myName
+    // sont déjà utilisés, sans dupliquer ces fonctions.
+    var pontActif = false;
+    var pontRole = null; // 'ADMIN' | 'COLLABORATEUR'
+    var pontCabinetCode = null;
+    var pontDossierNouveauId = null;
+    function pontOngletLiasseVerrouille(tabId){
+        // Même règle que ongletLiasseVerrouille() côté firestore.rules — ceci n'est
+        // qu'un MASQUAGE d'interface (§12 : jamais une mesure de sécurité en soi), la
+        // vraie barrière étant déjà dans firestore.rules (voir accesPontEcriture).
+        return pontActif && pontRole === 'COLLABORATEUR'
+            && String(tabId).indexOf('liasse-') === 0 && tabId !== 'liasse-parametres';
+    }
+
     function setStatus(txt){
         var el = document.getElementById('collab-status');
         if(el) el.textContent = txt;
@@ -7982,7 +8000,11 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             var rows = [];
             snap.forEach(function(doc){
                 var d = doc.data() || {};
-                rows.push({ id: doc.id, intitule: d.intitule || doc.id, client: d.clientAudite || '', exercice: d.exercice || '', statut: d.statut || '' });
+                rows.push({
+                    id: doc.id, intitule: d.intitule || doc.id, client: d.clientAudite || '',
+                    exercice: d.exercice || '', statut: d.statut || '',
+                    dossierAncienId: typeof d.dossierAncienId === 'string' ? d.dossierAncienId : null,
+                });
             });
             trackReads(Math.max(1, rows.length));
             if(!rows.length){
@@ -7990,12 +8012,19 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 return;
             }
             rows.sort(function(a, b){ return String(a.intitule).localeCompare(String(b.intitule)); });
-            var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+            var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;'); };
+            var role = (membre && membre.role) || 'COLLABORATEUR';
+            var nomAffiche = (membre && membre.nom) || (role === 'ADMIN' ? 'Administrateur' : 'Collaborateur');
             contentEl.innerHTML = '<p style="font-size:11px; color:#888; margin-bottom:10px;">' + rows.length + ' dossier(s) accessible(s).</p>'
                 + rows.map(function(r){
-                    return '<div style="border:1px solid #eee; border-radius:6px; padding:8px 10px; margin-bottom:6px; text-align:left;">'
+                    var ouvrable = !!r.dossierAncienId;
+                    var attrs = ouvrable
+                        ? 'onclick="cabinetOuvrirDossierPonte(\'' + esc(r.dossierAncienId) + '\', \'' + esc(r.id) + '\', \'' + esc(code) + '\', \'' + esc(role) + '\', \'' + esc(r.intitule) + '\', \'' + esc(nomAffiche) + '\')" style="cursor:pointer; border:1px solid #eee; border-radius:6px; padding:8px 10px; margin-bottom:6px; text-align:left;"'
+                        : 'style="border:1px dashed #ddd; border-radius:6px; padding:8px 10px; margin-bottom:6px; text-align:left; opacity:.7;"';
+                    return '<div ' + attrs + '>'
                         + '<div style="font-weight:600; font-size:13px; color:#1B2A4A;">📁 ' + esc(r.intitule) + '</div>'
                         + '<div style="font-size:11px; color:#888;">' + esc(r.client) + (r.exercice ? ' · exercice ' + esc(r.exercice) : '') + (r.statut ? ' · ' + esc(r.statut) : '') + '</div>'
+                        + (ouvrable ? '' : '<div style="font-size:10px; color:#c0392b; margin-top:2px;">Contenu non encore lié — voir « Lier un dossier existant ».</div>')
                         + '</div>';
                 }).join('');
         }).catch(function(err){
@@ -8003,6 +8032,54 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 + String(err && err.message ? err.message : err).replace(/</g,'&lt;') + '</p>';
         });
     }
+
+    // ---------- Phase 5 : ouvrir un dossier lié via le pont ----------
+    //
+    // À la différence de collabJoin, aucune (ré)authentification n'a lieu ici : le
+    // membre du cabinet ouvre le dossier SOUS SA PROPRE session Firebase Auth déjà
+    // active. C'est exactement ce que permettent les règles ajoutées en phase 5
+    // (accesPontLecture / accesPontEcriture) — sans elles, cette fonction échouerait
+    // à chaque lecture, comme le confirment tests/pont-dossiers.test.js.
+    //
+    // Reproduit ce que fait finalize() dans collabJoin (permissions, onglets,
+    // présence, messagerie), sans les parties propres à l'ancien modèle qui n'ont
+    // pas de sens ici : pas d'inscription dans permData.access (identité = UID
+    // Firebase, pas un nom auto-déclaré), pas de synchronisation du miroir public
+    // (réservée aux dossiers ouverts par leur propre compte Auth).
+    window.cabinetOuvrirDossierPonte = function(dossierAncienId, dossierNouveauId, code, role, intitule, nomAffiche){
+        if(!firebase.auth().currentUser){
+            alert('Session cabinet expirée — reconnectez-vous.');
+            return;
+        }
+        document.getElementById('cabinet-dashboard-overlay').style.display = 'none';
+
+        pontActif = true;
+        pontRole = role === 'ADMIN' ? 'ADMIN' : 'COLLABORATEUR';
+        pontCabinetCode = code;
+        pontDossierNouveauId = dossierNouveauId;
+
+        myName = nomAffiche || (pontRole === 'ADMIN' ? 'Administrateur' : 'Collaborateur');
+        mySafeKey = safeKey(myName);
+        dossierId = dossierAncienId;
+        isAdmin = (pontRole === 'ADMIN');
+
+        localStorage.setItem('seven7_name', myName);
+        localStorage.setItem('seven7_dossier', dossierId);
+
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('collab-bar').style.display = 'flex';
+        document.getElementById('collab-who').textContent = '🏢 ' + myName + (isAdmin ? ' (Administrateur cabinet)' : ' (Collaborateur cabinet)');
+        document.getElementById('collab-dossier-label').textContent = '📁 ' + (intitule || dossierId);
+        setStatus('🟢 Connecté (via ' + code + ')');
+
+        window.SEVEN7_DB = db;
+        window.SEVEN7_DOSSIER_ID = dossierId;
+        listenPermissions();
+        listenTabs();
+        startPresenceTracking();
+        if(typeof window.SEVEN7_MSG_INIT === 'function') window.SEVEN7_MSG_INIT();
+        if(typeof appliquerVerrouLiassePont === 'function') appliquerVerrouLiassePont();
+    };
 
     // ---------- Nouveau modèle (phase 3) : bandeau membre/rôle/quota -----------
     // N'affiche rien si membre === null (cabinet pas encore migré, ou compte
@@ -8433,7 +8510,11 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             trackReads(1);
             if(!doc.exists) return;
             permData = doc.data() || { admin: null, access: {} };
-            isAdmin = (permData.admin === myName);
+            // Session pont : le rôle vient du document membre du cabinet (déjà lu à
+            // l'ouverture), jamais d'un nom auto-déclaré comparé à permData.admin —
+            // ce champ décrit le PROPRIÉTAIRE HISTORIQUE du dossier, une notion sans
+            // rapport avec le rôle cabinet de la personne qui le consulte via le pont.
+            isAdmin = pontActif ? (pontRole === 'ADMIN') : (permData.admin === myName);
             applyAccessControl();
         }, function(err){
             setStatus('❌ Erreur permissions : ' + err.message);
@@ -8442,6 +8523,10 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
 
     function myAllowedTabs(){
         if(isAdmin) return TABS.map(function(t){ return t.id; });
+        // E3 ne verrouille QUE la liasse (18 onglets séparés, voir
+        // pontOngletLiasseVerrouille) — le cycle d'audit (ces 34 onglets-ci) reste
+        // pleinement ouvert à un collaborateur affecté, aucune restriction ici.
+        if(pontActif) return TABS.map(function(t){ return t.id; });
         var entry = permData.access && permData.access[mySafeKey];
         var allowed = (entry && entry.tabs) ? entry.tabs.slice() : [];
         ALWAYS_ALLOWED.forEach(function(t){ if(allowed.indexOf(t) === -1) allowed.push(t); });
@@ -8468,14 +8553,22 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             originalShowTab('sommaire');
             alert('Votre accès à cet onglet a été retiré par l\'administrateur.');
         }
-        document.getElementById('collab-admin-btn').style.display = isAdmin ? 'inline-block' : 'none';
-        document.getElementById('collab-invite-btn').style.display = isAdmin ? 'inline-block' : 'none';
-        document.getElementById('collab-password-btn').style.display = isAdmin ? 'inline-block' : 'none';
+        // Session pont : ces boutons pilotent la gestion ANCIEN modèle (inviter par
+        // nom, changer le mot de passe partagé du dossier) — sans rapport avec la
+        // gestion d'équipe du cabinet (déjà accessible depuis « Gérer l'équipe »),
+        // donc masqués plutôt que trompeurs. archive/export restent utiles à
+        // l'admin cabinet, comme pour l'ancien modèle.
+        document.getElementById('collab-admin-btn').style.display = (isAdmin && !pontActif) ? 'inline-block' : 'none';
+        document.getElementById('collab-invite-btn').style.display = (isAdmin && !pontActif) ? 'inline-block' : 'none';
+        document.getElementById('collab-password-btn').style.display = (isAdmin && !pontActif) ? 'inline-block' : 'none';
         document.getElementById('collab-archive-btn').style.display = isAdmin ? 'inline-block' : 'none';
         document.getElementById('collab-export-btn').style.display = isAdmin ? 'inline-block' : 'none';
-        document.getElementById('collab-who').textContent = avatarFor(permData, myName, mySafeKey) + ' ' + myName + (isAdmin ? ' (Administrateur)' : '');
+        document.getElementById('collab-who').textContent = pontActif
+            ? '🏢 ' + myName + (isAdmin ? ' (Administrateur cabinet)' : ' (Collaborateur cabinet)')
+            : avatarFor(permData, myName, mySafeKey) + ' ' + myName + (isAdmin ? ' (Administrateur)' : '');
         if(isAdmin) renderAdminPanel();
 
+        if(pontActif && typeof appliquerVerrouLiassePont === 'function') appliquerVerrouLiassePont();
         window.SEVEN7_ADMIN_NAME = permData.admin;
         window.SEVEN7_ACCESS = permData.access || {};
         window.SEVEN7_MY_KEY = mySafeKey;
@@ -9104,6 +9197,14 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     function scheduleSave(tabId, immediate){
         if(TAB_SYNC_EXCLUDED.indexOf(tabId) !== -1) return;
         if(applyingRemote[tabId] || !db || !dossierId) return;
+        // E3, masquage d'interface (§12 : la vraie barrière est déjà dans
+        // firestore.rules — accesPontEcriture refuserait ce même appel côté
+        // serveur). Évite juste un aller-retour réseau inutile qui échouerait de
+        // toute façon, et un message d'erreur brut plutôt qu'un statut clair.
+        if(pontOngletLiasseVerrouille(tabId)){
+            setStatus('🔒 Lecture seule — la liasse est réservée à l\'administrateur du cabinet');
+            return;
+        }
         clearTimeout(saveTimers[tabId]);
         saveTimers[tabId] = setTimeout(function(){
             // On profite d'un moment d'inactivité du thread principal pour faire le travail
@@ -9359,6 +9460,39 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         var tabId = tabIdFromNode(e.target);
         if(tabId) setTimeout(function(){ scheduleSave(tabId, false); }, 60);
     });
+
+    // ---------- Phase 5 : masquage visuel de la liasse verrouillée (pont) ----------
+    // §12 : un masquage d'interface n'est jamais une mesure de sécurité — la vraie
+    // barrière est scheduleSave() ci-dessus (bloque l'appel) + firestore.rules
+    // (accesPontEcriture, bloquerait de toute façon un appel direct). Ceci ne sert
+    // qu'à éviter à un collaborateur de taper dans le vide en pensant enregistrer.
+    //
+    // Un MutationObserver plutôt qu'un enrobage de liasseShowTab() : ce fichier se
+    // charge AVANT 31-moteur-unifie.js (qui définit liasseShowTab), donc
+    // window.liasseShowTab n'existe pas encore au moment où ce module s'évalue —
+    // l'enrober comme window.showTab (même fichier, déjà chargé) échouerait
+    // silencieusement. L'observer, lui, réagit quel que soit l'ordre de chargement,
+    // sans toucher au fichier du moteur de calcul (§12).
+    function appliquerVerrouLiassePont(){
+        document.querySelectorAll('.liasse-panel').forEach(function(panel){
+            var verrouille = panel.classList.contains('active') && pontOngletLiasseVerrouille(panel.id);
+            var overlay = panel.querySelector('.pont-liasse-verrou');
+            if(verrouille){
+                if(!overlay){
+                    if(getComputedStyle(panel).position === 'static') panel.style.position = 'relative';
+                    overlay = document.createElement('div');
+                    overlay.className = 'pont-liasse-verrou';
+                    overlay.style.cssText = 'position:absolute; inset:0; z-index:5000; background:rgba(255,255,255,0.55); cursor:not-allowed;';
+                    overlay.innerHTML = '<div style="position:sticky; top:12px; margin:12px auto; max-width:420px; background:#1B2A4A; color:#fff; padding:8px 16px; border-radius:6px; font-size:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.25);">🔒 Lecture seule — la liasse est réservée à l\'administrateur du cabinet</div>';
+                    panel.appendChild(overlay);
+                }
+            } else if(overlay){
+                overlay.remove();
+            }
+        });
+    }
+    new MutationObserver(function(){ if(pontActif) appliquerVerrouLiassePont(); })
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['class'], subtree: true });
 
     window.addEventListener('beforeunload', function(){
         // Best-effort : supprime la trace de présence pour ne pas laisser un badge "fantôme"

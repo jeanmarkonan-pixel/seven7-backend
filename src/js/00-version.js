@@ -2,8 +2,8 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "0274ca5",
-    date:    "2026-08-08",
+    commit:  "1ca54cf",
+    date:    "2026-08-10",
     propre:  true
 };
 
