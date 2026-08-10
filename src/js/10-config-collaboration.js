@@ -919,6 +919,126 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         });
     };
 
+    // ---------- Phase 5 : lier un dossier ancien existant à un cabinet ----------
+    //
+    // Ordre imposé par firestore.rules (voir la règle sur seven7_dossiers) :
+    // la fiche cabinets/{code}/dossiers/{id} doit déjà exister et pointer vers
+    // CE dossier (dossierAncienId) AVANT que le lien seven7_dossiers puisse
+    // s'écrire — sinon un admin outillé pourrait lier des dossiers sans jamais
+    // consommer de quota (E4). Donc : créer la fiche + incrémenter le quota
+    // D'ABORD, poser le lien ENSUITE.
+    //
+    // Conséquence assumée : si le lien final échoue (mot de passe erroné une
+    // fois arrivé jusque-là, ou dossier déjà migré vers l'authentification —
+    // voir la note ci-dessous), la fiche est supprimée (autorisé, estAdmin)
+    // mais le compteur dossiersUtilises ne peut PAS être décrémenté : la
+    // règle sur cabinets/{code} n'autorise qu'un incrément de +1, jamais une
+    // baisse (aucune Cloud Function pour le faire côté serveur). C'est
+    // pourquoi un contrôle préalable, gratuit et fiable, est fait AVANT toute
+    // écriture Firestore : une connexion Firebase Auth d'essai (app
+    // secondaire, jamais l'app principale — même précaution que pour la
+    // création de collaborateur) vérifie le mot de passe sans toucher au
+    // quota. Ce contrôle ne peut cependant pas prédire un second échec
+    // possible et distinct : un dossier déjà migré vers l'authentification
+    // moderne n'a plus de champ "password" en base (supprimé automatiquement
+    // à sa première connexion post-migration, voir collabJoin plus haut) —
+    // la règle de liaison, qui compare ce champ, refuse alors la dernière
+    // étape même avec le bon mot de passe. Ce cas est signalé clairement à
+    // l'admin plutôt que masqué.
+    window.cabinetLierDossierExistant = function(){
+        var erreurEl = document.getElementById('cabinet-liaison-erreur');
+        var succesEl = document.getElementById('cabinet-liaison-succes');
+        erreurEl.style.display = 'none'; succesEl.style.display = 'none';
+
+        var dossierId = document.getElementById('cabinet-liaison-dossier').value.trim();
+        var motDePasse = document.getElementById('cabinet-liaison-motdepasse').value;
+        var intitule = document.getElementById('cabinet-liaison-intitule').value.trim();
+        var code = cabinetEquipeCode;
+
+        if(!dossierId || !motDePasse || !intitule){
+            erreurEl.textContent = "Merci de renseigner l'identifiant du dossier, son mot de passe et l'intitulé.";
+            erreurEl.style.display = 'block';
+            return;
+        }
+
+        var btn = document.getElementById('cabinet-liaison-btn');
+        btn.disabled = true; btn.textContent = '⏳ Vérification…';
+
+        var nomAppSecondaire = 'seven7-liaison-' + Date.now();
+        var appSecondaire = firebase.initializeApp(FIREBASE_CONFIG, nomAppSecondaire);
+        var authSecondaire = appSecondaire.auth();
+
+        function nettoyerAppSecondaire(){
+            return authSecondaire.signOut().catch(function(){}).then(function(){
+                return appSecondaire.delete().catch(function(){});
+            });
+        }
+
+        authSecondaire.signInWithEmailAndPassword(dossierAuthEmail(dossierId), motDePasse).then(function(){
+            return nettoyerAppSecondaire();
+        }).then(function(){
+            btn.textContent = '⏳ Vérification du quota…';
+            return db.collection('cabinets').doc(code).get();
+        }).then(function(cabDoc){
+            if(!cabDoc.exists) throw { code: 'seven7/cabinet-introuvable' };
+            var c = cabDoc.data() || {};
+            var plafond = typeof c.quotaDossiers === 'number' ? c.quotaDossiers : 0;
+            var utilises = typeof c.dossiersUtilises === 'number' ? c.dossiersUtilises : 0;
+            if(utilises >= plafond) throw { code: 'seven7/quota-atteint', plafond: plafond };
+
+            btn.textContent = '⏳ Liaison en cours…';
+            var nouveauRef = db.collection('cabinets').doc(code).collection('dossiers').doc();
+            return nouveauRef.set({
+                intitule: intitule,
+                creePar: firebase.auth().currentUser.uid,
+                statut: 'EN_COURS',
+                liasseVerrouillee: true,
+                numeroSequence: utilises + 1,
+                dossierAncienId: dossierId,
+            }).then(function(){
+                return db.collection('cabinets').doc(code).update({
+                    dossiersUtilises: firebase.firestore.FieldValue.increment(1)
+                });
+            }).then(function(){
+                return db.collection('seven7_dossiers').doc(dossierId).update({
+                    cabinetCode: code, dossierNouveauId: nouveauRef.id, password: motDePasse,
+                });
+            }).catch(function(errLiaison){
+                // Rollback de la fiche (quota non récupérable, voir commentaire
+                // ci-dessus) : mieux vaut une fiche orpheline supprimée qu'une
+                // fiche fantôme qui prétend être liée sans vraiment l'être.
+                return nouveauRef.delete().catch(function(){}).then(function(){
+                    throw { code: 'seven7/dossier-deja-migre' };
+                });
+            });
+        }).then(function(){
+            succesEl.textContent = '✅ Dossier « ' + intitule + ' » lié au cabinet.';
+            succesEl.style.display = 'block';
+            document.getElementById('cabinet-liaison-dossier').value = '';
+            document.getElementById('cabinet-liaison-motdepasse').value = '';
+            document.getElementById('cabinet-liaison-intitule').value = '';
+            cabinetRafraichirEquipe();
+        }).catch(function(err){
+            var msg;
+            if(err && (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found')){
+                msg = "Identifiant ou mot de passe de dossier incorrect.";
+            } else if(err && err.code === 'seven7/cabinet-introuvable'){
+                msg = "Cabinet introuvable.";
+            } else if(err && err.code === 'seven7/quota-atteint'){
+                msg = 'Plafond de ' + err.plafond + ' dossier(s) atteint pour votre palier. Passez à un palier supérieur pour lier ce dossier.';
+            } else if(err && err.code === 'seven7/dossier-deja-migre'){
+                msg = "Le mot de passe est correct, mais ce dossier a déjà migré vers l'authentification moderne et ne peut plus être lié automatiquement par ce moyen. Contactez SEVEN7.";
+            } else {
+                msg = 'Impossible de lier ce dossier : ' + (err && err.message ? err.message : err);
+            }
+            erreurEl.textContent = msg;
+            erreurEl.style.display = 'block';
+            try { appSecondaire.delete().catch(function(){}); } catch(e){}
+        }).then(function(){
+            btn.disabled = false; btn.textContent = 'Lier ce dossier';
+        });
+    };
+
     function renderCabinetDashboardList(snap, code){
         document.getElementById('cabinet-dash-login').style.display = 'none';
         var listEl = document.getElementById('cabinet-dash-list');

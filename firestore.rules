@@ -30,9 +30,10 @@ service cloud.firestore {
       // Phase 5 : un dossier lié à un cabinet (voir les fonctions PONT
       // plus bas, hissées par Firestore quel que soit leur ordre textuel)
       // devient lisible par ses membres, EN PLUS de l'accès historique par
-      // authUid — jamais à sa place. update/delete restent strictement
-      // réservés à authUid : lier un dossier donne accès à son contenu,
-      // jamais le droit de le renommer ou de le supprimer par ce biais.
+      // authUid — jamais à sa place. delete reste strictement réservé à
+      // authUid ; update aussi, SAUF l'exception ci-dessous (lier un
+      // dossier à un cabinet), qui donne accès à son contenu, jamais le
+      // droit de le renommer ou de le supprimer par ce biais.
       allow read: if request.auth != null
         && (resource.data.authUid == request.auth.uid || accesPontLecture(resource.data));
       allow update, delete: if request.auth != null
@@ -45,6 +46,45 @@ service cloud.firestore {
         && request.resource.data.password == resource.data.password
         && request.resource.data.authUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authUid']);
+
+      // Phase 5 : lier un dossier ANCIEN existant à un cabinet, exécuté
+      // par l'ADMIN du cabinet — PAS par le propriétaire historique du
+      // dossier (une session Auth n'est connectée qu'à un seul compte à
+      // la fois). Choix explicite de l'utilisateur (10/08/2026) : plutôt
+      // qu'une double connexion successive, l'admin prouve sa
+      // connaissance du mot de passe du dossier en le resoumettant
+      // INCHANGÉ dans la même écriture — exactement le même principe que
+      // le pont de migration authUid ci-dessus (ligne 45), qui prouve
+      // déjà la connaissance d'un secret de la même façon sans jamais
+      // l'exposer autrement que ce qu'il est déjà (lisible par le seul
+      // propriétaire authUid, comme avant cette phase).
+      //
+      // Trois garde-fous, chacun testé :
+      //  1. !('cabinetCode' in resource.data) — un dossier déjà lié ne
+      //     peut plus être relié ailleurs par ce chemin. Sans lui, un
+      //     admin qui obtiendrait le mot de passe d'un dossier déjà
+      //     affecté à un AUTRE cabinet pourrait le « voler ».
+      //  2. affectedKeys().hasOnly(['cabinetCode','dossierNouveauId']) —
+      //     cette écriture ne peut RIEN modifier d'autre sur le dossier,
+      //     en particulier pas son contenu ni son authUid.
+      //  3. le get() ci-dessous vérifie que cabinets/{code}/dossiers/
+      //     {dossierNouveauId} existe déjà ET pointe bien vers CE
+      //     dossier (dossierAncienId == dossier). Cette entrée ne peut
+      //     avoir été créée que via la règle E2 plus bas (estAdmin +
+      //     quotaDisponible), donc impossible de lier un dossier sans
+      //     être passé par le contrôle de quota — sinon un admin outillé
+      //     pourrait lier des dossiers ancien-modèle indéfiniment sans
+      //     jamais consommer de quota, contournant E4.
+      allow update: if request.auth != null
+        && !('cabinetCode' in resource.data)
+        && resource.data.password is string
+        && request.resource.data.password == resource.data.password
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cabinetCode', 'dossierNouveauId'])
+        && request.resource.data.cabinetCode is string
+        && request.resource.data.dossierNouveauId is string
+        && estAdmin(request.resource.data.cabinetCode)
+        && cabinetActif(request.resource.data.cabinetCode)
+        && get(/databases/$(database)/documents/cabinets/$(request.resource.data.cabinetCode)/dossiers/$(request.resource.data.dossierNouveauId)).data.dossierAncienId == dossier;
       match /tabs/{tabId} {
         // E3 : lecture ouverte à tout membre affecté ; écriture réservée à
         // l'ADMIN sur les onglets de la liasse (ongletLiasseVerrouille),

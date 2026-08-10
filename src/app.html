@@ -444,6 +444,20 @@
                 <p style="font-size:10px; color:#888; margin:6px 0 10px;">Communiquez-le au collaborateur par un canal séparé de cet écran ; il pourra le changer via « mot de passe oublié » sur son propre e-mail.</p>
                 <button class="btn btn-primary" id="cabinet-equipe-creer-btn" style="width:100%;" onclick="cabinetCreerCollaborateur()">Créer le compte</button>
             </div>
+
+            <div style="border-top:1px solid #eee; padding-top:14px; margin-top:14px;">
+                <h3 style="font-size:13px; color:#1B2A4A; margin:0 0 8px;">🔗 Lier un dossier existant</h3>
+                <p style="font-size:10px; color:#888; margin:0 0 8px;">Rattache un dossier créé avant l'existence des cabinets à cet espace : il devient accessible à l'équipe (selon les affectations), et consomme un dossier de votre quota.</p>
+                <p id="cabinet-liaison-erreur" style="color:#c0392b; font-size:12px; margin:0 0 8px; display:none;"></p>
+                <p id="cabinet-liaison-succes" style="color:#1e7a4c; font-size:12px; margin:0 0 8px; display:none;"></p>
+                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">Identifiant du dossier</label>
+                <input type="text" id="cabinet-liaison-dossier" placeholder="ex. dupont-2025" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:8px;">
+                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">Mot de passe du dossier</label>
+                <input type="password" id="cabinet-liaison-motdepasse" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:8px;">
+                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">Intitulé affiché dans le cabinet</label>
+                <input type="text" id="cabinet-liaison-intitule" placeholder="ex. Dupont SARL — exercice 2025" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;">
+                <button class="btn btn-primary" id="cabinet-liaison-btn" style="width:100%; margin-top:10px;" onclick="cabinetLierDossierExistant()">Lier ce dossier</button>
+            </div>
         </div>
     </div>
 
