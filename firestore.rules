@@ -27,7 +27,15 @@ service cloud.firestore {
       }
     }
     match /seven7_dossiers/{dossier} {
-      allow read, update, delete: if request.auth != null
+      // Phase 5 : un dossier lié à un cabinet (voir les fonctions PONT
+      // plus bas, hissées par Firestore quel que soit leur ordre textuel)
+      // devient lisible par ses membres, EN PLUS de l'accès historique par
+      // authUid — jamais à sa place. update/delete restent strictement
+      // réservés à authUid : lier un dossier donne accès à son contenu,
+      // jamais le droit de le renommer ou de le supprimer par ce biais.
+      allow read: if request.auth != null
+        && (resource.data.authUid == request.auth.uid || accesPontLecture(resource.data));
+      allow update, delete: if request.auth != null
         && resource.data.authUid == request.auth.uid;
       allow create: if request.auth != null
         && request.resource.data.authUid == request.auth.uid;
@@ -38,16 +46,33 @@ service cloud.firestore {
         && request.resource.data.authUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authUid']);
       match /tabs/{tabId} {
-        allow read, write: if request.auth != null
-          && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
+        // E3 : lecture ouverte à tout membre affecté ; écriture réservée à
+        // l'ADMIN sur les onglets de la liasse (ongletLiasseVerrouille),
+        // ouverte à tous les autres onglets (cycle d'audit, QCI, revue
+        // analytique — la matrice des droits, §5, les laisse au
+        // collaborateur).
+        allow read: if request.auth != null && (
+          donneesDossierAncien(dossier).authUid == request.auth.uid
+          || accesPontLecture(donneesDossierAncien(dossier))
+        );
+        allow write: if request.auth != null && (
+          donneesDossierAncien(dossier).authUid == request.auth.uid
+          || accesPontEcriture(donneesDossierAncien(dossier), tabId)
+        );
       }
       match /historique/{entryId} {
-        allow read, write: if request.auth != null
-          && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
+        allow read: if request.auth != null && (
+          donneesDossierAncien(dossier).authUid == request.auth.uid
+          || accesPontLecture(donneesDossierAncien(dossier))
+        );
+        allow write: if request.auth != null
+          && donneesDossierAncien(dossier).authUid == request.auth.uid;
       }
       match /presence/{sessionId} {
-        allow read, write: if request.auth != null
-          && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
+        allow read, write: if request.auth != null && (
+          donneesDossierAncien(dossier).authUid == request.auth.uid
+          || accesPontLecture(donneesDossierAncien(dossier))
+        );
       }
       match /archives/{archiveId} {
         allow read, write: if request.auth != null
@@ -58,11 +83,15 @@ service cloud.firestore {
         }
       }
       match /conversations/{convId} {
-        allow read, write: if request.auth != null
-          && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
+        allow read, write: if request.auth != null && (
+          donneesDossierAncien(dossier).authUid == request.auth.uid
+          || accesPontLecture(donneesDossierAncien(dossier))
+        );
         match /messages/{msgId} {
-          allow read, write: if request.auth != null
-            && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
+          allow read, write: if request.auth != null && (
+            donneesDossierAncien(dossier).authUid == request.auth.uid
+            || accesPontLecture(donneesDossierAncien(dossier))
+          );
         }
       }
     }
@@ -119,6 +148,56 @@ service cloud.firestore {
     }
     function donneesCabinet(code) {
       return get(/databases/$(database)/documents/cabinets/$(code)).data;
+    }
+
+    // ----------------------------------------------------------------
+    // PONT vers l'ancien modèle (phase 5) — un seven7_dossiers/{dossier}
+    // qu'un admin a lié à son cabinet porte deux champs supplémentaires,
+    // posés au moment du lien, jamais avant : cabinetCode (le cabinet) et
+    // dossierNouveauId (l'id du document cabinets/{code}/dossiers/{id}
+    // correspondant — nécessaire pour lire dossiersAffectes, qui référence
+    // CET id-là, pas celui de seven7_dossiers). Un dossier non lié n'a ni
+    // l'un ni l'autre : pontValide() renvoie false, et tout le reste de ce
+    // bloc se comporte comme si le pont n'existait pas — l'accès historique
+    // par authUid, seul, continue de gouverner ces dossiers-là.
+    //
+    // get() sur un même chemin est mis en cache par Firestore pour la
+    // durée d'une évaluation : appeler donneesDossierAncien(dossier)
+    // plusieurs fois dans les fonctions ci-dessous ne coûte qu'UNE lecture
+    // réelle, pas une par appel — vérifié empiriquement (voir la suite de
+    // tests), pas seulement supposé du fonctionnement documenté.
+    function donneesDossierAncien(dossier) {
+      return get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data;
+    }
+    function pontValide(donneesDossier) {
+      return donneesDossier.cabinetCode is string && donneesDossier.dossierNouveauId is string;
+    }
+    // Lecture par le pont : membre actif du cabinet, ET (admin, qui voit
+    // tout, OU dossier explicitement affecté — jamais déduit autrement).
+    //
+    // « actif == true » explicite ici, pas seulement estMembre() : comme
+    // pour /cabinets/{code}/dossiers ci-dessous, estMembre() ne vérifie que
+    // l'EXISTENCE du document membre, donc à elle seule elle laisserait un
+    // collaborateur désactivé continuer de lire les dossiers déjà
+    // affectés via le pont. estAdmin() inclut déjà ce contrôle, donc seule
+    // la branche collaborateur a besoin de la vérification explicite.
+    function accesPontLecture(donneesDossier) {
+      return pontValide(donneesDossier)
+        && estMembre(donneesDossier.cabinetCode)
+        && (estAdmin(donneesDossier.cabinetCode)
+            || (donneesMembre(donneesDossier.cabinetCode).actif == true
+                && donneesDossier.dossierNouveauId in donneesMembre(donneesDossier.cabinetCode).dossiersAffectes));
+    }
+    // E3 : la liasse (bilan, passif, résultat, TFT, notes, fiches R, états
+    // DGI/INS) est verrouillée à l'écriture pour un collaborateur — SAUF
+    // liasse-parametres, qui n'est pas un état financier mais un réglage,
+    // et reste modifiable par tous ceux qui ont accès au dossier.
+    function ongletLiasseVerrouille(tabId) {
+      return tabId.matches('^liasse-.*') && tabId != 'liasse-parametres';
+    }
+    function accesPontEcriture(donneesDossier, tabId) {
+      return accesPontLecture(donneesDossier)
+        && (estAdmin(donneesDossier.cabinetCode) || !ongletLiasseVerrouille(tabId));
     }
     function cabinetActif(code) {
       return donneesCabinet(code).statut == 'ACTIF';
