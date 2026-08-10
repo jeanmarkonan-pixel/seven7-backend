@@ -461,6 +461,17 @@
         </div>
     </div>
 
+    <div id="paliers-comparaison-overlay" style="display:none; position:fixed; z-index:100002; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.55);">
+        <div style="background:#fff; margin:4% auto; padding:20px 24px; border-radius:8px; width:94%; max-width:820px; max-height:90vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h2 style="color:#1B2A4A; font-size:17px;">💼 Comparer les paliers d'abonnement</h2>
+                <span onclick="closeComparaisonPaliers()" style="cursor:pointer; font-size:24px; color:#999;">&times;</span>
+            </div>
+            <p style="font-size:11px; color:#888; margin-bottom:14px;">Le changement de palier n'est pas en libre-service : contactez SEVEN7 pour faire évoluer votre abonnement.</p>
+            <div id="paliers-comparaison-contenu"><p style="color:#888;">Chargement…</p></div>
+        </div>
+    </div>
+
     <div id="usage-panel-overlay" style="display:none; position:fixed; z-index:99998; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.55);">
         <div style="background:#fff; margin:8% auto; padding:20px 24px; border-radius:8px; width:92%; max-width:480px; max-height:88vh; overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -591,6 +602,7 @@
                 <div class="alert alert-warning" id="etape-notice">
                     <strong>Étape 1/2 :</strong> Sommaire, Fiche Identification, Planification, Programme, Questionnaire CI, Cartographie Risques, BALANCE N-1/N, Grand Livre, BILAN et RESULTAT sont pleinement fonctionnels (saisie, collage, calculs automatiques SYSCOHADA). Les onglets Détection Erreurs, Revue Analytique, Circularisation, Anormaux, Charges/Ventes à contrôler, Impôts et Calendrier fiscal arrivent à l'étape 2.
                 </div>
+                <div id="sommaire-palier-cabinet" style="display:none;"></div>
                 <div class="phase-header">PHASE 1 — PRISE DE CONNAISSANCE, PLANIFICATION &amp; INTÉRIM</div>
                 <table>
                     <tr><th>Onglet</th><th>Contenu</th><th>Statut</th></tr>
@@ -4186,7 +4198,7 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "84099b3",
+    commit:  "9233548",
     date:    "2026-08-10",
     propre:  true
 };
@@ -7458,12 +7470,30 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     var pontRole = null; // 'ADMIN' | 'COLLABORATEUR'
     var pontCabinetCode = null;
     var pontDossierNouveauId = null;
+    var pontPlanCabinet = null; // 'STARTER' | 'PRO' | 'CABINET'
     function pontOngletLiasseVerrouille(tabId){
         // Même règle que ongletLiasseVerrouille() côté firestore.rules — ceci n'est
         // qu'un MASQUAGE d'interface (§12 : jamais une mesure de sécurité en soi), la
         // vraie barrière étant déjà dans firestore.rules (voir accesPontEcriture).
         return pontActif && pontRole === 'COLLABORATEUR'
             && String(tabId).indexOf('liasse-') === 0 && tabId !== 'liasse-parametres';
+    }
+
+    // Restriction par PALIER (10/08/2026, décision utilisateur) : reflète
+    // ongletReserveParPalier() côté firestore.rules — un masquage d'interface
+    // (§12), pas la barrière réelle. Concerne TOUS les rôles, admin compris,
+    // contrairement à pontOngletLiasseVerrouille ci-dessus (restriction par
+    // rôle, pas par palier).
+    var PONT_ONGLETS_RESERVES_PALIER = {
+        detection: ['PRO', 'CABINET'], revue: ['PRO', 'CABINET'],
+        impots: ['PRO', 'CABINET'], calendrier: ['PRO', 'CABINET'],
+    };
+    function pontOngletReserveParPalier(tabId){
+        if(!pontActif) return false;
+        if(String(tabId).indexOf('liasse-') === 0) return pontPlanCabinet !== 'CABINET';
+        var requis = PONT_ONGLETS_RESERVES_PALIER[tabId];
+        if(!requis) return false;
+        return requis.indexOf(pontPlanCabinet) === -1;
     }
 
     function setStatus(txt){
@@ -8074,11 +8104,20 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
 
         window.SEVEN7_DB = db;
         window.SEVEN7_DOSSIER_ID = dossierId;
-        listenPermissions();
-        listenTabs();
-        startPresenceTracking();
-        if(typeof window.SEVEN7_MSG_INIT === 'function') window.SEVEN7_MSG_INIT();
-        if(typeof appliquerVerrouLiassePont === 'function') appliquerVerrouLiassePont();
+        // Le palier gouverne quels onglets sont seulement AFFICHÉS (myAllowedTabs)
+        // dès l'ouverture — il faut donc le connaître AVANT listenPermissions
+        // (qui déclenche applyAccessControl, lequel s'appuie dessus), pas après.
+        db.collection('cabinets').doc(code).get().then(function(cabDoc){
+            trackReads(1);
+            pontPlanCabinet = (cabDoc.exists && cabDoc.data().plan) || null;
+        }).catch(function(){ pontPlanCabinet = null; }).then(function(){
+            listenPermissions();
+            listenTabs();
+            startPresenceTracking();
+            if(typeof window.SEVEN7_MSG_INIT === 'function') window.SEVEN7_MSG_INIT();
+            if(typeof appliquerVerrouLiassePont === 'function') appliquerVerrouLiassePont();
+            if(typeof rafraichirBlocPalierSommaire === 'function') rafraichirBlocPalierSommaire();
+        });
     };
 
     // ---------- Nouveau modèle (phase 3) : bandeau membre/rôle/quota -----------
@@ -8429,6 +8468,101 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         });
     };
 
+    // ---------- E5 : comparaison des paliers d'abonnement ----------
+    // Lit /plans en direct (lecture publique, voir firestore.rules) : rien
+    // n'est codé en dur ici, une évolution tarifaire ne touche que les
+    // documents Firestore, jamais ce fichier (§3, §11 du cahier des charges).
+    var LIBELLES_FONCTIONNALITES = {
+        cycle_audit_complet: "Cycle d'audit complet (34 onglets)",
+        liasse_syscohada: 'Liasse SYSCOHADA de base',
+        export_pdf: 'Export PDF',
+        revue_analytique_avancee: 'Revue analytique avancée',
+        detection_erreurs: "Détection d'erreurs",
+        export_excel: 'Export Excel',
+        module_liasse_fiscale: 'Module liasse fiscale complet (18 onglets, e-impôts)',
+        multi_exercices: 'Archivage multi-exercices',
+        tableau_bord_supervision: 'Tableau de bord de supervision',
+        support_prioritaire: 'Support prioritaire',
+    };
+
+    window.cabinetOuvrirComparaisonPaliers = function(){
+        document.getElementById('paliers-comparaison-overlay').style.display = 'block';
+        var contentEl = document.getElementById('paliers-comparaison-contenu');
+        contentEl.innerHTML = '<p style="color:#888;">Chargement…</p>';
+        if(!db){
+            contentEl.innerHTML = '<p style="color:#c0392b;">Connectez-vous d\'abord à un cabinet ou un dossier.</p>';
+            return;
+        }
+        db.collection('plans').get().then(function(snap){
+            trackReads(snap.size);
+            var plans = [];
+            snap.forEach(function(d){ plans.push(d.data()); });
+            plans.sort(function(a, b){ return (a.ordre || 0) - (b.ordre || 0); });
+            if(!plans.length){
+                contentEl.innerHTML = '<p style="color:#c0392b;">Aucun palier configuré pour le moment. Contactez SEVEN7.</p>';
+                return;
+            }
+            var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+            var toutesFonctionnalites = [];
+            plans.forEach(function(p){ (p.fonctionnalites || []).forEach(function(f){ if(toutesFonctionnalites.indexOf(f) === -1) toutesFonctionnalites.push(f); }); });
+            var illimite = function(q){ return typeof q === 'number' && q >= SEUIL_ILLIMITE; };
+            var html = '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px;">'
+                + '<tr><th style="text-align:left; padding:8px; border-bottom:2px solid #1B2A4A;"></th>'
+                + plans.map(function(p){
+                    var estActuel = pontActif && pontPlanCabinet === p.id;
+                    return '<th style="padding:8px; border-bottom:2px solid #1B2A4A; text-align:center;' + (estActuel ? ' background:#F5EFE2;' : '') + '">'
+                        + esc(p.libelle) + (estActuel ? '<div style="font-size:10px; color:#B8975A; font-weight:700;">PALIER ACTUEL</div>' : '')
+                        + '</th>';
+                }).join('') + '</tr>'
+                + '<tr><td style="padding:8px; border-bottom:1px solid #eee; font-weight:600;">Dossiers</td>'
+                + plans.map(function(p){ return '<td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">' + (illimite(p.quotaDossiers) ? 'Illimité' : (p.quotaDossiers || 0)) + '</td>'; }).join('')
+                + '</tr>'
+                + '<tr><td style="padding:8px; border-bottom:1px solid #eee; font-weight:600;">Collaborateurs</td>'
+                + plans.map(function(p){ return '<td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">' + (illimite(p.quotaCollaborateurs) ? 'Illimité' : (p.quotaCollaborateurs || 0)) + '</td>'; }).join('')
+                + '</tr>'
+                + toutesFonctionnalites.map(function(f){
+                    return '<tr><td style="padding:8px; border-bottom:1px solid #f2f2f2;">' + esc(LIBELLES_FONCTIONNALITES[f] || f) + '</td>'
+                        + plans.map(function(p){
+                            var inclus = (p.fonctionnalites || []).indexOf(f) !== -1;
+                            return '<td style="padding:8px; border-bottom:1px solid #f2f2f2; text-align:center;">' + (inclus ? '✅' : '—') + '</td>';
+                        }).join('') + '</tr>';
+                }).join('')
+                + '</table></div>'
+                + '<p style="font-size:11px; color:#888; margin-top:14px;">📞 Pour changer de palier, contactez SEVEN7 — le changement est appliqué par notre équipe, jamais en libre-service.</p>';
+            contentEl.innerHTML = html;
+        }).catch(function(err){
+            contentEl.innerHTML = '<p style="color:#c0392b;">Impossible de charger les paliers : ' + String(err && err.message ? err.message : err).replace(/</g,'&lt;') + '</p>';
+        });
+    };
+
+    window.closeComparaisonPaliers = function(){
+        document.getElementById('paliers-comparaison-overlay').style.display = 'none';
+    };
+
+    // ---------- Bloc palier dans l'onglet Sommaire (masquage, §12) ----------
+    function rafraichirBlocPalierSommaire(){
+        var el = document.getElementById('sommaire-palier-cabinet');
+        if(!el) return;
+        if(!pontActif){ el.style.display = 'none'; el.innerHTML = ''; return; }
+        var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+        var ongletsVerrouilles = [];
+        Object.keys(PONT_ONGLETS_RESERVES_PALIER).forEach(function(id){
+            if(pontOngletReserveParPalier(id)){
+                var t = TABS.filter(function(x){ return x.id === id; })[0];
+                ongletsVerrouilles.push(t ? t.label : id);
+            }
+        });
+        if(pontOngletReserveParPalier('liasse-actif')) ongletsVerrouilles.push('LIASSE — États Financiers');
+        el.style.display = 'block';
+        el.innerHTML = '<div class="alert alert-info" style="text-align:left;">'
+            + '<strong>💼 Palier du cabinet : ' + esc(pontPlanCabinet || '?') + '</strong>'
+            + (ongletsVerrouilles.length
+                ? '<div style="font-size:12px; margin-top:6px;">🔒 Réservés à un palier supérieur : ' + esc(ongletsVerrouilles.join(', ')) + '</div>'
+                : '<div style="font-size:12px; margin-top:6px; color:#1e7a4c;">✅ Toutes les fonctionnalités de ce palier sont accessibles.</div>')
+            + '<button type="button" class="btn" style="margin-top:8px; font-size:11px; padding:4px 10px;" onclick="cabinetOuvrirComparaisonPaliers()">Comparer les paliers</button>'
+            + '</div>';
+    }
+
     function renderCabinetDashboardList(snap, code){
         document.getElementById('cabinet-dash-login').style.display = 'none';
         var listEl = document.getElementById('cabinet-dash-list');
@@ -8522,11 +8656,16 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     }
 
     function myAllowedTabs(){
+        // Session pont : E3 (rôle) ne verrouille QUE la liasse pour un
+        // collaborateur (pontOngletLiasseVerrouille) — le cycle d'audit reste
+        // ouvert à tous les rôles. La restriction par PALIER, elle, s'applique
+        // à TOUS les rôles, admin compris — d'où le filtre après le "return
+        // tout" de isAdmin, pas avant.
+        if(pontActif){
+            return TABS.map(function(t){ return t.id; })
+                .filter(function(id){ return !pontOngletReserveParPalier(id); });
+        }
         if(isAdmin) return TABS.map(function(t){ return t.id; });
-        // E3 ne verrouille QUE la liasse (18 onglets séparés, voir
-        // pontOngletLiasseVerrouille) — le cycle d'audit (ces 34 onglets-ci) reste
-        // pleinement ouvert à un collaborateur affecté, aucune restriction ici.
-        if(pontActif) return TABS.map(function(t){ return t.id; });
         var entry = permData.access && permData.access[mySafeKey];
         var allowed = (entry && entry.tabs) ? entry.tabs.slice() : [];
         ALWAYS_ALLOWED.forEach(function(t){ if(allowed.indexOf(t) === -1) allowed.push(t); });
@@ -9201,6 +9340,10 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         // firestore.rules — accesPontEcriture refuserait ce même appel côté
         // serveur). Évite juste un aller-retour réseau inutile qui échouerait de
         // toute façon, et un message d'erreur brut plutôt qu'un statut clair.
+        if(pontOngletReserveParPalier(tabId)){
+            setStatus('🔒 Onglet réservé — palier insuffisant pour ce cabinet');
+            return;
+        }
         if(pontOngletLiasseVerrouille(tabId)){
             setStatus('🔒 Lecture seule — la liasse est réservée à l\'administrateur du cabinet');
             return;
@@ -9475,34 +9618,51 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     // sans toucher au fichier du moteur de calcul (§12).
     function appliquerVerrouLiassePont(){
         document.querySelectorAll('.liasse-panel').forEach(function(panel){
-            var verrouille = panel.classList.contains('active') && pontOngletLiasseVerrouille(panel.id);
+            var actif = panel.classList.contains('active');
+            // Palier d'abord : si le cabinet n'a pas souscrit au module du tout,
+            // ce verrou-là prime sur E3 (verrouRole) — pas la peine de dire
+            // « réservé à l'admin » à un admin dont le palier ne l'inclut pas.
+            var verrouPalier = actif && pontOngletReserveParPalier(panel.id);
+            var verrouRole = actif && !verrouPalier && pontOngletLiasseVerrouille(panel.id);
             var overlay = panel.querySelector('.pont-liasse-verrou');
-            if(verrouille){
+            if(verrouPalier || verrouRole){
                 if(!overlay){
                     if(getComputedStyle(panel).position === 'static') panel.style.position = 'relative';
                     overlay = document.createElement('div');
                     overlay.className = 'pont-liasse-verrou';
                     overlay.style.cssText = 'position:absolute; inset:0; z-index:5000; background:rgba(255,255,255,0.55); cursor:not-allowed;';
-                    overlay.innerHTML = '<div style="position:sticky; top:12px; margin:12px auto; max-width:420px; background:#1B2A4A; color:#fff; padding:8px 16px; border-radius:6px; font-size:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.25);">🔒 Lecture seule — la liasse est réservée à l\'administrateur du cabinet</div>';
+                    overlay.innerHTML = '<div class="pont-liasse-verrou-texte" style="position:sticky; top:12px; margin:12px auto; max-width:420px; background:#1B2A4A; color:#fff; padding:8px 16px; border-radius:6px; font-size:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.25);"></div>';
                     panel.appendChild(overlay);
                 }
+                overlay.querySelector('.pont-liasse-verrou-texte').textContent = verrouPalier
+                    ? '🔒 Module réservé au palier CABINET — contactez SEVEN7 pour changer de palier'
+                    : "🔒 Lecture seule — la liasse est réservée à l'administrateur du cabinet";
             } else if(overlay){
                 overlay.remove();
             }
         });
+        // Bouton « LIASSE — États Financiers » de la barre d'interfaces : masqué
+        // pour toute la session si le palier du cabinet n'inclut pas le module
+        // du tout (STARTER/PRO), quel que soit le rôle — cohérent avec la
+        // décision « masquer la liasse également pour PRO » (10/08/2026).
+        var btnInterfaceLiasse = document.getElementById('btn-interface-liasse');
+        if(btnInterfaceLiasse){
+            btnInterfaceLiasse.style.display = (pontActif && pontPlanCabinet !== 'CABINET') ? 'none' : '';
+        }
         // Bouton hors des panneaux (barre commune à tous les onglets liasse) :
         // masqué une seule fois pour toute la session pont, pas par onglet.
         // Purement client (génère un fichier téléchargé, aucune écriture
         // Firestore) — mais l'export de la liasse reste un acte réservé à
         // l'administrateur selon la matrice des droits (§5), donc masqué ici
         // au même titre que la saisie, jamais laissé « juste en lecture ».
+        // Le palier prime aussi ici : un admin STARTER/PRO n'y a pas accès non plus.
         var btnExport = document.querySelector('.liasse-btn-export-xml');
         if(btnExport){
-            var verrouExport = pontActif && pontRole === 'COLLABORATEUR';
+            var verrouExport = pontActif && (pontRole === 'COLLABORATEUR' || pontPlanCabinet !== 'CABINET');
             btnExport.disabled = verrouExport;
             btnExport.style.opacity = verrouExport ? '0.5' : '';
             btnExport.style.cursor = verrouExport ? 'not-allowed' : '';
-            btnExport.title = verrouExport ? "🔒 Réservé à l'administrateur du cabinet" : '';
+            btnExport.title = verrouExport ? "🔒 Réservé à l'administrateur d'un cabinet au palier CABINET" : '';
         }
     }
     new MutationObserver(function(){ if(pontActif) appliquerVerrouLiassePont(); })
