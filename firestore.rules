@@ -20,6 +20,19 @@ service cloud.firestore {
       allow write: if request.auth != null
         && get(/databases/$(database)/documents/seven7_dossiers/$(dossier)).data.authUid == request.auth.uid;
     }
+    // E5 : les paliers d'abonnement (STARTER/PRO/CABINET) et leurs plafonds/
+    // fonctionnalités ne sont JAMAIS codés en dur (§3, §11) — cette donnée vit
+    // ici, dans /plans/{planId} (voir migration/plans.mjs, qui l'écrit) et
+    // gouverne à la fois l'écran de comparaison (lecture publique, y compris
+    // avant connexion) et ongletReserveParPalier ci-dessous (lecture via
+    // donneesCabinet(code).plan, pas via cette collection directement).
+    // Écriture réservée à SEVEN7 : jamais depuis un client, même admin de
+    // cabinet — même principe que seven7_cabinets/cabinets ci-dessus (le
+    // palier souscrit ne se change pas soi-même).
+    match /plans/{planId} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /seven7_usage_stats/{jour} {
       allow read, write: if request.auth != null;
       match /cabinets/{cabinetId} {
@@ -86,14 +99,20 @@ service cloud.firestore {
         && cabinetActif(request.resource.data.cabinetCode)
         && get(/databases/$(database)/documents/cabinets/$(request.resource.data.cabinetCode)/dossiers/$(request.resource.data.dossierNouveauId)).data.dossierAncienId == dossier;
       match /tabs/{tabId} {
-        // E3 : lecture ouverte à tout membre affecté ; écriture réservée à
-        // l'ADMIN sur les onglets de la liasse (ongletLiasseVerrouille),
-        // ouverte à tous les autres onglets (cycle d'audit, QCI, revue
-        // analytique — la matrice des droits, §5, les laisse au
-        // collaborateur).
+        // E3 (rôle) : lecture ouverte à tout membre affecté ; écriture
+        // réservée à l'ADMIN sur les onglets de la liasse
+        // (ongletLiasseVerrouille), ouverte à tous les autres onglets
+        // (cycle d'audit, QCI, revue analytique — la matrice des droits,
+        // §5, les laisse au collaborateur).
+        //
+        // Palier (10/08/2026) : EN PLUS d'E3, certains onglets sont
+        // réservés au palier du cabinet lui-même (ongletReserveParPalier),
+        // et cette restriction-là s'applique À TOUS les membres, admin
+        // compris — c'est pourquoi elle est vérifiée en lecture aussi
+        // (accesPontLectureOnglet), pas seulement en écriture.
         allow read: if request.auth != null && (
           donneesDossierAncien(dossier).authUid == request.auth.uid
-          || accesPontLecture(donneesDossierAncien(dossier))
+          || accesPontLectureOnglet(donneesDossierAncien(dossier), tabId)
         );
         allow write: if request.auth != null && (
           donneesDossierAncien(dossier).authUid == request.auth.uid
@@ -235,8 +254,35 @@ service cloud.firestore {
     function ongletLiasseVerrouille(tabId) {
       return tabId.matches('^liasse-.*') && tabId != 'liasse-parametres';
     }
+
+    // Restriction par PALIER d'abonnement (10/08/2026, décision utilisateur),
+    // distincte d'E3 : E3 restreint selon le RÔLE dans le cabinet (admin vs
+    // collaborateur) ; ceci restreint selon ce à quoi le CABINET a souscrit,
+    // pour TOUS ses membres également, admin compris — un admin d'un cabinet
+    // STARTER n'a pas plus accès à la liasse qu'un de ses collaborateurs.
+    //
+    // Ici, contrairement à ongletLiasseVerrouille, AUCUNE exception pour
+    // liasse-parametres : si le palier du cabinet n'inclut pas le module
+    // liasse du tout, aucun de ses 18 onglets n'est accessible, paramètres
+    // compris — l'exception « paramètres toujours modifiable » ne s'applique
+    // qu'AU SEIN d'un cabinet qui a déjà accès au module (voir
+    // accesPontEcriture ci-dessous, qui combine les deux).
+    //
+    // donneesCabinet(code).plan absent d'un document (cabinet non encore
+    // migré vers ce champ) fait échouer l'évaluation, donc refuse l'accès
+    // par défaut — même choix, déjà établi, que plafondDossiers ci-dessus.
+    function ongletReserveParPalier(code, tabId) {
+      return (tabId.matches('^liasse-.*') && donneesCabinet(code).plan != 'CABINET')
+        || ((tabId == 'detection' || tabId == 'revue' || tabId == 'impots' || tabId == 'calendrier')
+            && !(donneesCabinet(code).plan in ['PRO', 'CABINET']));
+    }
+    function accesPontLectureOnglet(donneesDossier, tabId) {
+      return accesPontLecture(donneesDossier)
+        && !ongletReserveParPalier(donneesDossier.cabinetCode, tabId);
+    }
     function accesPontEcriture(donneesDossier, tabId) {
       return accesPontLecture(donneesDossier)
+        && !ongletReserveParPalier(donneesDossier.cabinetCode, tabId)
         && (estAdmin(donneesDossier.cabinetCode) || !ongletLiasseVerrouille(tabId));
     }
     function cabinetActif(code) {

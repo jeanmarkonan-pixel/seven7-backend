@@ -69,8 +69,13 @@ async function semer() {
         const d = ctx.firestore();
 
         // Cabinet + membres (admin, collaborateur affecté, collaborateur non affecté).
+        // plan: 'CABINET' — ces tests portent sur E3 (restriction par RÔLE),
+        // pas sur la restriction par PALIER (voir tests/palier-restrictions.test.js,
+        // qui couvre spécifiquement STARTER/PRO/CABINET) : un palier autre que
+        // CABINET bloquerait la liasse pour TOUT LE MONDE ici, y compris
+        // l'admin, ce qui masquerait ce que ces tests-ci vérifient.
         await d.doc('cabinets/PONTTEST').set({
-            codeCabinet: 'PONTTEST', raisonSociale: 'Cabinet Pont', plan: 'STARTER',
+            codeCabinet: 'PONTTEST', raisonSociale: 'Cabinet Pont', plan: 'CABINET',
             quotaDossiers: 5, dossiersUtilises: 1, statut: 'ACTIF', adminPrincipalUid: ADM,
         });
         await d.doc('cabinets/PONTTEST/membres/' + ADM).set({
