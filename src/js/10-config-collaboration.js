@@ -2177,6 +2177,20 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 overlay.remove();
             }
         });
+        // Bouton hors des panneaux (barre commune à tous les onglets liasse) :
+        // masqué une seule fois pour toute la session pont, pas par onglet.
+        // Purement client (génère un fichier téléchargé, aucune écriture
+        // Firestore) — mais l'export de la liasse reste un acte réservé à
+        // l'administrateur selon la matrice des droits (§5), donc masqué ici
+        // au même titre que la saisie, jamais laissé « juste en lecture ».
+        var btnExport = document.querySelector('.liasse-btn-export-xml');
+        if(btnExport){
+            var verrouExport = pontActif && pontRole === 'COLLABORATEUR';
+            btnExport.disabled = verrouExport;
+            btnExport.style.opacity = verrouExport ? '0.5' : '';
+            btnExport.style.cursor = verrouExport ? 'not-allowed' : '';
+            btnExport.title = verrouExport ? "🔒 Réservé à l'administrateur du cabinet" : '';
+        }
     }
     new MutationObserver(function(){ if(pontActif) appliquerVerrouLiassePont(); })
         .observe(document.documentElement, { attributes: true, attributeFilter: ['class'], subtree: true });
