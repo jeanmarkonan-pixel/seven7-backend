@@ -40,12 +40,17 @@ const opts = dispo ? {} : { skip: 'émulateur Firestore injoignable — lancez `
 let env;
 if (dispo) {
     env = await initializeTestEnvironment({
-        // Un projectId distinct de tests/rules.test.js : les deux fichiers
-        // tournent contre le même émulateur dans le même `npm test`, et
-        // chacun vide sa base au fil de ses tests (clearFirestore) — sans
-        // cette séparation, l'un efface les données que l'autre vient de
-        // semer dès qu'ils s'exécutent en parallèle.
-        projectId: 'seven7-audit-test-cabinets',
+        // Même projectId que tests/rules.test.js et tests/creation-collaborateur.test.js
+        // — pas un choix, une contrainte : firebase.json déclare
+        // singleProjectMode: true, et les émulateurs n'acceptent alors
+        // qu'un seul projet réel, quel que soit celui demandé côté client.
+        // Un projectId différent le fait échouer silencieusement pour
+        // Firestore et explicitement pour Auth (auth/user-not-found), pas
+        // l'isoler. La séparation entre fichiers qui partagent tous la même
+        // base (chacun vide la sienne via clearFirestore/semer) vient donc
+        // d'ailleurs : voir package.json, "test" tourne avec
+        // --test-concurrency=1 précisément pour ça.
+        projectId: 'seven7-audit-test',
         firestore: {
             host: HOTE, port: PORT,
             rules: fs.readFileSync(path.join(RACINE, 'firestore.rules'), 'utf8'),

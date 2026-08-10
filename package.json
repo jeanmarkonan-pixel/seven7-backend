@@ -9,11 +9,13 @@
     "build": "node build/build.mjs",
     "verifier": "node build/build.mjs --verifier",
     "emulateur": "firebase emulators:start --only firestore --project seven7-audit-test",
+    "emulateur:complet": "firebase emulators:start --only firestore,auth --project seven7-audit-test",
     "test:regles": "node --test tests/rules.test.js",
-    "test": "node --test \"tests/**/*.test.js\""
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
+    "firebase": "^12.17.0",
     "firebase-admin": "^14.2.0",
     "jsdom": "^30.0.1"
   }

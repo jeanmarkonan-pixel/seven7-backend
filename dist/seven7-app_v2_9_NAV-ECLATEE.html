@@ -418,6 +418,35 @@
         </div>
     </div>
 
+    <div id="cabinet-equipe-overlay" style="display:none; position:fixed; z-index:100001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.55);">
+        <div style="background:#fff; margin:5% auto; padding:20px 24px; border-radius:8px; width:92%; max-width:520px; max-height:90vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h2 style="color:#1B2A4A; font-size:17px;">👥 Gérer l'équipe</h2>
+                <span onclick="closeCabinetEquipe()" style="cursor:pointer; font-size:24px; color:#999;">&times;</span>
+            </div>
+            <p style="font-size:11px; color:#888; margin-bottom:12px;">Seul l'administrateur principal crée un compte, l'active ou le désactive, et décide des dossiers accessibles à chacun — jamais un collaborateur, ici comme dans les règles Firestore.</p>
+
+            <p id="cabinet-equipe-erreur" style="color:#c0392b; font-size:12px; margin:0 0 10px; display:none;"></p>
+            <p id="cabinet-equipe-succes" style="color:#1e7a4c; font-size:12px; margin:0 0 10px; display:none;"></p>
+
+            <div id="cabinet-equipe-liste" style="margin-bottom:16px;">
+                <p style="font-size:12px; color:#888;">Chargement de l'équipe…</p>
+            </div>
+
+            <div style="border-top:1px solid #eee; padding-top:14px;">
+                <h3 style="font-size:13px; color:#1B2A4A; margin:0 0 8px;">➕ Ajouter un collaborateur</h3>
+                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">Nom complet</label>
+                <input type="text" id="cabinet-equipe-nom" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:8px;">
+                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">E-mail personnel</label>
+                <input type="email" id="cabinet-equipe-email" placeholder="prenom.nom@cabinet.ci" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; margin-bottom:8px;">
+                <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">Mot de passe provisoire (6 caractères minimum)</label>
+                <input type="text" id="cabinet-equipe-motdepasse" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box;">
+                <p style="font-size:10px; color:#888; margin:6px 0 10px;">Communiquez-le au collaborateur par un canal séparé de cet écran ; il pourra le changer via « mot de passe oublié » sur son propre e-mail.</p>
+                <button class="btn btn-primary" id="cabinet-equipe-creer-btn" style="width:100%;" onclick="cabinetCreerCollaborateur()">Créer le compte</button>
+            </div>
+        </div>
+    </div>
+
     <div id="usage-panel-overlay" style="display:none; position:fixed; z-index:99998; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.55);">
         <div style="background:#fff; margin:8% auto; padding:20px 24px; border-radius:8px; width:92%; max-width:480px; max-height:88vh; overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -7971,11 +8000,20 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         if(!membre){ el.style.display = 'none'; el.innerHTML = ''; return; }
         var roleLabel = membre.role === 'ADMIN' ? 'Administrateur principal' : 'Collaborateur';
         var nomHtml = String(membre.nom || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        var codeAttr = String(code).replace(/'/g, "\\'");
+        // E2/§5 : le bouton n'existe même pas dans le DOM pour un collaborateur —
+        // le masquage n'étant qu'un confort (§5), la vraie barrière est dans
+        // firestore.rules (estAdmin(code) sur /membres). Ceci évite seulement
+        // un aller-retour réseau inutile qui échouerait de toute façon.
+        var boutonEquipe = membre.role === 'ADMIN'
+            ? '<button type="button" class="btn" style="width:100%; margin-top:8px; font-size:12px;" onclick="cabinetOuvrirGestionEquipe(\'' + codeAttr + '\')">👥 Gérer l\'équipe</button>'
+            : '';
         el.style.display = 'block';
         el.innerHTML = '<div style="background:#F5EFE2; border:1px solid #B8975A; border-radius:6px; padding:10px 12px; margin-bottom:12px; text-align:left;">' +
             '<div style="font-weight:700; font-size:12.5px; color:#1B2A4A;">🏢 Espace cabinet — nouveau modèle</div>' +
             '<div style="font-size:12px; color:#555; margin-top:4px;">' + nomHtml + ' · <strong>' + roleLabel + '</strong></div>' +
             '<div id="cabinet-dash-quota-nouveau" style="font-size:11px; color:#888; margin-top:4px;">Chargement du quota…</div>' +
+            boutonEquipe +
             '</div>';
         db.collection('cabinets').doc(code).get().then(function(cabDoc){
             trackReads(1);
@@ -7990,6 +8028,195 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 + (c.statut !== 'ACTIF' ? ' — ⚠ ' + c.statut : '');
         }).catch(function(){ /* affichage dégradé : le rôle reste visible sans le quota */ });
     }
+
+    // ---------- Phase 4 : gestion de l'équipe (créer, désactiver, affecter) ----
+    //
+    // Créer un compte Auth pour un collaborateur DEPUIS un compte déjà connecté
+    // (l'admin) pose un piège classique : firebase.auth().createUserWithEmailAndPassword()
+    // sur l'app PRINCIPALE reconnecte automatiquement le navigateur sur le
+    // compte fraîchement créé, déconnectant l'admin au passage. Sans Cloud
+    // Function pour créer le compte côté serveur (§4, §12 du cahier des
+    // charges — aucune Cloud Function sans prévenir), la parade standard est
+    // une SECONDE app Firebase, isolée, dont la session ne touche jamais celle
+    // de l'app principale : c'est elle qui crée le compte, puis se ferme.
+    var cabinetEquipeCode = null;
+
+    window.cabinetOuvrirGestionEquipe = function(code){
+        cabinetEquipeCode = code;
+        document.getElementById('cabinet-equipe-overlay').style.display = 'block';
+        document.getElementById('cabinet-equipe-erreur').style.display = 'none';
+        document.getElementById('cabinet-equipe-succes').style.display = 'none';
+        cabinetRafraichirEquipe();
+    };
+
+    window.closeCabinetEquipe = function(){
+        document.getElementById('cabinet-equipe-overlay').style.display = 'none';
+    };
+
+    function cabinetRafraichirEquipe(){
+        var listeEl = document.getElementById('cabinet-equipe-liste');
+        listeEl.innerHTML = '<p style="font-size:12px; color:#888;">Chargement de l\'équipe…</p>';
+        var code = cabinetEquipeCode;
+        Promise.all([
+            db.collection('cabinets').doc(code).collection('membres').get(),
+            db.collection('cabinets').doc(code).collection('dossiers').get(),
+        ]).then(function(res){
+            var membresSnap = res[0], dossiersSnap = res[1];
+            trackReads(membresSnap.size + dossiersSnap.size);
+            var dossiers = [];
+            dossiersSnap.forEach(function(d){ dossiers.push({ id: d.id, intitule: (d.data() || {}).intitule || d.id }); });
+            dossiers.sort(function(a, b){ return String(a.intitule).localeCompare(String(b.intitule)); });
+
+            var membres = [];
+            membresSnap.forEach(function(d){ membres.push(Object.assign({ uid: d.id }, d.data())); });
+            membres.sort(function(a, b){
+                if(a.role !== b.role) return a.role === 'ADMIN' ? -1 : 1;
+                return String(a.nom || '').localeCompare(String(b.nom || ''));
+            });
+
+            if(!membres.length){
+                listeEl.innerHTML = '<p style="font-size:12px; color:#888;">Aucun membre trouvé.</p>';
+                return;
+            }
+            var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;'); };
+            listeEl.innerHTML = membres.map(function(m){
+                var soi = (m.uid === firebase.auth().currentUser.uid);
+                var affectes = Array.isArray(m.dossiersAffectes) ? m.dossiersAffectes : [];
+                var roleTag = m.role === 'ADMIN'
+                    ? '<span style="background:#1B2A4A; color:#fff; font-size:10px; padding:2px 6px; border-radius:3px;">ADMIN</span>'
+                    : '<span style="background:#eee; color:#555; font-size:10px; padding:2px 6px; border-radius:3px;">COLLABORATEUR</span>';
+                var actifTag = m.actif === false
+                    ? '<span style="color:#c0392b; font-size:11px;">● désactivé</span>'
+                    : '<span style="color:#1e7a4c; font-size:11px;">● actif</span>';
+                var toggleBtn = soi ? ''
+                    : '<button type="button" class="btn" style="font-size:11px; padding:3px 8px; margin-left:6px;" '
+                    + 'onclick="cabinetToggleMembreActif(\'' + esc(m.uid) + '\', ' + (m.actif === false ? 'true' : 'false') + ')">'
+                    + (m.actif === false ? 'Réactiver' : 'Désactiver') + '</button>';
+
+                var dossiersHtml = (m.role === 'ADMIN')
+                    ? '<div style="font-size:11px; color:#888; margin-top:6px;">Accède à tous les dossiers du cabinet.</div>'
+                    : '<div style="margin-top:6px;">'
+                    + dossiers.map(function(dos){
+                        var checked = affectes.indexOf(dos.id) !== -1 ? 'checked' : '';
+                        return '<label style="display:block; font-size:11px; color:#555; margin-bottom:2px;">'
+                            + '<input type="checkbox" class="cabinet-equipe-dossier-case" data-uid="' + esc(m.uid) + '" data-dossier="' + esc(dos.id) + '" ' + checked + '> '
+                            + esc(dos.intitule) + '</label>';
+                    }).join('')
+                    + (dossiers.length ? '<button type="button" class="btn btn-primary" style="font-size:11px; padding:4px 10px; margin-top:4px;" onclick="cabinetSauvegarderAffectations(\'' + esc(m.uid) + '\')">Enregistrer les dossiers affectés</button>'
+                                       : '<div style="font-size:11px; color:#888;">Aucun dossier dans ce cabinet pour le moment.</div>')
+                    + '</div>';
+
+                return '<div style="border:1px solid #eee; border-radius:6px; padding:10px; margin-bottom:8px; text-align:left;">'
+                    + '<div style="display:flex; justify-content:space-between; align-items:center;">'
+                    + '<div><strong style="font-size:13px; color:#1B2A4A;">' + esc(m.nom) + '</strong> ' + roleTag + (soi ? ' <span style="font-size:10px; color:#888;">(vous)</span>' : '') + '</div>'
+                    + '<div>' + actifTag + toggleBtn + '</div>'
+                    + '</div>'
+                    + '<div style="font-size:11px; color:#888; margin-top:2px;">' + esc(m.email) + '</div>'
+                    + dossiersHtml
+                    + '</div>';
+            }).join('');
+        }).catch(function(err){
+            listeEl.innerHTML = '<p style="font-size:12px; color:#c0392b;">Impossible de charger l\'équipe : ' + String(err && err.message ? err.message : err).replace(/</g,'&lt;') + '</p>';
+        });
+    }
+
+    window.cabinetToggleMembreActif = function(uid, nouvelEtat){
+        var erreurEl = document.getElementById('cabinet-equipe-erreur');
+        erreurEl.style.display = 'none';
+        db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').doc(uid)
+            .update({ actif: nouvelEtat })
+            .then(function(){ cabinetRafraichirEquipe(); })
+            .catch(function(err){
+                erreurEl.textContent = 'Impossible de modifier ce membre : ' + (err && err.message ? err.message : err);
+                erreurEl.style.display = 'block';
+            });
+    };
+
+    window.cabinetSauvegarderAffectations = function(uid){
+        var erreurEl = document.getElementById('cabinet-equipe-erreur');
+        var succesEl = document.getElementById('cabinet-equipe-succes');
+        erreurEl.style.display = 'none'; succesEl.style.display = 'none';
+        var cases = document.querySelectorAll('.cabinet-equipe-dossier-case[data-uid="' + uid.replace(/"/g,'') + '"]');
+        var dossiersAffectes = [];
+        cases.forEach(function(c){ if(c.checked) dossiersAffectes.push(c.getAttribute('data-dossier')); });
+        db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').doc(uid)
+            .update({ dossiersAffectes: dossiersAffectes })
+            .then(function(){
+                succesEl.textContent = '✅ Dossiers affectés mis à jour (' + dossiersAffectes.length + ').';
+                succesEl.style.display = 'block';
+            })
+            .catch(function(err){
+                erreurEl.textContent = 'Impossible d\'enregistrer : ' + (err && err.message ? err.message : err);
+                erreurEl.style.display = 'block';
+            });
+    };
+
+    // Crée le compte Auth du collaborateur via une app Firebase secondaire
+    // (jamais l'app principale — voir la note en tête de section), puis écrit
+    // son document membre via l'app PRINCIPALE : c'est elle qui porte la
+    // session admin, donc c'est elle que firestore.rules verra pour estAdmin().
+    window.cabinetCreerCollaborateur = function(){
+        var erreurEl = document.getElementById('cabinet-equipe-erreur');
+        var succesEl = document.getElementById('cabinet-equipe-succes');
+        erreurEl.style.display = 'none'; succesEl.style.display = 'none';
+
+        var nom = document.getElementById('cabinet-equipe-nom').value.trim();
+        var email = document.getElementById('cabinet-equipe-email').value.trim();
+        var motDePasse = document.getElementById('cabinet-equipe-motdepasse').value;
+
+        if(!nom || !email || !motDePasse){
+            erreurEl.textContent = 'Merci de renseigner le nom, l\'e-mail et le mot de passe provisoire.';
+            erreurEl.style.display = 'block';
+            return;
+        }
+        if(motDePasse.length < 6){
+            erreurEl.textContent = 'Le mot de passe doit compter au moins 6 caractères (minimum imposé par Firebase Authentication).';
+            erreurEl.style.display = 'block';
+            return;
+        }
+
+        var btn = document.getElementById('cabinet-equipe-creer-btn');
+        btn.disabled = true; btn.textContent = '⏳ Création…';
+
+        var nomAppSecondaire = 'seven7-equipe-' + Date.now();
+        var appSecondaire = firebase.initializeApp(FIREBASE_CONFIG, nomAppSecondaire);
+        var authSecondaire = appSecondaire.auth();
+
+        authSecondaire.createUserWithEmailAndPassword(email, motDePasse).then(function(cred){
+            var nouvelUid = cred.user.uid;
+            // La session de l'app secondaire est refermée et l'app supprimée
+            // AVANT d'écrire dans Firestore : elle a servi à créer le compte,
+            // rien de plus — la garder ouverte ne ferait que consommer de la
+            // mémoire, et ne doit jamais être confondue avec la session admin.
+            return authSecondaire.signOut().catch(function(){}).then(function(){
+                return appSecondaire.delete().catch(function(){});
+            }).then(function(){
+                return db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').doc(nouvelUid).set({
+                    uid: nouvelUid, nom: nom, email: email,
+                    role: 'COLLABORATEUR', actif: true, dossiersAffectes: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+            });
+        }).then(function(){
+            succesEl.textContent = '✅ Compte créé pour ' + nom + '. Communiquez-lui son e-mail et son mot de passe provisoire séparément.';
+            succesEl.style.display = 'block';
+            document.getElementById('cabinet-equipe-nom').value = '';
+            document.getElementById('cabinet-equipe-email').value = '';
+            document.getElementById('cabinet-equipe-motdepasse').value = '';
+            cabinetRafraichirEquipe();
+        }).catch(function(err){
+            var msg = (err && err.code === 'auth/email-already-in-use')
+                ? 'Cette adresse e-mail a déjà un compte Firebase — utilisez-en une autre, ou contactez SEVEN7 si ce collaborateur devrait déjà appartenir à un cabinet.'
+                : 'Impossible de créer ce compte : ' + (err && err.message ? err.message : err);
+            erreurEl.textContent = msg;
+            erreurEl.style.display = 'block';
+            // Nettoyage best-effort si l'app secondaire existe encore (échec
+            // survenu après la création Auth mais avant l'écriture Firestore).
+            try { appSecondaire.delete().catch(function(){}); } catch(e){}
+        }).then(function(){
+            btn.disabled = false; btn.textContent = 'Créer le compte';
+        });
+    };
 
     function renderCabinetDashboardList(snap, code){
         document.getElementById('cabinet-dash-login').style.display = 'none';
