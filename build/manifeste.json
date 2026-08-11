@@ -43,6 +43,7 @@
     "40-rapport-special.js",
     "41-echantillonnage.js",
     "42-mobile-pwa.js",
-    "43-seuils-cycles.js"
+    "43-seuils-cycles.js",
+    "44-vue-onglets.js"
   ]
 }

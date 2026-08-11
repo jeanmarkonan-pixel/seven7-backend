@@ -56,6 +56,23 @@
         .phase-dropdown .tab-btn-groupe { margin-top: 10px; padding-top: 12px; border-top: 1px solid #eee; }
         #phaseNav .phase-dropdown .tab-btn-groupe { margin-top: 0; padding-top: 10px; border-top: none; border-left: 1px solid #e0e0e0; margin-left: 6px; padding-left: 12px; }
 
+        /* Vue réduite par catégorie (11/08/2026) : masquée par défaut (vue
+           complète = comportement d'origine, inchangé, boutons à plat). */
+        .vue-onglets-toggle-btn { display: block; margin: 4px auto 0; padding: 4px 12px; font-size: 11px;
+            font-weight: 600; color: #1a5276; background: #f0f4f8; border: 1px solid #d5dee6; border-radius: 12px; cursor: pointer; }
+        .vue-onglets-toggle-btn:hover { background: #e0eaf2; }
+        .onglet-groupe-entete { display: none; }
+        #phaseNav.vue-reduite .onglet-groupe { display: block; width: 100%; }
+        #phaseNav.vue-reduite .onglet-groupe-entete { display: flex; align-items: center; gap: 6px;
+            width: 100%; text-align: left; padding: 9px 14px; background: transparent; border: none;
+            border-bottom: 1px solid #f0f0f0; font-size: 12px; font-weight: 700; color: #1a5276; cursor: pointer; }
+        #phaseNav.vue-reduite .onglet-groupe-entete:hover { background: #f7fafc; }
+        #phaseNav.vue-reduite .onglet-groupe-chevron { transition: transform 0.15s; font-size: 10px; }
+        #phaseNav.vue-reduite .onglet-groupe.ouvert .onglet-groupe-chevron { transform: rotate(90deg); }
+        #phaseNav.vue-reduite .onglet-groupe-compte { color: #999; font-weight: 400; }
+        #phaseNav.vue-reduite .onglet-groupe > .tab-btn { display: none; width: 100%; text-align: left; padding-left: 30px; }
+        #phaseNav.vue-reduite .onglet-groupe.ouvert > .tab-btn { display: block; }
+
         /* ---- Navigation eclatee : tous les onglets visibles, groupes par phase ---- */
         #phaseNav { display: block; background: #fff; border-bottom: 2px solid #ddd; }
         #phaseNav .phase-group { display: flex; flex-wrap: wrap; align-items: stretch;
