@@ -527,6 +527,31 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         if(collabInitFirebase()) firebase.auth().signOut().catch(function(){});
     };
 
+    // Une fois connecté, #cabinet-dash-login disparaît au profit de
+    // #cabinet-dash-list (voir renderCabinetDashboardList / renderNouveauModeleCabinet)
+    // sans qu'aucun bouton ne permette d'y revenir — la seule sortie était
+    // « Fermer », qui ferme TOUT l'overlay ET déconnecte, obligeant à rouvrir
+    // depuis le lien de l'écran de connexion pour changer simplement de code
+    // cabinet ou de compte. Celle-ci ramène juste au formulaire, sans fermer
+    // l'overlay — même déconnexion nécessaire (changer de compte = changer de
+    // session Auth), mais sans perdre le contexte « je suis en train de me
+    // connecter à un cabinet ».
+    window.cabinetDashboardRetourConnexion = function(){
+        if(collabInitFirebase()) firebase.auth().signOut().catch(function(){});
+        document.getElementById('cabinet-dash-list').style.display = 'none';
+        document.getElementById('cabinet-dash-login').style.display = 'block';
+        document.getElementById('cabinet-dash-error').style.display = 'none';
+        document.getElementById('cabinet-dash-code').value = '';
+        document.getElementById('cabinet-dash-password').value = '';
+        ['cabinet-collab-code', 'cabinet-collab-email', 'cabinet-collab-password'].forEach(function(id){
+            var el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        var nouveauModeleEl = document.getElementById('cabinet-dash-nouveau-modele');
+        if(nouveauModeleEl){ nouveauModeleEl.style.display = 'none'; nouveauModeleEl.innerHTML = ''; }
+        cabinetSwitchMode('admin');
+    };
+
     window.cabinetDashboardLogin = function(){
         var errEl = document.getElementById('cabinet-dash-error');
         errEl.style.display = 'none';
