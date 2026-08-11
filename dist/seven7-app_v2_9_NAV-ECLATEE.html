@@ -424,7 +424,8 @@
             </div>
             <div id="cabinet-dash-list" style="display:none;">
                 <div id="cabinet-dash-list-content"></div>
-                <button class="btn" style="width:100%; margin-top:14px;" onclick="closeCabinetDashboard()">Fermer</button>
+                <button class="btn" style="width:100%; margin-top:14px;" onclick="cabinetDashboardRetourConnexion()">⬅ Changer de compte / cabinet</button>
+                <button class="btn" style="width:100%; margin-top:8px;" onclick="closeCabinetDashboard()">Fermer</button>
             </div>
         </div>
     </div>
@@ -4289,7 +4290,7 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "1ebd740",
+    commit:  "31ae14f",
     date:    "2026-08-11",
     propre:  true
 };
@@ -8069,6 +8070,31 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         // On se déconnecte du compte cabinet pour ne pas laisser cette session Auth active
         // par-dessus une future connexion à un dossier précis.
         if(collabInitFirebase()) firebase.auth().signOut().catch(function(){});
+    };
+
+    // Une fois connecté, #cabinet-dash-login disparaît au profit de
+    // #cabinet-dash-list (voir renderCabinetDashboardList / renderNouveauModeleCabinet)
+    // sans qu'aucun bouton ne permette d'y revenir — la seule sortie était
+    // « Fermer », qui ferme TOUT l'overlay ET déconnecte, obligeant à rouvrir
+    // depuis le lien de l'écran de connexion pour changer simplement de code
+    // cabinet ou de compte. Celle-ci ramène juste au formulaire, sans fermer
+    // l'overlay — même déconnexion nécessaire (changer de compte = changer de
+    // session Auth), mais sans perdre le contexte « je suis en train de me
+    // connecter à un cabinet ».
+    window.cabinetDashboardRetourConnexion = function(){
+        if(collabInitFirebase()) firebase.auth().signOut().catch(function(){});
+        document.getElementById('cabinet-dash-list').style.display = 'none';
+        document.getElementById('cabinet-dash-login').style.display = 'block';
+        document.getElementById('cabinet-dash-error').style.display = 'none';
+        document.getElementById('cabinet-dash-code').value = '';
+        document.getElementById('cabinet-dash-password').value = '';
+        ['cabinet-collab-code', 'cabinet-collab-email', 'cabinet-collab-password'].forEach(function(id){
+            var el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        var nouveauModeleEl = document.getElementById('cabinet-dash-nouveau-modele');
+        if(nouveauModeleEl){ nouveauModeleEl.style.display = 'none'; nouveauModeleEl.innerHTML = ''; }
+        cabinetSwitchMode('admin');
     };
 
     window.cabinetDashboardLogin = function(){
