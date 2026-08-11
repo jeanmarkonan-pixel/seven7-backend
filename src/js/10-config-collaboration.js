@@ -915,6 +915,13 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                     + 'onclick="cabinetToggleMembreActif(\'' + esc(m.uid) + '\', ' + (m.actif === false ? 'true' : 'false') + ')">'
                     + (m.actif === false ? 'Réactiver' : 'Désactiver') + '</button>';
 
+                // Un cabinet peut avoir plusieurs admins (voir cabinetChangerRoleMembre) —
+                // jamais sur soi-même, la règle Firestore le refuserait de toute façon.
+                var roleBtn = soi ? ''
+                    : '<button type="button" class="btn" style="font-size:11px; padding:3px 8px; margin-left:6px;" '
+                    + 'onclick="cabinetChangerRoleMembre(\'' + esc(m.uid) + '\', \'' + (m.role === 'ADMIN' ? 'COLLABORATEUR' : 'ADMIN') + '\')">'
+                    + (m.role === 'ADMIN' ? 'Rétrograder en collaborateur' : 'Promouvoir administrateur') + '</button>';
+
                 var dossiersHtml = (m.role === 'ADMIN')
                     ? '<div style="font-size:11px; color:#888; margin-top:6px;">Accède à tous les dossiers du cabinet.</div>'
                     : '<div style="margin-top:6px;">'
@@ -934,6 +941,7 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                     + '<div>' + actifTag + toggleBtn + '</div>'
                     + '</div>'
                     + '<div style="font-size:11px; color:#888; margin-top:2px;">' + esc(m.email) + '</div>'
+                    + (roleBtn ? '<div style="margin-top:6px;">' + roleBtn + '</div>' : '')
                     + dossiersHtml
                     + '</div>';
             }).join('');
@@ -950,6 +958,38 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             .then(function(){ cabinetRafraichirEquipe(); })
             .catch(function(err){
                 erreurEl.textContent = 'Impossible de modifier ce membre : ' + (err && err.message ? err.message : err);
+                erreurEl.style.display = 'block';
+            });
+    };
+
+    // Un cabinet peut avoir PLUSIEURS administrateurs — la règle Firestore
+    // l'autorise déjà (estAdmin(code) && uid != request.auth.uid, sans
+    // restriction sur la valeur du rôle), mais rien dans l'interface ne
+    // l'exposait jusqu'ici : cabinetCreerCollaborateur() fixe toujours
+    // role: 'COLLABORATEUR'. Un cabinet ne pouvait donc en pratique avoir
+    // qu'un seul admin, celui posé à la migration.
+    //
+    // uid != request.auth.uid dans la règle protège déjà contre le seul
+    // vrai risque (un cabinet qui se retrouverait sans aucun admin actif) :
+    // l'admin qui agit ne peut JAMAIS modifier son propre document membre
+    // par ce chemin, donc il reste toujours admin après l'opération — un
+    // cabinet garde donc toujours au moins un admin actif, quelle que soit
+    // la suite de promotions/rétrogradations effectuées par d'autres.
+    window.cabinetChangerRoleMembre = function(uid, nouveauRole){
+        var erreurEl = document.getElementById('cabinet-equipe-erreur');
+        var succesEl = document.getElementById('cabinet-equipe-succes');
+        erreurEl.style.display = 'none'; succesEl.style.display = 'none';
+        db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').doc(uid)
+            .update({ role: nouveauRole })
+            .then(function(){
+                succesEl.textContent = nouveauRole === 'ADMIN'
+                    ? '✅ Ce membre est maintenant administrateur.'
+                    : '✅ Ce membre est redevenu collaborateur.';
+                succesEl.style.display = 'block';
+                cabinetRafraichirEquipe();
+            })
+            .catch(function(err){
+                erreurEl.textContent = 'Impossible de changer ce rôle : ' + (err && err.message ? err.message : err);
                 erreurEl.style.display = 'block';
             });
     };
