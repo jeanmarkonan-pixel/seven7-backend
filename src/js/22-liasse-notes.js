@@ -1501,17 +1501,30 @@ function liasseRefreshAll(){
 function showInterface(name){
     var audit = document.getElementById('interface-audit-wrap');
     var liasse = document.getElementById('interface-liasse');
+    var attente = document.getElementById('liasse-waitlist-screen');
     var btnAudit = document.getElementById('btn-interface-audit');
     var btnLiasse = document.getElementById('btn-interface-liasse');
     if(name === 'liasse'){
         if(audit) audit.style.display = 'none';
-        if(liasse) liasse.style.display = 'block';
         if(btnAudit) btnAudit.classList.remove('active');
         if(btnLiasse) btnLiasse.classList.add('active');
-        liasseRefreshAll();
+        // Fermeture contrôlée du module (11/08/2026, voir CHANGELOG_FERMETURE_LIASSE.md) :
+        // window.SEVEN7_DOSSIER_ID est le seul pont disponible ici — ce fichier est un
+        // script global classique, sans accès à la variable privée dossierId du module
+        // de collaboration (voir 10-config-collaboration.js).
+        var actif = (typeof liasseModuleActif !== 'function') || liasseModuleActif(window.SEVEN7_DOSSIER_ID || null);
+        if(actif){
+            if(liasse) liasse.style.display = 'block';
+            if(attente) attente.style.display = 'none';
+            liasseRefreshAll();
+        } else {
+            if(liasse) liasse.style.display = 'none';
+            if(attente) attente.style.display = 'block';
+        }
     } else {
         if(audit) audit.style.display = '';
         if(liasse) liasse.style.display = 'none';
+        if(attente) attente.style.display = 'none';
         if(btnAudit) btnAudit.classList.add('active');
         if(btnLiasse) btnLiasse.classList.remove('active');
     }

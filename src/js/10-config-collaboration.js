@@ -301,6 +301,14 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 window.SEVEN7_DB = db;
                 window.SEVEN7_DOSSIER_ID = dossierId;
                 if(typeof window.SEVEN7_MSG_INIT === 'function') window.SEVEN7_MSG_INIT();
+                // Fermeture contrôlée du module liasse (11/08/2026) : charge
+                // config_globale/features une fois (mise en cache dans
+                // config-features.js), puis met à jour le badge de l'onglet.
+                if(typeof chargerConfigGlobaleFeatures === 'function'){
+                    chargerConfigGlobaleFeatures(db).then(function(){
+                        if(typeof appliquerBadgeLiasseFermee === 'function') appliquerBadgeLiasseFermee(dossierId);
+                    });
+                }
                 resolve(data);
             }
 
@@ -785,6 +793,7 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         db.collection('cabinets').doc(code).get().then(function(cabDoc){
             trackReads(1);
             pontPlanCabinet = (cabDoc.exists && cabDoc.data().plan) || null;
+            window.SEVEN7_PLAN_CABINET = pontPlanCabinet;
         }).catch(function(){ pontPlanCabinet = null; }).then(function(){
             listenPermissions();
             listenTabs();
@@ -792,6 +801,14 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             if(typeof window.SEVEN7_MSG_INIT === 'function') window.SEVEN7_MSG_INIT();
             if(typeof appliquerVerrouLiassePont === 'function') appliquerVerrouLiassePont();
             if(typeof rafraichirBlocPalierSommaire === 'function') rafraichirBlocPalierSommaire();
+            // Fermeture contrôlée du module liasse (11/08/2026) : même
+            // mécanisme que collabJoin (voir finalize() plus haut), pour
+            // qu'une session pont voie aussi le badge « Bientôt disponible ».
+            if(typeof chargerConfigGlobaleFeatures === 'function'){
+                chargerConfigGlobaleFeatures(db).then(function(){
+                    if(typeof appliquerBadgeLiasseFermee === 'function') appliquerBadgeLiasseFermee(dossierId);
+                });
+            }
         });
     };
 
@@ -1196,10 +1213,18 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 + plans.map(function(p){ return '<td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">' + (illimite(p.quotaCollaborateurs) ? 'Illimité' : (p.quotaCollaborateurs || 0)) + '</td>'; }).join('')
                 + '</tr>'
                 + toutesFonctionnalites.map(function(f){
+                    // Fermeture contrôlée du module liasse (11/08/2026) : la
+                    // ligne reste dans la grille (argument de valeur future,
+                    // §5.1 du prompt de fermeture), mais annonce « Bientôt »
+                    // plutôt qu'un ✅ trompeur tant que le module est fermé —
+                    // même pour un palier qui l'inclut normalement.
+                    var fermeeGlobalement = (f === 'module_liasse_fiscale')
+                        && typeof liasseModuleActif === 'function' && !liasseModuleActif(window.SEVEN7_DOSSIER_ID || null);
                     return '<tr><td style="padding:8px; border-bottom:1px solid #f2f2f2;">' + esc(LIBELLES_FONCTIONNALITES[f] || f) + '</td>'
                         + plans.map(function(p){
                             var inclus = (p.fonctionnalites || []).indexOf(f) !== -1;
-                            return '<td style="padding:8px; border-bottom:1px solid #f2f2f2; text-align:center;">' + (inclus ? '✅' : '—') + '</td>';
+                            var contenu = !inclus ? '—' : (fermeeGlobalement ? '🔒 Bientôt' : '✅');
+                            return '<td style="padding:8px; border-bottom:1px solid #f2f2f2; text-align:center;' + (fermeeGlobalement && inclus ? ' color:#B8975A; font-weight:600;' : '') + '">' + contenu + '</td>';
                         }).join('') + '</tr>';
                 }).join('')
                 + '</table></div>'

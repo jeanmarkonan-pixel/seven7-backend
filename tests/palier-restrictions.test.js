@@ -66,6 +66,12 @@ async function semer(plan) {
     await env.withSecurityRulesDisabled(async (ctx) => {
         const d = ctx.firestore();
 
+        // Module liasse ouvert globalement — ces tests portent sur le PALIER
+        // (STARTER/PRO/CABINET), pas sur la fermeture générale (voir
+        // tests/fermeture-liasse.test.js). Sans ceci, toute écriture liasse-*
+        // échoue désormais par défaut, masquant ce que ces tests vérifient.
+        await d.doc('config_globale/features').set({ LIASSE_ENABLED: true });
+
         const cabinetDoc = { codeCabinet: 'PALIERTEST', raisonSociale: 'Cabinet Palier', quotaDossiers: 5, dossiersUtilises: 1, statut: 'ACTIF', adminPrincipalUid: ADM };
         if (plan !== undefined) cabinetDoc.plan = plan; // undefined volontairement pour tester l'absence du champ
         await d.doc('cabinets/PALIERTEST').set(cabinetDoc);

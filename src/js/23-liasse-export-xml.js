@@ -69,6 +69,16 @@ function liasseSetXmlStatus(msg, kind){
 }
 
 function liasseGenererXML(){
+    // Fermeture contrôlée du module (11/08/2026, voir
+    // CHANGELOG_FERMETURE_LIASSE.md) : bloqué même par appel direct à
+    // cette fonction (§4 du prompt de fermeture), pas seulement masqué
+    // dans l'écran — aucune écriture Firestore n'est en jeu ici (export
+    // purement client), donc firestore.rules ne peut rien bloquer côté
+    // serveur ; c'est ce garde-fou, ici, qui fait office de barrière.
+    if(typeof liasseModuleActif === 'function' && !liasseModuleActif(window.SEVEN7_DOSSIER_ID || null)){
+        liasseSetXmlStatus('🔒 Module fermé — ' + (typeof FEATURES !== 'undefined' ? FEATURES.LIASSE_TARGET_LABEL : 'ouverture à venir') + '.', 'status-danger');
+        return;
+    }
     var ncc = val('fi-nif');
     var exercice = val('fi-exercice');
 

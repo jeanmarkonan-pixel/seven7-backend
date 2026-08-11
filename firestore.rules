@@ -33,6 +33,58 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // FERMETURE CONTRÔLÉE DU MODULE LIASSE (11/08/2026, décision
+    // utilisateur — voir CHANGELOG_FERMETURE_LIASSE.md et le prompt
+    // PROMPT_CLAUDE_CODE_FERMETURE_MODULE_LIASSE.md qui l'a demandée).
+    // Le mapping des comptes et la conformité de l'export XML DGI ne
+    // sont pas encore fiables : le module est fermé À TOUS LES PLANS,
+    // sur TOUS LES DOSSIERS (authUid direct COMPRIS, pas seulement le
+    // pont cabinet), sauf liste blanche de testeurs.
+    //
+    // Lecture publique (pas de donnée confidentielle ici, et l'écran
+    // d'accueil doit pouvoir savoir si le module est ouvert avant toute
+    // connexion) ; écriture réservée à SEVEN7, jamais un client — même
+    // principe que /plans ci-dessus.
+    match /config_globale/{document} {
+      allow read: if true;
+      allow write: if false;
+    }
+    function configGlobaleFeatures() {
+      return get(/databases/$(database)/documents/config_globale/features).data;
+    }
+    // Fail-closed délibéré : document ou champ absent ⇒ échec
+    // d'évaluation ⇒ la fonction appelante refuse — même choix,
+    // déjà établi partout ailleurs dans ce fichier (voir
+    // plafondDossiers plus haut), pas une exception pour la liasse.
+    function liasseOuverteGlobalement() {
+      return configGlobaleFeatures().LIASSE_ENABLED == true;
+    }
+    function dossierEnListeBlancheLiasse(dossier) {
+      return dossier in configGlobaleFeatures().liasse_beta_dossiers;
+    }
+    // || est court-circuité par Firestore : si liasseOuverteGlobalement()
+    // est vrai, dossierEnListeBlancheLiasse() n'est jamais évalué — donc
+    // un document config_globale/features qui porte LIASSE_ENABLED mais
+    // pas encore liasse_beta_dossiers n'empêche pas l'ouverture globale.
+    function liasseAccessible(dossier) {
+      return liasseOuverteGlobalement() || dossierEnListeBlancheLiasse(dossier);
+    }
+    function ongletLiasseGlobal(tabId) {
+      return tabId.matches('^liasse-.*');
+    }
+
+    // §3.3 : liste d'attente du module liasse. Écriture (create uniquement,
+    // jamais modifiable ni supprimable depuis un client) ouverte à tout
+    // utilisateur authentifié — un simple formulaire d'inscription,
+    // aucune donnée sensible d'un tiers. Lecture réservée à SEVEN7 (pas de
+    // liste de contacts consultable par un client).
+    match /liasse_waitlist/{entryId} {
+      allow read: if false;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
     match /seven7_usage_stats/{jour} {
       allow read, write: if request.auth != null;
       match /cabinets/{cabinetId} {
@@ -114,10 +166,20 @@ service cloud.firestore {
           donneesDossierAncien(dossier).authUid == request.auth.uid
           || accesPontLectureOnglet(donneesDossierAncien(dossier), tabId)
         );
-        allow write: if request.auth != null && (
-          donneesDossierAncien(dossier).authUid == request.auth.uid
-          || accesPontEcriture(donneesDossierAncien(dossier), tabId)
-        );
+        // Fermeture globale (11/08/2026) : un onglet liasse-* refuse toute
+        // écriture, MÊME au propriétaire historique par authUid, tant que
+        // liasseAccessible(dossier) est faux — la seule restriction de ce
+        // fichier qui s'applique au-delà du pont cabinet. Volontairement
+        // en écriture SEULEMENT (pas en lecture ci-dessus) : un contenu
+        // déjà saisi avant la fermeture reste consultable, seule la
+        // poursuite de la saisie est bloquée — cohérent avec « fermeture
+        // contrôlée », pas une purge.
+        allow write: if request.auth != null
+          && !(ongletLiasseGlobal(tabId) && !liasseAccessible(dossier))
+          && (
+            donneesDossierAncien(dossier).authUid == request.auth.uid
+            || accesPontEcriture(donneesDossierAncien(dossier), tabId)
+          );
       }
       match /historique/{entryId} {
         allow read: if request.auth != null && (

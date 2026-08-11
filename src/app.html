@@ -262,6 +262,12 @@
                  bloqué appelle le support, avant d'avoir pu accéder à l'en-tête. -->
             <p id="seven7-version-lock" title="Version de l'application"
                style="margin:0 0 16px; color:#999; font-size:10px; letter-spacing:.3px;"></p>
+            <!-- §5.4 : bandeau discret, écran d'accueil pré-connexion. Purement
+                 informatif ici (la liste d'attente s'écrit dans Firestore, qui
+                 exige une session déjà ouverte — voir firestore.rules,
+                 liasse_waitlist) : le formulaire complet vit dans l'onglet
+                 LIASSE une fois connecté, pas ici. -->
+            <p style="margin:0 0 12px; font-size:11px; color:#B8975A; background:#F5EFE2; border-radius:5px; padding:6px 10px;">📑 Module Liasse &amp; États Financiers — ouverture bientôt. Connectez-vous à votre dossier pour vous inscrire à la liste d'attente.</p>
             <p id="lock-error" style="color:#c0392b; font-size:12px; margin:0 0 10px; display:none;"></p>
             <div style="text-align:left;">
                 <label style="display:block; font-size:11px; font-weight:600; color:#555; margin-bottom:4px;">Votre prénom</label>
@@ -526,12 +532,18 @@
 
     <div class="interface-switcher" style="display:flex; gap:0; background:#1B2A4A;">
         <button type="button" id="btn-interface-audit" class="interface-switch-btn active" onclick="showInterface('audit')">🗂️ Programme d'Audit</button>
-        <button type="button" id="btn-interface-liasse" class="interface-switch-btn" onclick="showInterface('liasse')">📑 LIASSE — États Financiers</button>
+        <button type="button" id="btn-interface-liasse" class="interface-switch-btn" onclick="showInterface('liasse')">📑 LIASSE — États Financiers <span id="btn-interface-liasse-badge" class="liasse-badge-bientot" style="display:none;">🔒 Bientôt disponible</span></button>
     </div>
     <style>
         .interface-switch-btn{ flex:1; padding:14px 10px; background:#1B2A4A; color:#cfd8e8; border:none; border-bottom:3px solid transparent; font-size:14px; font-weight:600; cursor:pointer; }
         .interface-switch-btn.active{ background:#233a63; color:#fff; border-bottom-color:#B8975A; }
         .interface-switch-btn:hover{ background:#233a63; }
+        /* Fermeture contrôlée du module liasse (11/08/2026) : l'onglet reste
+           visible et cliquable — entretenir l'attente, pas dissimuler la
+           fonctionnalité (§3.1 du prompt de fermeture) — seulement atténué,
+           avec un badge, pas grisé au point de sembler désactivé par erreur. */
+        #btn-interface-liasse.liasse-fermee{ opacity:.72; }
+        .liasse-badge-bientot{ display:inline-block; margin-left:6px; font-size:10px; font-weight:700; background:#B8975A; color:#1B2A4A; padding:2px 7px; border-radius:10px; vertical-align:middle; }
     </style>
     <div id="interface-audit-wrap">
     <div class="tabs-container" id="phaseNav">
@@ -3828,6 +3840,66 @@
 
     </div>
     </div><!-- /interface-audit-wrap -->
+
+    <div id="liasse-waitlist-screen" style="display:none;">
+        <style>
+            #liasse-waitlist-screen .lw-wrap{ max-width:760px; margin:24px auto; padding:0 16px 40px; text-align:center; }
+            #liasse-waitlist-screen h2{ color:#1B2A4A; font-size:22px; margin-bottom:10px; }
+            #liasse-waitlist-screen .lw-message{ color:#444; font-size:14px; line-height:1.6; text-align:left; background:#f7f7f2; border:1px solid #e0dccf; border-radius:8px; padding:16px 20px; margin:16px 0; }
+            #liasse-waitlist-screen .lw-grille{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin:20px 0; }
+            #liasse-waitlist-screen .lw-etat{ background:#fff; border:1px solid #e0dccf; border-radius:6px; padding:12px 10px; font-size:12.5px; color:#1B2A4A; font-weight:600; }
+            #liasse-waitlist-screen .lw-etat span{ display:block; margin-top:4px; font-size:10.5px; font-weight:400; color:#B8975A; }
+            #liasse-waitlist-screen .lw-boutons{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:22px 0 10px; }
+            #liasse-waitlist-screen .lw-reassurance{ font-size:12px; color:#1e7a4c; margin-top:8px; }
+            #liasse-waitlist-form{ text-align:left; max-width:480px; margin:16px auto; background:#fff; border:1px solid #e0dccf; border-radius:8px; padding:18px 22px; display:none; }
+            #liasse-waitlist-form label{ display:block; font-size:11px; font-weight:600; color:#555; margin:10px 0 4px; }
+            #liasse-waitlist-form input[type=text], #liasse-waitlist-form input[type=email], #liasse-waitlist-form input[type=tel], #liasse-waitlist-form input[type=number]{ width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; box-sizing:border-box; }
+            #liasse-waitlist-form .lw-checkbox{ display:flex; align-items:center; gap:8px; margin-top:14px; font-size:12px; color:#444; }
+        </style>
+        <div class="lw-wrap">
+            <h2 id="liasse-waitlist-titre">Liasse &amp; États Financiers — ouverture prévue pour l'exercice 2027</h2>
+            <div class="lw-message">
+                <p>Ce module génère l'intégralité de vos états financiers SYSCOHADA révisé — Bilan, Compte de résultat, Tableau des flux de trésorerie, Fiches R et Notes annexes — à partir de votre seule balance, avec export au format attendu par la DGI.</p>
+                <p>Nous avons choisi de ne pas l'ouvrir tant que chaque ligne n'a pas été validée par des professionnels du chiffre en exercice. Une liasse fausse coûte plus cher qu'une liasse tardive.</p>
+            </div>
+            <div class="lw-grille">
+                <div class="lw-etat">Bilan Actif<span>en cours de validation</span></div>
+                <div class="lw-etat">Bilan Passif<span>en cours de validation</span></div>
+                <div class="lw-etat">Compte de résultat<span>en cours de validation</span></div>
+                <div class="lw-etat">TFT<span>en cours de validation</span></div>
+                <div class="lw-etat">Fiche R1<span>en cours de validation</span></div>
+                <div class="lw-etat">Fiche R2<span>en cours de validation</span></div>
+                <div class="lw-etat">Fiche R3<span>en cours de validation</span></div>
+                <div class="lw-etat">Notes annexes<span>en cours de validation</span></div>
+                <div class="lw-etat">États statistiques<span>en cours de validation</span></div>
+                <div class="lw-etat">Export XML DGI<span>en cours de validation</span></div>
+            </div>
+            <div class="lw-boutons">
+                <button type="button" class="btn btn-primary" onclick="ouvrirFormulaireAttenteLiasse(false)">Être prévenu de l'ouverture</button>
+                <button type="button" class="btn" onclick="ouvrirFormulaireAttenteLiasse(true)">Participer à la validation</button>
+            </div>
+            <p class="lw-reassurance">✅ Inclus sans supplément de prix dans votre abonnement actuel dès l'ouverture.</p>
+
+            <form id="liasse-waitlist-form" onsubmit="return false;">
+                <p id="liasse-waitlist-erreur" style="color:#c0392b; font-size:12px; margin:0; display:none;"></p>
+                <p id="liasse-waitlist-succes" style="color:#1e7a4c; font-size:12px; margin:0; display:none;"></p>
+                <label>Nom du cabinet</label>
+                <input type="text" id="lw-cabinet">
+                <label>Nom et prénom du contact</label>
+                <input type="text" id="lw-contact">
+                <label>Fonction</label>
+                <input type="text" id="lw-fonction">
+                <label>Adresse électronique</label>
+                <input type="email" id="lw-email">
+                <label>Téléphone</label>
+                <input type="tel" id="lw-telephone">
+                <label>Nombre de dossiers traités par exercice</label>
+                <input type="number" id="lw-nb-dossiers" min="0">
+                <label class="lw-checkbox"><input type="checkbox" id="lw-validation"> Je souhaite participer à la phase de validation</label>
+                <button type="button" class="btn btn-primary" style="width:100%; margin-top:16px;" onclick="soumettreAttenteLiasse()">Envoyer</button>
+            </form>
+        </div>
+    </div>
 
     <div id="interface-liasse" style="display:none;">
         <style>

@@ -68,6 +68,13 @@ async function semer() {
     await env.withSecurityRulesDisabled(async (ctx) => {
         const d = ctx.firestore();
 
+        // Module liasse ouvert globalement — ces tests portent sur E3 (rôle),
+        // pas sur la fermeture générale (voir tests/fermeture-liasse.test.js,
+        // qui couvre spécifiquement LIASSE_ENABLED/liste blanche). Sans ceci,
+        // TOUTE écriture liasse-* échoue désormais par défaut (fail-closed),
+        // masquant ce que ces tests-ci vérifient.
+        await d.doc('config_globale/features').set({ LIASSE_ENABLED: true });
+
         // Cabinet + membres (admin, collaborateur affecté, collaborateur non affecté).
         // plan: 'CABINET' — ces tests portent sur E3 (restriction par RÔLE),
         // pas sur la restriction par PALIER (voir tests/palier-restrictions.test.js,
