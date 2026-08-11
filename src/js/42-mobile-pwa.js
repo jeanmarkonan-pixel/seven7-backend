@@ -83,9 +83,21 @@ function pwaEnregistrerSW(){
             });
         });
         /* Vérification à chaque ouverture, puis toutes les heures pour
-           les postes qui restent ouverts plusieurs jours. */
+           les postes qui restent ouverts plusieurs jours. Insuffisant à lui
+           seul : un onglet ou une PWA mise en arrière-plan voit ses timers
+           gelés ou fortement ralentis par le navigateur/l'OS (mobile
+           surtout), donc setInterval seul peut ne jamais se déclencher tant
+           que l'utilisateur n'a pas explicitement fermé puis rouvert
+           l'application — une nouvelle version déployée reste alors
+           invisible, sans bandeau, potentiellement pendant des jours. On
+           revérifie donc aussi explicitement à chaque retour au premier
+           plan (visibilitychange), qui se déclenche de façon fiable côté
+           navigateur/PWA quand l'utilisateur revient sur l'app. */
         try{ reg.update(); }catch(e){}
         setInterval(function(){ try{ reg.update(); }catch(e){} }, 3600000);
+        document.addEventListener('visibilitychange', function(){
+            if(document.visibilityState === 'visible'){ try{ reg.update(); }catch(e){} }
+        });
     }).catch(function(){ /* l'application fonctionne sans */ });
 
     /* Le service worker a pris la main : on recharge une seule fois. */
