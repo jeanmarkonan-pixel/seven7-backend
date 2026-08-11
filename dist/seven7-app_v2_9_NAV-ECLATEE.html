@@ -50,6 +50,11 @@
         .phase-dropdown .tab-btn.phase1.active { border-left-color: #3498db; }
         .phase-dropdown .tab-btn.phase2.active { border-left-color: #e67e22; }
         .phase-dropdown .tab-btn.phase3.active { border-left-color: #27ae60; }
+        /* Harmonisation 11/08/2026 : sépare visuellement les groupes d'onglets de
+           même nature (import / calcul / contrôle / déclaratif / référence) à
+           l'intérieur d'une phase, sans dépendre de l'ordre du DOM ailleurs. */
+        .phase-dropdown .tab-btn-groupe { margin-top: 10px; padding-top: 12px; border-top: 1px solid #eee; }
+        #phaseNav .phase-dropdown .tab-btn-groupe { margin-top: 0; padding-top: 10px; border-top: none; border-left: 1px solid #e0e0e0; margin-left: 6px; padding-left: 12px; }
 
         /* ---- Navigation eclatee : tous les onglets visibles, groupes par phase ---- */
         #phaseNav { display: block; background: #fff; border-bottom: 2px solid #ddd; }
@@ -561,29 +566,36 @@
         <div class="phase-group phase-group-2" data-phase="2">
             <button type="button" class="phase-menu-btn phase2" onclick="togglePhaseMenu(2)">📈 Phase 2 — Contrôles &amp; Travaux d'audit <span class="chevron">▾</span></button>
             <div class="phase-dropdown" id="phase-dropdown-2">
-                <button class="tab-btn phase2" onclick="showTab('balance-n1')">📉 BALANCE N-1</button>
-                <button class="tab-btn phase2" onclick="showTab('balance-n')">📈 BALANCE N</button>
-                <button class="tab-btn phase2" onclick="showTab('gl-bilan')">📚 GL Bilan</button>
-                <button class="tab-btn phase2" onclick="showTab('gl-gestion')">📚 GL Gestion</button>
-                <button class="tab-btn phase2" onclick="showTab('selection-comptes')">🎯 Sélection Comptes à Auditer</button>
+                <!-- Réordonné le 11/08/2026 (validé) : suit le déroulement réel d'une
+                     mission — import puis calcul puis contrôle auto puis contrôle
+                     manuel/échantillonnage puis déclaratif puis références — plutôt que
+                     l'ordre de création historique du code. Icônes harmonisées par
+                     NATURE d'onglet (📥 import, 🧮 calcul auto, 🔎 contrôle auto, 🧪
+                     contrôle manuel, 🏛️ déclaratif, 📚 référence), sans changer aucun id
+                     ni aucune permission — uniquement le libellé affiché ici. -->
+                <button class="tab-btn phase2 tab-btn-groupe" onclick="showTab('balance-n1')">📥 BALANCE N-1</button>
+                <button class="tab-btn phase2" onclick="showTab('balance-n')">📥 BALANCE N</button>
+                <button class="tab-btn phase2" onclick="showTab('gl-bilan')">📥 GL Bilan</button>
+                <button class="tab-btn phase2" onclick="showTab('gl-gestion')">📥 GL Gestion</button>
+                <button class="tab-btn phase2 tab-btn-groupe" onclick="showTab('bilan')">🧮 BILAN</button>
+                <button class="tab-btn phase2" onclick="showTab('resultat')">🧮 RESULTAT</button>
+                <button class="tab-btn phase2 tab-btn-groupe" onclick="showTab('detection')">🔎 Détection Erreurs</button>
+                <button class="tab-btn phase2" onclick="showTab('revue')">🔎 Revue Analytique</button>
+                <button class="tab-btn phase2 tab-btn-groupe" onclick="showTab('selection-comptes')">🧪 Sélection Comptes à Auditer</button>
                 <button class="tab-btn phase2" onclick="showTab('controle-gl-sondage')">🧪 Contrôle GL (Sondage)</button>
-                <button class="tab-btn phase2" onclick="showTab('bilan')">⚖️ BILAN</button>
-                <button class="tab-btn phase2" onclick="showTab('resultat')">💰 RESULTAT</button>
-                <button class="tab-btn phase2" onclick="showTab('detection')">🔎 Détection Erreurs</button>
-                <button class="tab-btn phase2" onclick="showTab('revue')">📊 Revue Analytique</button>
-                <button class="tab-btn phase2" onclick="showTab('charges')">🧾 Échantillon Charges &amp; Ventes</button>
-                <button class="tab-btn phase2" onclick="showTab('impots')">🏛️ IMPÔTS ET TAXES</button>
-                <button class="tab-btn phase2" onclick="showTab('calendrier')">📆 Calendrier Fiscal</button>
+                <button class="tab-btn phase2" onclick="showTab('charges')">🧪 Échantillon Charges &amp; Ventes</button>
+                <button class="tab-btn phase2" onclick="showTab('tiers-fourn')">🧪 BALANCE TIERS FOURN.</button>
+                <button class="tab-btn phase2" onclick="showTab('tiers-clients')">🧪 BALANCE TIERS CLIENTS</button>
+                <button class="tab-btn phase2" onclick="showTab('circ-fourn')">🧪 Circulariser Fourn.</button>
+                <button class="tab-btn phase2" onclick="showTab('circ-clients')">🧪 Circulariser Clients</button>
+                <button class="tab-btn phase2" onclick="showTab('anorm-fourn')">🧪 Anormaux Fourn.</button>
+                <button class="tab-btn phase2" onclick="showTab('anorm-clients')">🧪 Anormaux Clients</button>
+                <button class="tab-btn phase2 tab-btn-groupe" onclick="showTab('impots')">🏛️ IMPÔTS ET TAXES</button>
+                <button class="tab-btn phase2" onclick="showTab('calendrier')">🏛️ Calendrier Fiscal</button>
+                <button class="tab-btn phase2" onclick="showTab('indemnite-retraite')">🏛️ Indemnité de Retraite</button>
+                <button class="tab-btn phase2" onclick="showTab('conges-payes')">🏛️ Provision Congés Payés</button>
+                <button class="tab-btn phase2 tab-btn-groupe" onclick="showTab('pcg-syscohada')">📚 Plan Comptable PCG SYSCOHADA</button>
                 <button class="tab-btn phase2" onclick="showTab('referentiel')">📚 Référentiel Juridique &amp; Fiscal</button>
-                <button class="tab-btn phase2" onclick="showTab('pcg-syscohada')">📘 Plan Comptable PCG SYSCOHADA</button>
-                <button class="tab-btn phase2" onclick="showTab('indemnite-retraite')">👴 Indemnité de Retraite</button>
-                <button class="tab-btn phase2" onclick="showTab('conges-payes')">🏖️ Provision Congés Payés</button>
-                <button class="tab-btn phase2" onclick="showTab('tiers-fourn')">🏭 BALANCE TIERS FOURN.</button>
-                <button class="tab-btn phase2" onclick="showTab('tiers-clients')">👥 BALANCE TIERS CLIENTS</button>
-                <button class="tab-btn phase2" onclick="showTab('circ-fourn')">📨 Circulariser Fourn.</button>
-                <button class="tab-btn phase2" onclick="showTab('circ-clients')">📨 Circulariser Clients</button>
-                <button class="tab-btn phase2" onclick="showTab('anorm-fourn')">⚠️ Anormaux Fourn.</button>
-                <button class="tab-btn phase2" onclick="showTab('anorm-clients')">⚠️ Anormaux Clients</button>
             </div>
         </div>
         <div class="phase-group phase-group-3" data-phase="3">
@@ -619,6 +631,7 @@
                 <table>
                     <tr><th>Onglet</th><th>Contenu</th><th>Statut</th></tr>
                     <tr><td>Fiche Identification</td><td>Informations générales et connaissance de l'entité</td><td><span class="badge badge-warning" id="status-identification">À compléter</span></td></tr>
+                    <tr><td>Faits Marquants de l'Exercice</td><td>Événements significatifs exposés par l'entité durant l'exercice</td><td><span class="badge badge-warning" id="status-faits-exercice">À compléter</span></td></tr>
                     <tr><td>Planification</td><td>Stratégie, seuil de signification, budget, calendrier</td><td><span class="badge badge-warning" id="status-planification">À compléter</span></td></tr>
                     <tr><td>Programme Travail</td><td>Programme détaillé par cycle comptable</td><td><span class="badge badge-warning" id="status-programme">À compléter</span></td></tr>
                     <tr><td>Questionnaire CI</td><td>Questionnaire de contrôle interne par cycle</td><td><span class="badge badge-warning" id="status-questionnaire">À compléter</span></td></tr>
@@ -635,20 +648,26 @@
                     <tr><td>RESULTAT</td><td>Compte de résultat SYSCOHADA généré auto.</td><td><span class="badge badge-success" id="status-resultat">Auto</span></td></tr>
                     <tr><td>Détection Erreurs</td><td>Contrôles d'équilibre et anomalies</td><td><span class="badge badge-danger" id="status-detection">Étape 2</span></td></tr>
                     <tr><td>Revue Analytique</td><td>Analyse comparative N/N-1 et ratios</td><td><span class="badge badge-danger" id="status-revue">Étape 2</span></td></tr>
-                    <tr><td>CHARGES À CONTRÔLER</td><td>Échantillon automatique des factures charges</td><td><span class="badge badge-danger" id="status-charges">Étape 2</span></td></tr>
-                    <tr><td>VENTES À CONTRÔLER</td><td>Échantillon automatique des factures ventes</td><td><span class="badge badge-danger" id="status-ventes">Étape 2</span></td></tr>
-                    <tr><td>IMPÔTS ET TAXES</td><td>Contrôle des impôts et taxes déclarés</td><td><span class="badge badge-danger" id="status-impots">Étape 2</span></td></tr>
-                    <tr><td>Calendrier Fiscal</td><td>Suivi des échéances déclaratives 2026</td><td><span class="badge badge-danger" id="status-calendrier">Étape 2</span></td></tr>
+                    <tr><td>Sélection Comptes à Auditer</td><td>Sélection des comptes du Grand Livre à contrôler en détail</td><td><span class="badge badge-danger" id="status-selection-comptes">Étape 2</span></td></tr>
+                    <tr><td>Contrôle GL (Sondage)</td><td>Sondage d'écritures du Grand Livre sur pièces justificatives</td><td><span class="badge badge-danger" id="status-controle-gl-sondage">Étape 2</span></td></tr>
+                    <tr><td>Échantillon Charges &amp; Ventes</td><td>Échantillon automatique des factures charges et ventes</td><td><span class="badge badge-danger" id="status-charges">Étape 2</span></td></tr>
                     <tr><td>BALANCE TIERS FOURN.</td><td>Balance auxiliaire fournisseurs</td><td><span class="badge badge-danger" id="status-tiers-fourn">Étape 2</span></td></tr>
                     <tr><td>BALANCE TIERS CLIENTS</td><td>Balance auxiliaire clients</td><td><span class="badge badge-danger" id="status-tiers-clients">Étape 2</span></td></tr>
                     <tr><td>Circulariser Fourn.</td><td>Sélection auto pour circularisation</td><td><span class="badge badge-danger" id="status-circ-fourn">Étape 2</span></td></tr>
                     <tr><td>Circulariser Clients</td><td>Sélection auto pour circularisation</td><td><span class="badge badge-danger" id="status-circ-clients">Étape 2</span></td></tr>
                     <tr><td>Anormaux Fourn.</td><td>Détection auto fournisseurs débiteurs</td><td><span class="badge badge-danger" id="status-anorm-fourn">Étape 2</span></td></tr>
                     <tr><td>Anormaux Clients</td><td>Détection auto clients créditeurs</td><td><span class="badge badge-danger" id="status-anorm-clients">Étape 2</span></td></tr>
+                    <tr><td>IMPÔTS ET TAXES</td><td>Contrôle des impôts et taxes déclarés</td><td><span class="badge badge-danger" id="status-impots">Étape 2</span></td></tr>
+                    <tr><td>Calendrier Fiscal</td><td>Suivi des échéances déclaratives 2026</td><td><span class="badge badge-danger" id="status-calendrier">Étape 2</span></td></tr>
+                    <tr><td>Indemnité de Retraite</td><td>Calcul de la provision pour indemnité de départ à la retraite</td><td><span class="badge badge-danger" id="status-indemnite-retraite">Étape 2</span></td></tr>
+                    <tr><td>Provision Congés Payés</td><td>Calcul de la provision pour congés payés non pris</td><td><span class="badge badge-danger" id="status-conges-payes">Étape 2</span></td></tr>
+                    <tr><td>Plan Comptable PCG SYSCOHADA</td><td>Référentiel du plan comptable général, consultable à tout moment</td><td><span class="badge badge-info">Disponible</span></td></tr>
+                    <tr><td>Référentiel Juridique &amp; Fiscal</td><td>Textes et références juridiques et fiscales, consultables à tout moment</td><td><span class="badge badge-info">Disponible</span></td></tr>
                 </table>
-                <div class="phase-header">PHASE 3 — SYNTHÈSE &amp; RAPPORT DÉFINITIF</div>
+                <div class="phase-header">PHASE 3 — CONCLUSION &amp; RAPPORT</div>
                 <table>
                     <tr><th>Onglet</th><th>Contenu</th><th>Statut</th></tr>
+                    <tr><td>Constatations d'audit</td><td>Rassemblement automatique des anomalies et constats issus de tous les contrôles</td><td><span class="badge badge-warning" id="status-constatations">À compléter</span></td></tr>
                     <tr><td>Suivi Recommandations</td><td>Constats, recommandations, actions correctives</td><td><span class="badge badge-warning" id="status-recommandations">À compléter</span></td></tr>
                     <tr><td>Synthèse Rapport</td><td>Synthèse des travaux et conclusion</td><td><span class="badge badge-warning" id="status-synthese">À compléter</span></td></tr>
                     <tr><td>Rédaction Rapport</td><td>Page libre au format Word, exportable en .doc</td><td><span class="badge badge-info">Disponible</span></td></tr>
@@ -4270,7 +4289,7 @@
    Régénérer avec `npm run estampiller`, puis `npm run build`. */
 var SEVEN7_VERSION = {
     version: "2.9.0",
-    commit:  "7c44974",
+    commit:  "1ebd740",
     date:    "2026-08-11",
     propre:  true
 };
@@ -8440,6 +8459,13 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                     + 'onclick="cabinetToggleMembreActif(\'' + esc(m.uid) + '\', ' + (m.actif === false ? 'true' : 'false') + ')">'
                     + (m.actif === false ? 'Réactiver' : 'Désactiver') + '</button>';
 
+                // Un cabinet peut avoir plusieurs admins (voir cabinetChangerRoleMembre) —
+                // jamais sur soi-même, la règle Firestore le refuserait de toute façon.
+                var roleBtn = soi ? ''
+                    : '<button type="button" class="btn" style="font-size:11px; padding:3px 8px; margin-left:6px;" '
+                    + 'onclick="cabinetChangerRoleMembre(\'' + esc(m.uid) + '\', \'' + (m.role === 'ADMIN' ? 'COLLABORATEUR' : 'ADMIN') + '\')">'
+                    + (m.role === 'ADMIN' ? 'Rétrograder en collaborateur' : 'Promouvoir administrateur') + '</button>';
+
                 var dossiersHtml = (m.role === 'ADMIN')
                     ? '<div style="font-size:11px; color:#888; margin-top:6px;">Accède à tous les dossiers du cabinet.</div>'
                     : '<div style="margin-top:6px;">'
@@ -8459,6 +8485,7 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                     + '<div>' + actifTag + toggleBtn + '</div>'
                     + '</div>'
                     + '<div style="font-size:11px; color:#888; margin-top:2px;">' + esc(m.email) + '</div>'
+                    + (roleBtn ? '<div style="margin-top:6px;">' + roleBtn + '</div>' : '')
                     + dossiersHtml
                     + '</div>';
             }).join('');
@@ -8475,6 +8502,38 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             .then(function(){ cabinetRafraichirEquipe(); })
             .catch(function(err){
                 erreurEl.textContent = 'Impossible de modifier ce membre : ' + (err && err.message ? err.message : err);
+                erreurEl.style.display = 'block';
+            });
+    };
+
+    // Un cabinet peut avoir PLUSIEURS administrateurs — la règle Firestore
+    // l'autorise déjà (estAdmin(code) && uid != request.auth.uid, sans
+    // restriction sur la valeur du rôle), mais rien dans l'interface ne
+    // l'exposait jusqu'ici : cabinetCreerCollaborateur() fixe toujours
+    // role: 'COLLABORATEUR'. Un cabinet ne pouvait donc en pratique avoir
+    // qu'un seul admin, celui posé à la migration.
+    //
+    // uid != request.auth.uid dans la règle protège déjà contre le seul
+    // vrai risque (un cabinet qui se retrouverait sans aucun admin actif) :
+    // l'admin qui agit ne peut JAMAIS modifier son propre document membre
+    // par ce chemin, donc il reste toujours admin après l'opération — un
+    // cabinet garde donc toujours au moins un admin actif, quelle que soit
+    // la suite de promotions/rétrogradations effectuées par d'autres.
+    window.cabinetChangerRoleMembre = function(uid, nouveauRole){
+        var erreurEl = document.getElementById('cabinet-equipe-erreur');
+        var succesEl = document.getElementById('cabinet-equipe-succes');
+        erreurEl.style.display = 'none'; succesEl.style.display = 'none';
+        db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').doc(uid)
+            .update({ role: nouveauRole })
+            .then(function(){
+                succesEl.textContent = nouveauRole === 'ADMIN'
+                    ? '✅ Ce membre est maintenant administrateur.'
+                    : '✅ Ce membre est redevenu collaborateur.';
+                succesEl.style.display = 'block';
+                cabinetRafraichirEquipe();
+            })
+            .catch(function(err){
+                erreurEl.textContent = 'Impossible de changer ce rôle : ' + (err && err.message ? err.message : err);
                 erreurEl.style.display = 'block';
             });
     };
