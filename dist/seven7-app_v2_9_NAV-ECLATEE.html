@@ -610,7 +610,8 @@
                 <button class="tab-btn phase1 active" onclick="showTab('identification')">🏢 Fiche Identification</button>
                 <button class="tab-btn phase1" onclick="showTab('planification')">📊 Planification</button>
                 <button class="tab-btn phase1" onclick="showTab('programme')">📅 Programme Travail</button>
-                <button class="tab-btn phase1" onclick="showTab('questionnaire')">✓ Questionnaire CI</button>
+                <button class="tab-btn phase1" onclick="showTab('questionnaire')">✓ Risque du CI</button>
+                <button class="tab-btn phase1" onclick="showTab('risque-inherent')">🎯 Risque Inhérent</button>
                 <button class="tab-btn phase1" onclick="showTab('risques')">🎯 Cartographie Risques</button>
             </div>
         </div>
@@ -986,7 +987,7 @@
         <!-- ==================== QUESTIONNAIRE CI ==================== -->
         <div id="questionnaire" class="tab-content">
             <div class="card" data-tab="questionnaire">
-                <h2>✓ QUESTIONNAIRE DE CONTRÔLE INTERNE</h2>
+                <h2>✓ RISQUE DU CONTRÔLE INTERNE</h2>
                 <div class="alert alert-info">Évaluez le contrôle interne par cycle. Pour chaque question, indiquez si le contrôle existe et évaluez son efficacité.</div>
                 <table id="table-questionnaire">
                     <tr><th>Cycle</th><th>Question / Point de contrôle</th><th>Existe? (Oui/Non/Partiel/N/A)</th><th>Efficacité (1-5)</th><th>Point faible identifié</th><th>Plan d'action</th><th></th></tr>
@@ -1096,6 +1097,18 @@
         </div>
 
         <!-- ==================== CARTOGRAPHIE RISQUES ==================== -->
+        <div id="risque-inherent" class="tab-content">
+            <div class="card" data-tab="risque-inherent">
+                <h2>🎯 RISQUE INHÉRENT</h2>
+                <div class="alert alert-info">Évaluation du risque inhérent, à la main de l'auditeur — saisie libre, aucune génération automatique ni valeur préremplie. Niveau = Probabilité × Impact (1-5). ≥15 Élevé · ≥8 Moyen · sinon Faible.</div>
+                <table id="table-risque-inherent">
+                    <tr><th>Origine</th><th>Cycle / Section</th><th>Risque identifié</th><th>Assertions couvertes</th><th>Probabilité (1-5)</th><th>Impact (1-5)</th><th>Score</th><th>Niveau</th><th>Priorité / Réponse d'audit</th><th></th></tr>
+                    <tr id="risque-inherent-vide"><td colspan="10" style="text-align:center; color:#888; padding:18px;">Aucun risque saisi — cliquez sur <strong>+ Ajouter</strong> pour commencer.</td></tr>
+                </table>
+                <button class="btn btn-primary" onclick="addRow('table-risque-inherent', ['text','text','text','text','number15-risk','number15-risk','calculated','calculated','text'])">+ Ajouter</button>
+            </div>
+        </div>
+
         <div id="risques" class="tab-content">
             <div class="card" data-tab="risques">
                 <h2>🎯 CARTOGRAPHIE DES RISQUES</h2>
@@ -4684,7 +4697,10 @@ function addRow(tableId, colTypes){
         if(t === 'calculated'){
             var td = document.createElement('td');
             td.className = 'calculated';
-            if(t === 'calculated') td.classList.add(tableId === 'table-risques' ? 'risk-x' : '');
+            // classList.add('') lève une DOMException (jeton vide interdit) : ne l'ajouter
+            // que pour table-risques, seule table où cette classe a un rôle (inutilisée
+            // ailleurs — vérifié, voir grep sur "risk-x").
+            if(tableId === 'table-risques') td.classList.add('risk-x');
             td.textContent = '0';
             tr.appendChild(td);
         } else {
@@ -4698,10 +4714,17 @@ function addRow(tableId, colTypes){
     tr.appendChild(tdBtn);
     table.appendChild(tr);
     // Fix risques table: 2 calculated cells need risk-score/risk-level classes
-    if(tableId === 'table-risques'){
+    // (table-risque-inherent partage exactement la même structure de colonnes)
+    if(tableId === 'table-risques' || tableId === 'table-risque-inherent'){
         var calcCells = tr.querySelectorAll('td.calculated');
         if(calcCells[0]) calcCells[0].classList.add('risk-score');
         if(calcCells[1]) calcCells[1].classList.add('risk-level');
+    }
+    // Retire la ligne "aucune donnée" dès la première saisie manuelle (table-risque-inherent
+    // n'a pas de génération automatique qui s'en charge, contrairement à table-risques/risqGenerer()).
+    if(tableId === 'table-risque-inherent'){
+        var videRI = document.getElementById('risque-inherent-vide');
+        if(videRI) videRI.remove();
     }
 }
 
@@ -4853,7 +4876,7 @@ function viderRapport(){
     }
 }
 
-// ---------- Cartographie des risques ----------
+// ---------- Cartographie des risques (et table-risque-inherent, même structure) ----------
 function calcRisk(input){
     var tr = input.closest('tr');
     var nums = tr.querySelectorAll('input[type="number"]');
@@ -4867,7 +4890,12 @@ function calcRisk(input){
     levelCell.textContent = level;
     tr.classList.remove('risk-high','risk-medium','risk-low');
     tr.classList.add(level === 'Élevé' ? 'risk-high' : (level === 'Moyen' ? 'risk-medium' : 'risk-low'));
-    updateStatus('risques');
+    // L'id de l'onglet suit celui de la table (table-risques → risques,
+    // table-risque-inherent → risque-inherent) : évite de marquer à tort le
+    // statut de Cartographie des risques depuis Risque Inhérent, ou l'inverse.
+    var table = tr.closest('table');
+    var ongletId = table && table.id ? table.id.replace(/^table-/, '') : 'risques';
+    updateStatus(ongletId);
 }
 
 // ---------- Planification : budget d'heures & calendrier ----------
@@ -7250,8 +7278,8 @@ function genererSynthese(){
 
     // ---- Travaux réalisés ----
     setSy('sy-travaux', 'Les travaux ont porté sur : la revue de la Balance N et N-1, la reconstitution du Bilan et du Compte de Résultat (SYSCOHADA), '+
-        'le contrôle du Grand Livre par sondage, la revue des échantillons Charges et Ventes, les contrôles de détection d\'anomalies (équilibres, sens des soldes, variations N/N-1), '+
-        'la revue analytique des principaux ratios, la revue des impôts et taxes, ainsi que l\'évaluation du contrôle interne par cycle (Questionnaire CI).');
+        'le contrôle du Grand Livre par sondage, les contrôles de détection d\'anomalies (équilibres, sens des soldes, variations N/N-1), '+
+        'la revue analytique des principaux ratios, la revue des impôts et taxes, ainsi que l\'évaluation du risque du contrôle interne par cycle (Risque du CI).');
 
     // ---- Anomalies ----
     var sens = ligneRowsTexte('detection-sens-table', [0,1,4]);
@@ -7538,7 +7566,8 @@ var TABS = [
     {id:'identification', label:'🏢 Fiche Identification', phase:1},
     {id:'planification', label:'📊 Planification', phase:1},
     {id:'programme', label:'📅 Programme Travail', phase:1},
-    {id:'questionnaire', label:'✓ Questionnaire CI', phase:1},
+    {id:'questionnaire', label:'✓ Risque du CI', phase:1},
+    {id:'risque-inherent', label:'🎯 Risque Inhérent', phase:1},
     {id:'risques', label:'🎯 Cartographie Risques', phase:1},
     {id:'balance-n1', label:'📉 BALANCE N-1', phase:2},
     {id:'balance-n', label:'📈 BALANCE N', phase:2},
@@ -15421,27 +15450,6 @@ var DILIGENCES = [
 
 /* ---------------- PHASE 1 ---------------- */
 {
- id:'fraude', ico:'🕵️', titre:'Risque de Fraude', phase:1,
- norme:'ISA 240 · ISA 315',
- objectif:"Identifier et évaluer le risque d'anomalies significatives résultant de fraudes, et concevoir les procédures qui répondent à ce risque. La responsabilité de la prévention incombe à la direction et à la gouvernance ; celle de l'auditeur est d'obtenir une assurance raisonnable.",
- points:[
-  {t:'date', q:"Date de la discussion au sein de l'équipe sur la vulnérabilité de l'entité à la fraude", aide:"ISA 240 §15 : cette discussion est obligatoire et doit être documentée."},
-  {t:'zone', q:"Points saillants de cette discussion (zones jugées vulnérables, scénarios envisagés)"},
-  {t:'oui', q:"La direction a-t-elle été interrogée sur son appréciation du risque de fraude et sur les fraudes connues, suspectées ou alléguées ?"},
-  {t:'oui', q:"Les organes de gouvernance ont-ils été interrogés séparément sur le même sujet ?"},
-  {t:'oui', q:"Le personnel comptable, l'audit interne et d'autres fonctions ont-ils été interrogés ?"},
-  {t:'oui', q:"Le risque de fraude à la comptabilisation des produits a-t-il été apprécié ?", aide:"ISA 240 §26 : ce risque est présumé, sauf à documenter pourquoi il ne s'applique pas."},
-  {t:'oui', q:"Le risque de contournement des contrôles par la direction a-t-il été traité ?", aide:"ISA 240 §31 : ce risque existe dans toute entité, quelle que soit la qualité du contrôle interne."},
-  {t:'oui', q:"Les écritures comptables ont-elles fait l'objet de tests ciblés ?", aide:"Voir l'onglet Test des écritures. Diligence obligatoire, non substituable."},
-  {t:'oui', q:"Les estimations comptables ont-elles été revues à la recherche d'un biais de la direction ?"},
-  {t:'oui', q:"Les opérations inhabituelles ou hors du cours normal des affaires ont-elles été examinées ?"},
-  {t:'oui', q:"Des indices de fraude ont-ils été relevés au cours des travaux ?"},
-  {t:'zone', q:"Si oui : nature des faits, personnes concernées, incidence sur les comptes et suites données"},
-  {t:'oui', q:"Une révélation de faits délictueux au Procureur de la République est-elle requise ?", aide:"Obligation propre au commissaire aux comptes en zone OHADA. À apprécier avec le conseil juridique ; la révélation ne se confond pas avec la dénonciation."},
-  {t:'zone', q:"Conclusion sur le risque de fraude"}
- ]
-},
-{
  id:'continuite', ico:'⚠️', titre:'Continuité & Procédure d’alerte', phase:1,
  norme:'ISA 570 · AUSCGIE art. 150 et suivants',
  objectif:"Apprécier le caractère approprié de l'hypothèse de continuité d'exploitation retenue par la direction, et déclencher le cas échéant la procédure d'alerte prévue par l'Acte uniforme.",
@@ -18034,7 +18042,7 @@ try{
      Balance tiers, computeAnormaux() dans 08-controles-audit.js,
      relue ici sans dupliquer son rendu) ;
    - l'écart de Patente (tfEcartPatente(), 48-tableaux-fiscaux.js) ;
-   - les points de Contrôle Interne à risque (Questionnaire CI) : une
+   - les points de Contrôle Interne à risque (Risque du CI) : une
      réponse « Non » vaut non-conformité, une efficacité notée 1 ou 2
      vaut risque critique. Le questionnaire n'utilise pas ces libellés
      tels quels (il note « Oui/Non/Partiel/N/A » + une efficacité 1-5) :
@@ -18390,8 +18398,8 @@ try{
 
    Quelques onglets n'avaient pas de lettre explicite dans l'arborescence
    d'origine ; ils ont reçu un rattachement par défaut, documenté ici :
-     - questionnaire, fraude, continuite      → c (Évaluation des risques,
-       section Risques Inhérents / Contrôle Interne)
+     - questionnaire (renommé Risque du CI), continuite → c (Évaluation des
+       risques). risque-inherent y a été ajouté (28/08) ; fraude retiré.
      - programme                              → d (Planification)
      - revue, detection                       → h (États financiers : les
        contrôles automatiques qui suivent le calcul du bilan/résultat)
@@ -18423,7 +18431,7 @@ try{
 var VUE_ONGLETS_CATEGORIES = {
     identification:'a',
     'faits-exercice':'b',
-    risques:'c', questionnaire:'c', fraude:'c', continuite:'c',
+    questionnaire:'c', 'risque-inherent':'c', risques:'c', continuite:'c',
     planification:'d', programme:'d',
     'balance-n1':'e', 'balance-n':'e',
     'tiers-fourn':'f', 'tiers-clients':'f', 'anorm-fourn':'f', 'anorm-clients':'f',

@@ -7,7 +7,7 @@
      Balance tiers, computeAnormaux() dans 08-controles-audit.js,
      relue ici sans dupliquer son rendu) ;
    - l'écart de Patente (tfEcartPatente(), 48-tableaux-fiscaux.js) ;
-   - les points de Contrôle Interne à risque (Questionnaire CI) : une
+   - les points de Contrôle Interne à risque (Risque du CI) : une
      réponse « Non » vaut non-conformité, une efficacité notée 1 ou 2
      vaut risque critique. Le questionnaire n'utilise pas ces libellés
      tels quels (il note « Oui/Non/Partiel/N/A » + une efficacité 1-5) :

@@ -610,7 +610,8 @@
                 <button class="tab-btn phase1 active" onclick="showTab('identification')">🏢 Fiche Identification</button>
                 <button class="tab-btn phase1" onclick="showTab('planification')">📊 Planification</button>
                 <button class="tab-btn phase1" onclick="showTab('programme')">📅 Programme Travail</button>
-                <button class="tab-btn phase1" onclick="showTab('questionnaire')">✓ Questionnaire CI</button>
+                <button class="tab-btn phase1" onclick="showTab('questionnaire')">✓ Risque du CI</button>
+                <button class="tab-btn phase1" onclick="showTab('risque-inherent')">🎯 Risque Inhérent</button>
                 <button class="tab-btn phase1" onclick="showTab('risques')">🎯 Cartographie Risques</button>
             </div>
         </div>
@@ -986,7 +987,7 @@
         <!-- ==================== QUESTIONNAIRE CI ==================== -->
         <div id="questionnaire" class="tab-content">
             <div class="card" data-tab="questionnaire">
-                <h2>✓ QUESTIONNAIRE DE CONTRÔLE INTERNE</h2>
+                <h2>✓ RISQUE DU CONTRÔLE INTERNE</h2>
                 <div class="alert alert-info">Évaluez le contrôle interne par cycle. Pour chaque question, indiquez si le contrôle existe et évaluez son efficacité.</div>
                 <table id="table-questionnaire">
                     <tr><th>Cycle</th><th>Question / Point de contrôle</th><th>Existe? (Oui/Non/Partiel/N/A)</th><th>Efficacité (1-5)</th><th>Point faible identifié</th><th>Plan d'action</th><th></th></tr>
@@ -1096,6 +1097,18 @@
         </div>
 
         <!-- ==================== CARTOGRAPHIE RISQUES ==================== -->
+        <div id="risque-inherent" class="tab-content">
+            <div class="card" data-tab="risque-inherent">
+                <h2>🎯 RISQUE INHÉRENT</h2>
+                <div class="alert alert-info">Évaluation du risque inhérent, à la main de l'auditeur — saisie libre, aucune génération automatique ni valeur préremplie. Niveau = Probabilité × Impact (1-5). ≥15 Élevé · ≥8 Moyen · sinon Faible.</div>
+                <table id="table-risque-inherent">
+                    <tr><th>Origine</th><th>Cycle / Section</th><th>Risque identifié</th><th>Assertions couvertes</th><th>Probabilité (1-5)</th><th>Impact (1-5)</th><th>Score</th><th>Niveau</th><th>Priorité / Réponse d'audit</th><th></th></tr>
+                    <tr id="risque-inherent-vide"><td colspan="10" style="text-align:center; color:#888; padding:18px;">Aucun risque saisi — cliquez sur <strong>+ Ajouter</strong> pour commencer.</td></tr>
+                </table>
+                <button class="btn btn-primary" onclick="addRow('table-risque-inherent', ['text','text','text','text','number15-risk','number15-risk','calculated','calculated','text'])">+ Ajouter</button>
+            </div>
+        </div>
+
         <div id="risques" class="tab-content">
             <div class="card" data-tab="risques">
                 <h2>🎯 CARTOGRAPHIE DES RISQUES</h2>

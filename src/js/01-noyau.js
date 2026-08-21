@@ -295,7 +295,10 @@ function addRow(tableId, colTypes){
         if(t === 'calculated'){
             var td = document.createElement('td');
             td.className = 'calculated';
-            if(t === 'calculated') td.classList.add(tableId === 'table-risques' ? 'risk-x' : '');
+            // classList.add('') lève une DOMException (jeton vide interdit) : ne l'ajouter
+            // que pour table-risques, seule table où cette classe a un rôle (inutilisée
+            // ailleurs — vérifié, voir grep sur "risk-x").
+            if(tableId === 'table-risques') td.classList.add('risk-x');
             td.textContent = '0';
             tr.appendChild(td);
         } else {
@@ -309,10 +312,17 @@ function addRow(tableId, colTypes){
     tr.appendChild(tdBtn);
     table.appendChild(tr);
     // Fix risques table: 2 calculated cells need risk-score/risk-level classes
-    if(tableId === 'table-risques'){
+    // (table-risque-inherent partage exactement la même structure de colonnes)
+    if(tableId === 'table-risques' || tableId === 'table-risque-inherent'){
         var calcCells = tr.querySelectorAll('td.calculated');
         if(calcCells[0]) calcCells[0].classList.add('risk-score');
         if(calcCells[1]) calcCells[1].classList.add('risk-level');
+    }
+    // Retire la ligne "aucune donnée" dès la première saisie manuelle (table-risque-inherent
+    // n'a pas de génération automatique qui s'en charge, contrairement à table-risques/risqGenerer()).
+    if(tableId === 'table-risque-inherent'){
+        var videRI = document.getElementById('risque-inherent-vide');
+        if(videRI) videRI.remove();
     }
 }
 
@@ -464,7 +474,7 @@ function viderRapport(){
     }
 }
 
-// ---------- Cartographie des risques ----------
+// ---------- Cartographie des risques (et table-risque-inherent, même structure) ----------
 function calcRisk(input){
     var tr = input.closest('tr');
     var nums = tr.querySelectorAll('input[type="number"]');
@@ -478,7 +488,12 @@ function calcRisk(input){
     levelCell.textContent = level;
     tr.classList.remove('risk-high','risk-medium','risk-low');
     tr.classList.add(level === 'Élevé' ? 'risk-high' : (level === 'Moyen' ? 'risk-medium' : 'risk-low'));
-    updateStatus('risques');
+    // L'id de l'onglet suit celui de la table (table-risques → risques,
+    // table-risque-inherent → risque-inherent) : évite de marquer à tort le
+    // statut de Cartographie des risques depuis Risque Inhérent, ou l'inverse.
+    var table = tr.closest('table');
+    var ongletId = table && table.id ? table.id.replace(/^table-/, '') : 'risques';
+    updateStatus(ongletId);
 }
 
 // ---------- Planification : budget d'heures & calendrier ----------

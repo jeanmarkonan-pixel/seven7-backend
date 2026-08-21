@@ -20,8 +20,8 @@
 
    Quelques onglets n'avaient pas de lettre explicite dans l'arborescence
    d'origine ; ils ont reçu un rattachement par défaut, documenté ici :
-     - questionnaire, fraude, continuite      → c (Évaluation des risques,
-       section Risques Inhérents / Contrôle Interne)
+     - questionnaire (renommé Risque du CI), continuite → c (Évaluation des
+       risques). risque-inherent y a été ajouté (28/08) ; fraude retiré.
      - programme                              → d (Planification)
      - revue, detection                       → h (États financiers : les
        contrôles automatiques qui suivent le calcul du bilan/résultat)
@@ -53,7 +53,7 @@
 var VUE_ONGLETS_CATEGORIES = {
     identification:'a',
     'faits-exercice':'b',
-    risques:'c', questionnaire:'c', fraude:'c', continuite:'c',
+    questionnaire:'c', 'risque-inherent':'c', risques:'c', continuite:'c',
     planification:'d', programme:'d',
     'balance-n1':'e', 'balance-n':'e',
     'tiers-fourn':'f', 'tiers-clients':'f', 'anorm-fourn':'f', 'anorm-clients':'f',

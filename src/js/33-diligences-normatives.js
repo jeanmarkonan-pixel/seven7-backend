@@ -34,27 +34,6 @@ var DILIGENCES = [
 
 /* ---------------- PHASE 1 ---------------- */
 {
- id:'fraude', ico:'🕵️', titre:'Risque de Fraude', phase:1,
- norme:'ISA 240 · ISA 315',
- objectif:"Identifier et évaluer le risque d'anomalies significatives résultant de fraudes, et concevoir les procédures qui répondent à ce risque. La responsabilité de la prévention incombe à la direction et à la gouvernance ; celle de l'auditeur est d'obtenir une assurance raisonnable.",
- points:[
-  {t:'date', q:"Date de la discussion au sein de l'équipe sur la vulnérabilité de l'entité à la fraude", aide:"ISA 240 §15 : cette discussion est obligatoire et doit être documentée."},
-  {t:'zone', q:"Points saillants de cette discussion (zones jugées vulnérables, scénarios envisagés)"},
-  {t:'oui', q:"La direction a-t-elle été interrogée sur son appréciation du risque de fraude et sur les fraudes connues, suspectées ou alléguées ?"},
-  {t:'oui', q:"Les organes de gouvernance ont-ils été interrogés séparément sur le même sujet ?"},
-  {t:'oui', q:"Le personnel comptable, l'audit interne et d'autres fonctions ont-ils été interrogés ?"},
-  {t:'oui', q:"Le risque de fraude à la comptabilisation des produits a-t-il été apprécié ?", aide:"ISA 240 §26 : ce risque est présumé, sauf à documenter pourquoi il ne s'applique pas."},
-  {t:'oui', q:"Le risque de contournement des contrôles par la direction a-t-il été traité ?", aide:"ISA 240 §31 : ce risque existe dans toute entité, quelle que soit la qualité du contrôle interne."},
-  {t:'oui', q:"Les écritures comptables ont-elles fait l'objet de tests ciblés ?", aide:"Voir l'onglet Test des écritures. Diligence obligatoire, non substituable."},
-  {t:'oui', q:"Les estimations comptables ont-elles été revues à la recherche d'un biais de la direction ?"},
-  {t:'oui', q:"Les opérations inhabituelles ou hors du cours normal des affaires ont-elles été examinées ?"},
-  {t:'oui', q:"Des indices de fraude ont-ils été relevés au cours des travaux ?"},
-  {t:'zone', q:"Si oui : nature des faits, personnes concernées, incidence sur les comptes et suites données"},
-  {t:'oui', q:"Une révélation de faits délictueux au Procureur de la République est-elle requise ?", aide:"Obligation propre au commissaire aux comptes en zone OHADA. À apprécier avec le conseil juridique ; la révélation ne se confond pas avec la dénonciation."},
-  {t:'zone', q:"Conclusion sur le risque de fraude"}
- ]
-},
-{
  id:'continuite', ico:'⚠️', titre:'Continuité & Procédure d’alerte', phase:1,
  norme:'ISA 570 · AUSCGIE art. 150 et suivants',
  objectif:"Apprécier le caractère approprié de l'hypothèse de continuité d'exploitation retenue par la direction, et déclencher le cas échéant la procédure d'alerte prévue par l'Acte uniforme.",

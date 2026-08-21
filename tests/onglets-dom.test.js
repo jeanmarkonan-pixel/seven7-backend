@@ -51,10 +51,10 @@ after(() => { jsdom.window.close(); });
 
 /* ---------------- Existence et atteignabilité ---------------- */
 
-test('INJECTION — les douze onglets ajoutés existent dans le document', () => {
+test('INJECTION — les onze onglets ajoutés existent dans le document', () => {
     const manquants = AJOUTES.filter(id => !D.getElementById(id));
     assert.deepEqual(manquants, [], 'onglets non injectés');
-    assert.equal(AJOUTES.length, 12);
+    assert.equal(AJOUTES.length, 11);
 });
 
 test('INJECTION — chaque onglet ajouté est un panneau d’onglet à part entière', () => {
@@ -87,9 +87,9 @@ test('NAVIGATION — showTab est protégé par le contrôle d’accès', () => {
     // « Accès non autorisé » qui ressemble à une panne.
     let refus = 0;
     W.alert = function(){ refus++; };
-    W.showTab('fraude');
+    W.showTab('continuite');
     assert.equal(refus, 1, 'un onglet non accordé doit être refusé, pas ouvert');
-    assert.ok(!D.getElementById('fraude').classList.contains('active'));
+    assert.ok(!D.getElementById('continuite').classList.contains('active'));
 });
 
 test('NAVIGATION — chaque panneau ajouté peut devenir le seul actif', () => {

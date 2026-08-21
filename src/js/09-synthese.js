@@ -71,8 +71,8 @@ function genererSynthese(){
 
     // ---- Travaux réalisés ----
     setSy('sy-travaux', 'Les travaux ont porté sur : la revue de la Balance N et N-1, la reconstitution du Bilan et du Compte de Résultat (SYSCOHADA), '+
-        'le contrôle du Grand Livre par sondage, la revue des échantillons Charges et Ventes, les contrôles de détection d\'anomalies (équilibres, sens des soldes, variations N/N-1), '+
-        'la revue analytique des principaux ratios, la revue des impôts et taxes, ainsi que l\'évaluation du contrôle interne par cycle (Questionnaire CI).');
+        'le contrôle du Grand Livre par sondage, les contrôles de détection d\'anomalies (équilibres, sens des soldes, variations N/N-1), '+
+        'la revue analytique des principaux ratios, la revue des impôts et taxes, ainsi que l\'évaluation du risque du contrôle interne par cycle (Risque du CI).');
 
     // ---- Anomalies ----
     var sens = ligneRowsTexte('detection-sens-table', [0,1,4]);

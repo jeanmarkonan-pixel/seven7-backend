@@ -1,7 +1,7 @@
 /* ==================================================================
    DILIGENCES NORMATIVES DE LA MISSION
 
-   Les douze sections couvrent ce que les normes imposent autour du
+   Les dix sections couvrent ce que les normes imposent autour du
    contrôle des comptes, et dont plusieurs sont d'ordre public en zone
    OHADA. Une section absente ou mal déclarée ne se voit pas à l'écran :
    l'onglet manque, et le dossier passe pour complet.
@@ -23,14 +23,15 @@ const TYPES = new Set(['oui', 'texte', 'zone', 'date', 'nom']);
 
 /* ---------------- Intégrité du référentiel ---------------- */
 
-test('SECTIONS — les onze sections couvrent les trois phases', () => {
-    assert.equal(DILIGENCES.length, 11);
+test('SECTIONS — les dix sections couvrent les trois phases', () => {
+    assert.equal(DILIGENCES.length, 10);
     const parPhase = {};
     for(const d of DILIGENCES) parPhase[d.phase] = (parPhase[d.phase] || 0) + 1;
     // parties-liees et ecritures sont passées en phase 3 (arborescence a→u : elles
     // rejoignent respectivement « p. Vérifications spéci & obligations » et
     // « s. Traitement de la réponse à la note de synthèse », toutes deux en clôture).
-    assert.deepEqual(parPhase, { 1: 2, 2: 2, 3: 7 });
+    // fraude retirée (28/08) : phase 1 ne porte plus que continuite.
+    assert.deepEqual(parPhase, { 1: 1, 2: 2, 3: 7 });
 });
 
 test('SECTIONS — chaque section porte sa base normative et son objectif', () => {
@@ -48,7 +49,7 @@ test('SECTIONS — les identifiants sont uniques et ne heurtent aucun onglet exi
     assert.equal(new Set(ids).size, ids.length, 'identifiant de section en double');
     // Les onglets d'origine sont déclarés dans TABS par le module 10.
     const origine = ['identification','planification','programme','questionnaire',
-                     'risques','bilan','resultat','detection','revue','synthese','redaction'];
+                     'risque-inherent','risques','bilan','resultat','detection','revue','synthese','redaction'];
     for(const id of ids)
         assert.ok(!origine.includes(id), `${id} écraserait un onglet existant`);
 });
@@ -76,19 +77,6 @@ test('POINTS — aucune question en double au sein d’une même section', () =>
 });
 
 /* ---------------- Les diligences que la norme rend obligatoires ---------------- */
-
-test('OBLIGATOIRE — la discussion d’équipe sur la fraude est documentée', () => {
-    // ISA 240 §15 : cette discussion est exigée, et sa date doit figurer
-    // au dossier. Sans elle, la diligence n'est pas démontrée.
-    const fraude = DILIGENCES.find(d => d.id === 'fraude');
-    assert.ok(fraude, 'section fraude absente');
-    assert.ok(fraude.points.some(p => p.t === 'date' && /discussion/i.test(p.q)),
-        'la date de la discussion d’équipe doit être saisissable');
-    assert.ok(fraude.points.some(p => /comptabilisation des produits/i.test(p.q)),
-        'le risque présumé sur les produits doit être traité');
-    assert.ok(fraude.points.some(p => /contournement des contrôles/i.test(p.q)),
-        'le contournement des contrôles par la direction doit être traité');
-});
 
 test('OBLIGATOIRE — le test des écritures comptables a sa propre section', () => {
     // ISA 240 §32 : diligence non substituable.
@@ -133,7 +121,7 @@ test('OHADA — les conventions réglementées alimentent le rapport spécial', 
 /* ---------------- Rendu et installation ---------------- */
 
 test('RENDU — chaque type de saisie produit un champ exploitable', () => {
-    const html = t => S.diliChampHtml(t, 'fraude');
+    const html = t => S.diliChampHtml(t, 'continuite');
     assert.match(html('oui'),   /<select[\s\S]*Oui[\s\S]*Non[\s\S]*N\/A/);
     assert.match(html('date'),  /type="date"/);
     assert.match(html('zone'),  /<textarea/);
