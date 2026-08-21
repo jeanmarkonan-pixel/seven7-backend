@@ -127,7 +127,10 @@ function vueOngletsGrouperPhase(dropdown){
         var info = VUE_ONGLETS_INFO_CATEGORIE[cle] || { icone:'📁', libelle:cle };
         var items = groupesParCle[cle];
         var groupe = document.createElement('div');
-        groupe.className = 'onglet-groupe';
+        // Ouverte par défaut : ouvrir une phase doit montrer ses onglets directement,
+        // pas exiger un second clic par catégorie. Le repli reste possible (bascule au
+        // clic sur l'en-tête) pour l'auditeur qui veut alléger l'affichage lui-même.
+        groupe.className = 'onglet-groupe ouvert';
         groupe.setAttribute('data-cat', cle);
 
         var entete = document.createElement('button');
