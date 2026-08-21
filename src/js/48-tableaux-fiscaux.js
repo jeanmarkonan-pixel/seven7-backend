@@ -4,8 +4,15 @@
    Vient s'ajouter au tableau de rapprochement comptabilité/déclaré déjà
    présent dans l'onglet Impôts (IMPOTS_ROWS / recomputeImpots(), voir
    08-controles-audit.js) — celui-ci reste inchangé, il répond à une
-   autre question (l'écart entre le compte et le déclaré). Ici : le
-   suivi mensuel des déclarations elles-mêmes, structure demandée :
+   autre question (l'écart entre le compte et le déclaré).
+
+   Structure alignée sur TABLEAU REVUE FISCALE ET SOCIALE.xlsx (fourni
+   par le cabinet) : chaque tableau mensuel porte, sous les 12 mois, un
+   pied à 4 lignes — TOTAL / Solde Initial / Règlement / Solde Final —
+   qui suit la dette fiscale comme un compte : ce qui restait dû à
+   l'ouverture, plus ce qui a été déclaré dans l'année, moins ce qui a
+   été payé, égale ce qui reste dû (ou en crédit) à la clôture. Solde
+   Final = Solde Initial + TOTAL − Règlement, colonne par colonne.
 
      tva              : MOIS, TVA_Collectee, TVA_Recuperable, TVA_Due, Credit_TVA
      impots_groupe_1  : MOIS, ITS, CE, TA, TFPC
@@ -22,8 +29,9 @@
    Onglet « Crédit de TVA » : ici, une section à l'intérieur du même
    panneau (pas un onglet séparé dans TABS — rien dans l'arborescence
    a→u ne l'annonce comme tel). Grisée et non saisissable si le solde
-   ANNUEL cumulé est positif (l'entité est in fine redevable, pas en
-   crédit) ; ouverte à la saisie s'il est négatif.
+   ANNUEL cumulé (Collectée − Récupérable, indépendant du pied Solde
+   Initial/Final ci-dessus) est positif ; ouverte à la saisie s'il est
+   négatif.
    ================================================================== */
 
 var TF_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -39,9 +47,53 @@ function tfCol(nom){
     return nom.replace(/_/g, ' ');
 }
 
+/* ---------- Pied commun : TOTAL / Solde Initial / Règlement / Solde Final ----------
+   Générique à tout tableau mensuel, quelle que soit sa liste de colonnes — TVA
+   comprise, qui a deux colonnes calculées (Due, Crédit) au lieu d'une seule. */
+function tfRendrePied(cols){
+    var td = function(attrs, contenu){ return '<td' + attrs + '>' + contenu + '</td>'; };
+    var ligne = function(libelle, piedCle, editable, cls){
+        var cells = cols.map(function(c){
+            return editable
+                ? td(' data-tf-pied="'+piedCle+'" data-tf-col="'+c+'"',
+                     '<input type="number" class="editable number" data-tf-pied="'+piedCle+'" data-tf-col="'+c+'" onchange="tfRecalculerPied(this.closest(\'table\').id)">')
+                : td(' class="calculated number" data-tf-pied="'+piedCle+'" data-tf-col="'+c+'"', '0');
+        }).join('');
+        return '<tr' + (cls ? ' class="'+cls+'"' : '') + '><td>' + libelle + '</td>' + cells + '</tr>';
+    };
+    return ligne('TOTAL', 'total', false, 'total-row')
+         + ligne('Solde Initial', 'si', true)
+         + ligne('Règlement', 'reg', true)
+         + ligne('Solde Final', 'sf', false, 'total-row');
+}
+// Recalcule TOTAL (somme des 12 lignes de mois) et Solde Final (Solde Initial +
+// TOTAL − Règlement) pour chaque colonne suivie d'un tableau donné par son id.
+function tfRecalculerPied(tableId){
+    var table = document.getElementById(tableId);
+    if(!table) return;
+    var lignesMois = Array.prototype.slice.call(table.querySelectorAll('tr[data-tf-mois]'));
+    var colonnes = {};
+    table.querySelectorAll('[data-tf-pied="total"]').forEach(function(el){ colonnes[el.getAttribute('data-tf-col')] = true; });
+    Object.keys(colonnes).forEach(function(c){
+        var total = 0;
+        lignesMois.forEach(function(tr){
+            var el = tr.querySelector('[data-tf-col="' + c + '"]');
+            if(!el) return;
+            total += parseNum(el.value !== undefined && el.tagName === 'INPUT' ? el.value : el.textContent);
+        });
+        var totalEl = table.querySelector('[data-tf-pied="total"][data-tf-col="' + c + '"]');
+        if(totalEl) totalEl.textContent = fmt(total);
+        var si = parseNum((table.querySelector('[data-tf-pied="si"][data-tf-col="' + c + '"]') || {}).value);
+        var reg = parseNum((table.querySelector('[data-tf-pied="reg"][data-tf-col="' + c + '"]') || {}).value);
+        var sfEl = table.querySelector('[data-tf-pied="sf"][data-tf-col="' + c + '"]');
+        if(sfEl) sfEl.textContent = fmt(si + total - reg);
+    });
+}
+
 /* ---------- Tableaux mensuels génériques (impots_groupe_1/2, cnps, cmu_isolee) ---------- */
 function tfRendreTableGenerique(cle){
     var def = TF_TABLES[cle];
+    var colsPied = def.cols.concat(def.calc ? [def.calc] : []);
     var entetes = '<th style="width:14%;">Mois</th>' + def.cols.map(function(c){ return '<th>' + esc(tfCol(c)) + '</th>'; }).join('')
         + (def.calc ? '<th>' + esc(tfCol(def.calc)) + '</th>' : '');
     var lignes = TF_MOIS.map(function(mois, i){
@@ -53,19 +105,22 @@ function tfRendreTableGenerique(cle){
              + (def.calc ? '<td class="calculated number" data-tf-col="' + def.calc + '">0</td>' : '')
              + '</tr>';
     }).join('');
-    return '<div class="scroll-table"><table id="' + def.id + '"><tr>' + entetes + '</tr>' + lignes + '</table></div>';
+    return '<div class="scroll-table"><table id="' + def.id + '"><tr>' + entetes + '</tr>' + lignes
+         + tfRendrePied(colsPied) + '</table></div>';
 }
 function tfRecalculerLigne(cle, input){
     var def = TF_TABLES[cle];
-    if(!def.calc) return;
-    var tr = input.closest('tr');
-    var total = 0;
-    def.cols.forEach(function(c){
-        var el = tr.querySelector('[data-tf-col="' + c + '"]');
-        total += parseNum(el ? el.value : 0);
-    });
-    var calcEl = tr.querySelector('[data-tf-col="' + def.calc + '"]');
-    if(calcEl) calcEl.textContent = fmt(total);
+    if(def.calc){
+        var tr = input.closest('tr');
+        var total = 0;
+        def.cols.forEach(function(c){
+            var el = tr.querySelector('[data-tf-col="' + c + '"]');
+            total += parseNum(el ? el.value : 0);
+        });
+        var calcEl = tr.querySelector('[data-tf-col="' + def.calc + '"]');
+        if(calcEl) calcEl.textContent = fmt(total);
+    }
+    tfRecalculerPied(def.id);
 }
 
 /* ---------- TVA (calcul du solde mensuel, report de crédit) ---------- */
@@ -81,13 +136,13 @@ function tfRendreTVA(){
     }).join('');
     return '<div class="scroll-table"><table id="tf-tva"><tr><th style="width:14%;">Mois</th>'
         + '<th>TVA collectée</th><th>TVA récupérable</th><th>TVA due</th><th>Crédit de TVA</th></tr>'
-        + lignes + '</table></div>';
+        + lignes + tfRendrePied(['TVA_Collectee','TVA_Recuperable','TVA_Due','Credit_TVA']) + '</table></div>';
 }
 function tfRecalculerTVA(){
     var table = document.getElementById('tf-tva');
     if(!table) return;
     var soldeAnnuel = 0;
-    Array.prototype.slice.call(table.rows).slice(1).forEach(function(tr){
+    Array.prototype.slice.call(table.querySelectorAll('tr[data-tf-mois]')).forEach(function(tr){
         var collectee = parseNum((tr.querySelector('[data-tf-col="TVA_Collectee"]') || {}).value);
         var recuperable = parseNum((tr.querySelector('[data-tf-col="TVA_Recuperable"]') || {}).value);
         var solde = collectee - recuperable;
@@ -99,6 +154,7 @@ function tfRecalculerTVA(){
         if(dueEl) dueEl.textContent = fmt(due);
         if(creditEl) creditEl.textContent = fmt(credit);
     });
+    tfRecalculerPied('tf-tva');
     tfAppliquerCreditTVA(soldeAnnuel);
 }
 // Positif : l'entité est in fine redevable de TVA sur l'année — la section
@@ -140,8 +196,8 @@ function tfRecalculerPatente(){
     var el = document.getElementById('tf-patente-Ecart');
     if(el) el.value = fmt(ecart);
 }
-// Utilisé par le futur moteur de centralisation des anomalies (onglet s) :
-// rend l'écart de patente courant, 0 si rien n'est encore saisi.
+// Utilisé par le moteur de centralisation des anomalies (onglet s) : rend
+// l'écart de patente courant, 0 si rien n'est encore saisi.
 function tfEcartPatente(){
     var el = document.getElementById('tf-patente-Ecart');
     return el ? parseNum(el.value) : 0;
@@ -158,7 +214,8 @@ function tfInstaller(){
     carte.innerHTML =
       '<h2>📅 SUIVI MENSUEL DES DÉCLARATIONS (TVA, IMPÔTS, CNPS)</h2>'
     + '<div class="alert alert-info">Suivi déclaratif mois par mois, distinct du rapprochement comptes/déclaré '
-    + 'ci-dessus. La TVA due et le crédit de TVA se calculent automatiquement à partir des montants saisis.</div>'
+    + 'ci-dessus. Chaque tableau porte un pied Total / Solde Initial / Règlement / Solde Final qui suit la dette '
+    + 'fiscale comme un compte. La TVA due et le crédit de TVA se calculent automatiquement à partir des montants saisis.</div>'
     + '<h3>TVA</h3>' + tfRendreTVA()
     + '<div id="tf-credit-tva-section" class="card" style="background:#f6f8fa; margin-top:14px;">'
     + '<h3>Crédit de TVA</h3>'
@@ -173,6 +230,10 @@ function tfInstaller(){
     + '<h3 style="margin-top:22px;">Patente</h3>' + tfRendrePatente();
     panneau.appendChild(carte);
     tfRecalculerTVA();
+    tfRecalculerPied('tf-groupe1');
+    tfRecalculerPied('tf-groupe2');
+    tfRecalculerPied('tf-cnps');
+    tfRecalculerPied('tf-cmu');
 }
 
 try{

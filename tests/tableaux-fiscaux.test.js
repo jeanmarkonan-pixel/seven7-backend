@@ -41,8 +41,8 @@ test('INSTALLATION — les tableaux fiscaux sont posés une seule fois dans l’
     assert.ok(w.document.getElementById('tf-groupe2'), 'tableau impôts groupe 2 absent');
     assert.ok(w.document.getElementById('tf-cnps'), 'tableau CNPS absent');
     assert.ok(w.document.getElementById('tf-cmu'), 'tableau CMU isolée absent');
-    // 12 lignes de mois + 1 en-tête
-    assert.equal(w.document.getElementById('tf-tva').rows.length, 13);
+    // 12 lignes de mois + 1 en-tête + 4 lignes de pied (Total/Solde Initial/Règlement/Solde Final)
+    assert.equal(w.document.getElementById('tf-tva').rows.length, 17);
     d.window.close();
 });
 
@@ -67,6 +67,44 @@ test('TVA — un solde mensuel négatif alimente le crédit, jamais la TVA due',
     w.tfRecalculerTVA();
     assert.equal(w.parseNum(tr.querySelector('[data-tf-col="TVA_Due"]').textContent), 0);
     assert.equal(w.parseNum(tr.querySelector('[data-tf-col="Credit_TVA"]').textContent), 300000);
+    d.window.close();
+});
+
+test('PIED DE TABLEAU — Solde Final suit Solde Initial + Total − Règlement', async () => {
+    const d = await domPret();
+    const w = d.window;
+    const table = w.document.getElementById('tf-groupe1');
+    // ITS : Janvier 100 000, Février 150 000 — Total attendu 250 000
+    table.rows[1].querySelector('[data-tf-col="ITS"]').value = '100000';
+    table.rows[2].querySelector('[data-tf-col="ITS"]').value = '150000';
+    w.tfRecalculerLigne('impots_groupe_1', table.rows[1].querySelector('[data-tf-col="ITS"]'));
+    const totalEl = table.querySelector('[data-tf-pied="total"][data-tf-col="ITS"]');
+    assert.equal(w.parseNum(totalEl.textContent), 250000, 'TOTAL doit sommer les 12 mois');
+
+    table.querySelector('[data-tf-pied="si"][data-tf-col="ITS"]').value = '50000';
+    table.querySelector('[data-tf-pied="reg"][data-tf-col="ITS"]').value = '180000';
+    w.tfRecalculerPied('tf-groupe1');
+    const sfEl = table.querySelector('[data-tf-pied="sf"][data-tf-col="ITS"]');
+    // 50 000 (initial) + 250 000 (total déclaré) - 180 000 (réglé) = 120 000
+    assert.equal(w.parseNum(sfEl.textContent), 120000);
+    d.window.close();
+});
+
+test('RAPPROCHEMENT — CE, TA et TFPC (comptes 6413/6414/6415) rejoignent le tableau existant', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.balanceData.n = [
+        { compte:'64130000', intitule:'CONTRIBUTION EMPLOYEUR', od:0, oc:0, md:250000, mc:0, sd:250000, sc:0 },
+        { compte:'64140000', intitule:'TAXE APPRENTISSAGE', od:0, oc:0, md:75000, mc:0, sd:75000, sc:0 },
+        { compte:'64150000', intitule:'TAXE FORMATION PRO CONTINUE', od:0, oc:0, md:40000, mc:0, sd:40000, sc:0 },
+    ];
+    const parKey = k => w.IMPOTS_ROWS_MAP[k];
+    assert.ok(parKey('ce'), 'ligne CE absente de IMPOTS_ROWS');
+    assert.ok(parKey('ta'), 'ligne TA absente de IMPOTS_ROWS');
+    assert.ok(parKey('tfpc'), 'ligne TFPC absente de IMPOTS_ROWS');
+    assert.equal(parKey('ce').fn(), 250000);
+    assert.equal(parKey('ta').fn(), 75000);
+    assert.equal(parKey('tfpc').fn(), 40000);
     d.window.close();
 });
 

@@ -222,6 +222,12 @@
         .stat-box input.seuil-input::placeholder { color: rgba(255,255,255,0.7); }
         .seuil-reset { font-size:10px; background:none; border:none; color:inherit; text-decoration:underline; cursor:pointer; padding:2px 0 0; }
         .tf-section-grisee { opacity: 0.45; pointer-events: none; }
+        /* En-tête officiel du bilan/résultat, reproduisant la planche DGI pré-imprimée
+           (désignation entité, n° d'identification, exercice, durée). */
+        .etats-entete { border: 1px solid #d5dee6; border-radius: 6px; padding: 10px 14px;
+            margin-bottom: 14px; font-size: 12px; color: #333; background: #fafbfc;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+        .etats-entete strong { color: #1a5276; }
         .tab-btn.tab-locked { opacity:0.4; cursor:not-allowed; position:relative; }
         .tab-btn.tab-locked:hover { background:#fff; color:#555; }
         .admin-collab-card { border:1px solid #ddd; border-radius:6px; padding:12px; margin-bottom:12px; }
@@ -1418,6 +1424,7 @@
             <div class="card">
                 <h2>⚖️ BILAN AU 31/12/N — SYSTÈME NORMAL (SYSCOHADA RÉVISÉ)</h2>
                 <div class="alert alert-info">Bilan généré automatiquement à partir des balances N et N-1 saisies. Les montants se recalculent en temps réel. Le Résultat net de l'exercice provient de l'onglet RESULTAT.</div>
+                <div id="etats-entete-bilan" class="etats-entete"></div>
                 <div id="bilan-alert" class="alert alert-success">
                     <strong>Statut :</strong> <span id="bilan-statut">BILAN ÉQUILIBRÉ — Actif = Passif</span>
                 </div>
@@ -1426,7 +1433,7 @@
                         <h3>ACTIF</h3>
                         <div class="scroll-table">
                         <table id="bilan-actif">
-                            <tr><th>Réf.</th><th>Poste</th><th>Brut N</th><th>Amort./Prov. N</th><th>Net N</th><th>Net N-1</th></tr>
+                            <tr><th>Réf.</th><th>Poste</th><th>Note</th><th>Brut N</th><th>Amort./Prov. N</th><th>Net N</th><th>Net N-1</th></tr>
                         </table>
                         </div>
                     </div>
@@ -1434,7 +1441,7 @@
                         <h3>PASSIF</h3>
                         <div class="scroll-table">
                         <table id="bilan-passif">
-                            <tr><th>Réf.</th><th>Poste</th><th>Net N</th><th>Net N-1</th></tr>
+                            <tr><th>Réf.</th><th>Poste</th><th>Note</th><th>Net N</th><th>Net N-1</th></tr>
                         </table>
                         </div>
                     </div>
@@ -1447,9 +1454,10 @@
             <div class="card">
                 <h2>💰 COMPTE DE RÉSULTAT DE L'EXERCICE — SYSTÈME NORMAL (SYSCOHADA RÉVISÉ)</h2>
                 <div class="alert alert-info">Compte de résultat généré automatiquement à partir des balances N et N-1.</div>
+                <div id="etats-entete-resultat" class="etats-entete"></div>
                 <div class="scroll-table">
                     <table id="resultat-table">
-                        <tr><th>Réf.</th><th>Libellés</th><th>Exercice N</th><th>Exercice N-1</th></tr>
+                        <tr><th>Réf.</th><th>Libellés</th><th>Signe</th><th>Note</th><th>Exercice N</th><th>Exercice N-1</th></tr>
                     </table>
                 </div>
             </div>
@@ -1645,6 +1653,9 @@
                         <tr data-impot-key="cnps"><td>Charges sociales (CNPS)</td><td>431*</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
                         <tr data-impot-key="its"><td>Impôt sur salaires (ITS/IGR)</td><td>447*</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
                         <tr data-impot-key="patente"><td>Patente et impôts et taxes divers</td><td>64* hors 647</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
+                        <tr data-impot-key="ce"><td>Contribution Employeur (CE)</td><td>6413</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
+                        <tr data-impot-key="ta"><td>Taxe d'Apprentissage (TA)</td><td>6414</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
+                        <tr data-impot-key="tfpc"><td>Taxe de Formation Professionnelle Continue (TFPC)</td><td>6415</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
                     </table>
                 </div>
             </div>
@@ -5975,13 +5986,76 @@ function exportControleGLSondage(){
 // ============================================================
 // RESULTAT — reproduction exacte de la logique Excel (onglet RESULTAT)
 // ============================================================
+
+/* Renvois aux notes annexes et signes du modèle officiel (planche DGI
+   pré-imprimée) — PURE PRÉSENTATION : aucune de ces tables n'intervient
+   dans un calcul, elles n'annotent que les lignes déjà produites par le
+   moteur (24-parametres.js / 25-moteur-etape2.js / 31-moteur-unifie.js),
+   qu'on ne touche pas. Vide = la planche elle-même ne porte pas de renvoi
+   sur cette ligne (cas des totaux et de plusieurs postes de détail). */
+var BILAN_NOTES_ACTIF = {
+    AD:'3', AI:'3', AP:'3', AQ:'4', BA:'5', BB:'6', BH:'17', BI:'7', BJ:'8',
+    BQ:'9', BR:'10', BS:'11', BU:'12'
+};
+var BILAN_NOTES_PASSIF = {
+    CA:'13', CB:'13', CD:'14', CE:'3e', CF:'14', CG:'14', CH:'14', CL:'15', CM:'15',
+    DA:'16', DB:'16', DC:'16', DH:'5', DI:'7', DJ:'17', DK:'18', DM:'19', DN:'19',
+    DQ:'20', DR:'20', DV:'12'
+};
+var RESULTAT_SIGNES_NOTES = {
+    TA:['A +','21'], RA:['-','22'], RB:['-/+','6'],
+    TB:['B +','21'], TC:['C +','21'], TD:['D +','21'],
+    TE:['-/+','6'], TF:['+','21'], TG:['+','21'], TH:['+','21'], TI:['+','12'],
+    RC:['-','22'], RD:['-/+','6'], RE:['-','22'], RF:['-/+','6'],
+    RG:['-','23'], RH:['-','24'], RI:['-','25'], RJ:['-','26'], RK:['-','27'],
+    TJ:['+','28'], RL:['-','3C&28'],
+    TK:['+','29'], TL:['+','28'], TM:['+','12'], RM:['-','29'], RN:['-','3C&28'],
+    TN:['+','3D'], TO:['+','30'], RO:['-','3D'], RP:['-','30'],
+    RQ:['-','30'], RS:['-','']
+};
+
+/* En-tête officiel commun (désignation entité, identification, exercice,
+   durée) — lu dans l'onglet Fiche d'identification, jamais saisi deux fois. */
+function etatsEnteteHtml(){
+    var raison = (typeof rapVal === 'function' ? rapVal('fi-raison') : '') || '……………………………';
+    var rccm = (typeof rapVal === 'function' ? rapVal('fi-rccm') : '') || '……………………';
+    var clotureIso = (typeof rapVal === 'function' ? rapVal('fi-cloture') : '');
+    var cloture = (clotureIso && typeof rapDateFr === 'function') ? rapDateFr(clotureIso) : '……………';
+    return '<div><strong>Désignation entité :</strong> ' + esc(raison) + '</div>'
+         + '<div><strong>Exercice clos le :</strong> ' + esc(cloture) + '</div>'
+         + '<div><strong>Numéro d’identification :</strong> ' + esc(rccm) + '</div>'
+         + '<div><strong>Durée (en mois) :</strong> 12</div>';
+}
+function etatsEnteteInstaller(){
+    var a = document.getElementById('etats-entete-bilan');
+    if(a) a.innerHTML = etatsEnteteHtml();
+    var r = document.getElementById('etats-entete-resultat');
+    if(r) r.innerHTML = etatsEnteteHtml();
+}
+
+// buildResultatLines() porte le détail compte+sens dans l.ref (ex. "701 (SC-SD)"),
+// utile comme piste d'audit ("P5 contrôle du moteur", voir README) et qu'on ne
+// touche pas : le code officiel (TA, RA…) n'apparaît que comme suffixe de l.lib,
+// y compris sur les lignes de total ("MARGE COMMERCIALE  (XA)").
+function resultatCodeOfficiel(l){
+    var m = /\(([A-Z0-9]+)\)\s*$/.exec(l.lib || '');
+    return m ? m[1] : null;
+}
 function renderResultat(rN, rN1){
+    etatsEnteteInstaller();
     var lines = buildResultatLines(rN, rN1);
     var table = document.getElementById('resultat-table');
-    var html = '<tr><th>Réf.</th><th>Libellés</th><th>Exercice N</th><th>Exercice N-1</th></tr>';
+    var html = '<tr><th>Réf.</th><th>Libellés</th><th>Signe</th><th>Note</th><th>Exercice N</th><th>Exercice N-1</th></tr>';
     lines.forEach(function(l){
         var cls = l.isGrandTotal ? 'total-row' : (l.isTotal ? 'total-row' : (l.isMemo ? '' : ''));
-        html += '<tr class="'+cls+'"><td>'+esc(l.ref)+'</td><td>'+(l.isTotal||l.isGrandTotal?'<strong>':'')+esc(l.lib)+(l.isTotal||l.isGrandTotal?'</strong>':'')+'</td><td class="number calculated">'+fmt(l.n)+'</td><td class="number">'+fmt(l.n1)+'</td></tr>';
+        var estTotal = l.isTotal || l.isGrandTotal;
+        var code = resultatCodeOfficiel(l);
+        var sn = !estTotal && code && RESULTAT_SIGNES_NOTES[code];
+        var signe = sn ? sn[0] : '';
+        var note = sn ? sn[1] : '';
+        html += '<tr class="'+cls+'"><td>'+esc(l.ref)+'</td><td>'+(estTotal?'<strong>':'')+esc(l.lib)+(estTotal?'</strong>':'')+'</td>'+
+                '<td>'+esc(signe)+'</td><td>'+esc(note)+'</td>'+
+                '<td class="number calculated">'+fmt(l.n)+'</td><td class="number">'+fmt(l.n1)+'</td></tr>';
     });
     table.innerHTML = html;
     var badge = document.getElementById('status-resultat');
@@ -5989,25 +6063,30 @@ function renderResultat(rN, rN1){
 }
 
 function renderBilan(actifN, actifN1, passifN, passifN1){
+    etatsEnteteInstaller();
     var tableA = document.getElementById('bilan-actif');
-    var htmlA = '<tr><th>Réf.</th><th>Poste</th><th>Brut N</th><th>Amort./Prov. N</th><th>Net N</th><th>Net N-1</th></tr>';
+    var htmlA = '<tr><th>Réf.</th><th>Poste</th><th>Note</th><th>Brut N</th><th>Amort./Prov. N</th><th>Net N</th><th>Net N-1</th></tr>';
     actifN.lines.forEach(function(l, idx){
         var l1 = actifN1.lines[idx] || {net:0};
         var cls = l.isGrandTotal ? 'total-row' : (l.isTotal ? 'total-row' : '');
         var brut = (l.brut===null||l.brut===undefined) ? '' : fmt(l.brut);
         var amort = (l.amort===null||l.amort===undefined) ? '' : fmt(l.amort);
+        var note = l.isTotal ? '' : (BILAN_NOTES_ACTIF[l.ref] || '');
         htmlA += '<tr class="'+cls+'"><td>'+esc(l.ref)+'</td><td>'+(l.isTotal?'<strong>':'')+esc(l.poste)+(l.isTotal?'</strong>':'')+'</td>'+
+                 '<td>'+esc(note)+'</td>'+
                  '<td class="number">'+brut+'</td><td class="number">'+amort+'</td>'+
                  '<td class="number calculated">'+fmt(l.net)+'</td><td class="number">'+fmt(l1.net)+'</td></tr>';
     });
     tableA.innerHTML = htmlA;
 
     var tableP = document.getElementById('bilan-passif');
-    var htmlP = '<tr><th>Réf.</th><th>Poste</th><th>Net N</th><th>Net N-1</th></tr>';
+    var htmlP = '<tr><th>Réf.</th><th>Poste</th><th>Note</th><th>Net N</th><th>Net N-1</th></tr>';
     passifN.lines.forEach(function(l, idx){
         var l1 = passifN1.lines[idx] || {net:0};
         var cls = l.isGrandTotal ? 'total-row' : (l.isTotal ? 'total-row' : '');
+        var note = l.isTotal ? '' : (BILAN_NOTES_PASSIF[l.ref] || '');
         htmlP += '<tr class="'+cls+'"><td>'+esc(l.ref)+'</td><td>'+(l.isTotal?'<strong>':'')+esc(l.poste)+(l.isTotal?'</strong>':'')+'</td>'+
+                 '<td>'+esc(note)+'</td>'+
                  '<td class="number calculated">'+fmt(l.net)+'</td><td class="number">'+fmt(l1.net)+'</td></tr>';
     });
     tableP.innerHTML = htmlP;
@@ -6579,7 +6658,12 @@ var IMPOTS_ROWS = [
     {key:'is', lib:"Impôt sur les Bénéfices (IS)", comptes:"89* (résultat)", fn:function(){ return computeResultat('n').RS; }},
     {key:'cnps', lib:"Charges sociales (CNPS)", comptes:"431*", fn:function(){ return SC('n','431')-SD('n','431'); }},
     {key:'its', lib:"Impôt sur salaires (ITS/IGR)", comptes:"447*", fn:function(){ return SC('n','447')-SD('n','447'); }},
-    {key:'patente', lib:"Patente et impôts et taxes divers", comptes:"64* hors 647", fn:function(){ return computeResultat('n').RI; }}
+    {key:'patente', lib:"Patente et impôts et taxes divers", comptes:"64* hors 647", fn:function(){ return computeResultat('n').RI; }},
+    // Rapprochement charge (compte 64xx, P&L) / déclaré — même principe que les lignes
+    // ci-dessus, comptes confirmés par le tableau de revue fiscale et sociale du cabinet.
+    {key:'ce', lib:"Contribution Employeur (CE)", comptes:"6413", fn:function(){ return SD('n','6413')-SC('n','6413'); }},
+    {key:'ta', lib:"Taxe d'Apprentissage (TA)", comptes:"6414", fn:function(){ return SD('n','6414')-SC('n','6414'); }},
+    {key:'tfpc', lib:"Taxe de Formation Professionnelle Continue (TFPC)", comptes:"6415", fn:function(){ return SD('n','6415')-SC('n','6415'); }}
 ];
 var IMPOTS_ROWS_MAP = {};
 IMPOTS_ROWS.forEach(function(r){ IMPOTS_ROWS_MAP[r.key] = r; });
@@ -17698,8 +17782,15 @@ try{
    Vient s'ajouter au tableau de rapprochement comptabilité/déclaré déjà
    présent dans l'onglet Impôts (IMPOTS_ROWS / recomputeImpots(), voir
    08-controles-audit.js) — celui-ci reste inchangé, il répond à une
-   autre question (l'écart entre le compte et le déclaré). Ici : le
-   suivi mensuel des déclarations elles-mêmes, structure demandée :
+   autre question (l'écart entre le compte et le déclaré).
+
+   Structure alignée sur TABLEAU REVUE FISCALE ET SOCIALE.xlsx (fourni
+   par le cabinet) : chaque tableau mensuel porte, sous les 12 mois, un
+   pied à 4 lignes — TOTAL / Solde Initial / Règlement / Solde Final —
+   qui suit la dette fiscale comme un compte : ce qui restait dû à
+   l'ouverture, plus ce qui a été déclaré dans l'année, moins ce qui a
+   été payé, égale ce qui reste dû (ou en crédit) à la clôture. Solde
+   Final = Solde Initial + TOTAL − Règlement, colonne par colonne.
 
      tva              : MOIS, TVA_Collectee, TVA_Recuperable, TVA_Due, Credit_TVA
      impots_groupe_1  : MOIS, ITS, CE, TA, TFPC
@@ -17716,8 +17807,9 @@ try{
    Onglet « Crédit de TVA » : ici, une section à l'intérieur du même
    panneau (pas un onglet séparé dans TABS — rien dans l'arborescence
    a→u ne l'annonce comme tel). Grisée et non saisissable si le solde
-   ANNUEL cumulé est positif (l'entité est in fine redevable, pas en
-   crédit) ; ouverte à la saisie s'il est négatif.
+   ANNUEL cumulé (Collectée − Récupérable, indépendant du pied Solde
+   Initial/Final ci-dessus) est positif ; ouverte à la saisie s'il est
+   négatif.
    ================================================================== */
 
 var TF_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -17733,9 +17825,53 @@ function tfCol(nom){
     return nom.replace(/_/g, ' ');
 }
 
+/* ---------- Pied commun : TOTAL / Solde Initial / Règlement / Solde Final ----------
+   Générique à tout tableau mensuel, quelle que soit sa liste de colonnes — TVA
+   comprise, qui a deux colonnes calculées (Due, Crédit) au lieu d'une seule. */
+function tfRendrePied(cols){
+    var td = function(attrs, contenu){ return '<td' + attrs + '>' + contenu + '</td>'; };
+    var ligne = function(libelle, piedCle, editable, cls){
+        var cells = cols.map(function(c){
+            return editable
+                ? td(' data-tf-pied="'+piedCle+'" data-tf-col="'+c+'"',
+                     '<input type="number" class="editable number" data-tf-pied="'+piedCle+'" data-tf-col="'+c+'" onchange="tfRecalculerPied(this.closest(\'table\').id)">')
+                : td(' class="calculated number" data-tf-pied="'+piedCle+'" data-tf-col="'+c+'"', '0');
+        }).join('');
+        return '<tr' + (cls ? ' class="'+cls+'"' : '') + '><td>' + libelle + '</td>' + cells + '</tr>';
+    };
+    return ligne('TOTAL', 'total', false, 'total-row')
+         + ligne('Solde Initial', 'si', true)
+         + ligne('Règlement', 'reg', true)
+         + ligne('Solde Final', 'sf', false, 'total-row');
+}
+// Recalcule TOTAL (somme des 12 lignes de mois) et Solde Final (Solde Initial +
+// TOTAL − Règlement) pour chaque colonne suivie d'un tableau donné par son id.
+function tfRecalculerPied(tableId){
+    var table = document.getElementById(tableId);
+    if(!table) return;
+    var lignesMois = Array.prototype.slice.call(table.querySelectorAll('tr[data-tf-mois]'));
+    var colonnes = {};
+    table.querySelectorAll('[data-tf-pied="total"]').forEach(function(el){ colonnes[el.getAttribute('data-tf-col')] = true; });
+    Object.keys(colonnes).forEach(function(c){
+        var total = 0;
+        lignesMois.forEach(function(tr){
+            var el = tr.querySelector('[data-tf-col="' + c + '"]');
+            if(!el) return;
+            total += parseNum(el.value !== undefined && el.tagName === 'INPUT' ? el.value : el.textContent);
+        });
+        var totalEl = table.querySelector('[data-tf-pied="total"][data-tf-col="' + c + '"]');
+        if(totalEl) totalEl.textContent = fmt(total);
+        var si = parseNum((table.querySelector('[data-tf-pied="si"][data-tf-col="' + c + '"]') || {}).value);
+        var reg = parseNum((table.querySelector('[data-tf-pied="reg"][data-tf-col="' + c + '"]') || {}).value);
+        var sfEl = table.querySelector('[data-tf-pied="sf"][data-tf-col="' + c + '"]');
+        if(sfEl) sfEl.textContent = fmt(si + total - reg);
+    });
+}
+
 /* ---------- Tableaux mensuels génériques (impots_groupe_1/2, cnps, cmu_isolee) ---------- */
 function tfRendreTableGenerique(cle){
     var def = TF_TABLES[cle];
+    var colsPied = def.cols.concat(def.calc ? [def.calc] : []);
     var entetes = '<th style="width:14%;">Mois</th>' + def.cols.map(function(c){ return '<th>' + esc(tfCol(c)) + '</th>'; }).join('')
         + (def.calc ? '<th>' + esc(tfCol(def.calc)) + '</th>' : '');
     var lignes = TF_MOIS.map(function(mois, i){
@@ -17747,19 +17883,22 @@ function tfRendreTableGenerique(cle){
              + (def.calc ? '<td class="calculated number" data-tf-col="' + def.calc + '">0</td>' : '')
              + '</tr>';
     }).join('');
-    return '<div class="scroll-table"><table id="' + def.id + '"><tr>' + entetes + '</tr>' + lignes + '</table></div>';
+    return '<div class="scroll-table"><table id="' + def.id + '"><tr>' + entetes + '</tr>' + lignes
+         + tfRendrePied(colsPied) + '</table></div>';
 }
 function tfRecalculerLigne(cle, input){
     var def = TF_TABLES[cle];
-    if(!def.calc) return;
-    var tr = input.closest('tr');
-    var total = 0;
-    def.cols.forEach(function(c){
-        var el = tr.querySelector('[data-tf-col="' + c + '"]');
-        total += parseNum(el ? el.value : 0);
-    });
-    var calcEl = tr.querySelector('[data-tf-col="' + def.calc + '"]');
-    if(calcEl) calcEl.textContent = fmt(total);
+    if(def.calc){
+        var tr = input.closest('tr');
+        var total = 0;
+        def.cols.forEach(function(c){
+            var el = tr.querySelector('[data-tf-col="' + c + '"]');
+            total += parseNum(el ? el.value : 0);
+        });
+        var calcEl = tr.querySelector('[data-tf-col="' + def.calc + '"]');
+        if(calcEl) calcEl.textContent = fmt(total);
+    }
+    tfRecalculerPied(def.id);
 }
 
 /* ---------- TVA (calcul du solde mensuel, report de crédit) ---------- */
@@ -17775,13 +17914,13 @@ function tfRendreTVA(){
     }).join('');
     return '<div class="scroll-table"><table id="tf-tva"><tr><th style="width:14%;">Mois</th>'
         + '<th>TVA collectée</th><th>TVA récupérable</th><th>TVA due</th><th>Crédit de TVA</th></tr>'
-        + lignes + '</table></div>';
+        + lignes + tfRendrePied(['TVA_Collectee','TVA_Recuperable','TVA_Due','Credit_TVA']) + '</table></div>';
 }
 function tfRecalculerTVA(){
     var table = document.getElementById('tf-tva');
     if(!table) return;
     var soldeAnnuel = 0;
-    Array.prototype.slice.call(table.rows).slice(1).forEach(function(tr){
+    Array.prototype.slice.call(table.querySelectorAll('tr[data-tf-mois]')).forEach(function(tr){
         var collectee = parseNum((tr.querySelector('[data-tf-col="TVA_Collectee"]') || {}).value);
         var recuperable = parseNum((tr.querySelector('[data-tf-col="TVA_Recuperable"]') || {}).value);
         var solde = collectee - recuperable;
@@ -17793,6 +17932,7 @@ function tfRecalculerTVA(){
         if(dueEl) dueEl.textContent = fmt(due);
         if(creditEl) creditEl.textContent = fmt(credit);
     });
+    tfRecalculerPied('tf-tva');
     tfAppliquerCreditTVA(soldeAnnuel);
 }
 // Positif : l'entité est in fine redevable de TVA sur l'année — la section
@@ -17834,8 +17974,8 @@ function tfRecalculerPatente(){
     var el = document.getElementById('tf-patente-Ecart');
     if(el) el.value = fmt(ecart);
 }
-// Utilisé par le futur moteur de centralisation des anomalies (onglet s) :
-// rend l'écart de patente courant, 0 si rien n'est encore saisi.
+// Utilisé par le moteur de centralisation des anomalies (onglet s) : rend
+// l'écart de patente courant, 0 si rien n'est encore saisi.
 function tfEcartPatente(){
     var el = document.getElementById('tf-patente-Ecart');
     return el ? parseNum(el.value) : 0;
@@ -17852,7 +17992,8 @@ function tfInstaller(){
     carte.innerHTML =
       '<h2>📅 SUIVI MENSUEL DES DÉCLARATIONS (TVA, IMPÔTS, CNPS)</h2>'
     + '<div class="alert alert-info">Suivi déclaratif mois par mois, distinct du rapprochement comptes/déclaré '
-    + 'ci-dessus. La TVA due et le crédit de TVA se calculent automatiquement à partir des montants saisis.</div>'
+    + 'ci-dessus. Chaque tableau porte un pied Total / Solde Initial / Règlement / Solde Final qui suit la dette '
+    + 'fiscale comme un compte. La TVA due et le crédit de TVA se calculent automatiquement à partir des montants saisis.</div>'
     + '<h3>TVA</h3>' + tfRendreTVA()
     + '<div id="tf-credit-tva-section" class="card" style="background:#f6f8fa; margin-top:14px;">'
     + '<h3>Crédit de TVA</h3>'
@@ -17867,6 +18008,10 @@ function tfInstaller(){
     + '<h3 style="margin-top:22px;">Patente</h3>' + tfRendrePatente();
     panneau.appendChild(carte);
     tfRecalculerTVA();
+    tfRecalculerPied('tf-groupe1');
+    tfRecalculerPied('tf-groupe2');
+    tfRecalculerPied('tf-cnps');
+    tfRecalculerPied('tf-cmu');
 }
 
 try{

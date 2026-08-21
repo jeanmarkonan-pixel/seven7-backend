@@ -222,6 +222,12 @@
         .stat-box input.seuil-input::placeholder { color: rgba(255,255,255,0.7); }
         .seuil-reset { font-size:10px; background:none; border:none; color:inherit; text-decoration:underline; cursor:pointer; padding:2px 0 0; }
         .tf-section-grisee { opacity: 0.45; pointer-events: none; }
+        /* En-tête officiel du bilan/résultat, reproduisant la planche DGI pré-imprimée
+           (désignation entité, n° d'identification, exercice, durée). */
+        .etats-entete { border: 1px solid #d5dee6; border-radius: 6px; padding: 10px 14px;
+            margin-bottom: 14px; font-size: 12px; color: #333; background: #fafbfc;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+        .etats-entete strong { color: #1a5276; }
         .tab-btn.tab-locked { opacity:0.4; cursor:not-allowed; position:relative; }
         .tab-btn.tab-locked:hover { background:#fff; color:#555; }
         .admin-collab-card { border:1px solid #ddd; border-radius:6px; padding:12px; margin-bottom:12px; }
@@ -1418,6 +1424,7 @@
             <div class="card">
                 <h2>⚖️ BILAN AU 31/12/N — SYSTÈME NORMAL (SYSCOHADA RÉVISÉ)</h2>
                 <div class="alert alert-info">Bilan généré automatiquement à partir des balances N et N-1 saisies. Les montants se recalculent en temps réel. Le Résultat net de l'exercice provient de l'onglet RESULTAT.</div>
+                <div id="etats-entete-bilan" class="etats-entete"></div>
                 <div id="bilan-alert" class="alert alert-success">
                     <strong>Statut :</strong> <span id="bilan-statut">BILAN ÉQUILIBRÉ — Actif = Passif</span>
                 </div>
@@ -1426,7 +1433,7 @@
                         <h3>ACTIF</h3>
                         <div class="scroll-table">
                         <table id="bilan-actif">
-                            <tr><th>Réf.</th><th>Poste</th><th>Brut N</th><th>Amort./Prov. N</th><th>Net N</th><th>Net N-1</th></tr>
+                            <tr><th>Réf.</th><th>Poste</th><th>Note</th><th>Brut N</th><th>Amort./Prov. N</th><th>Net N</th><th>Net N-1</th></tr>
                         </table>
                         </div>
                     </div>
@@ -1434,7 +1441,7 @@
                         <h3>PASSIF</h3>
                         <div class="scroll-table">
                         <table id="bilan-passif">
-                            <tr><th>Réf.</th><th>Poste</th><th>Net N</th><th>Net N-1</th></tr>
+                            <tr><th>Réf.</th><th>Poste</th><th>Note</th><th>Net N</th><th>Net N-1</th></tr>
                         </table>
                         </div>
                     </div>
@@ -1447,9 +1454,10 @@
             <div class="card">
                 <h2>💰 COMPTE DE RÉSULTAT DE L'EXERCICE — SYSTÈME NORMAL (SYSCOHADA RÉVISÉ)</h2>
                 <div class="alert alert-info">Compte de résultat généré automatiquement à partir des balances N et N-1.</div>
+                <div id="etats-entete-resultat" class="etats-entete"></div>
                 <div class="scroll-table">
                     <table id="resultat-table">
-                        <tr><th>Réf.</th><th>Libellés</th><th>Exercice N</th><th>Exercice N-1</th></tr>
+                        <tr><th>Réf.</th><th>Libellés</th><th>Signe</th><th>Note</th><th>Exercice N</th><th>Exercice N-1</th></tr>
                     </table>
                 </div>
             </div>
@@ -1645,6 +1653,9 @@
                         <tr data-impot-key="cnps"><td>Charges sociales (CNPS)</td><td>431*</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
                         <tr data-impot-key="its"><td>Impôt sur salaires (ITS/IGR)</td><td>447*</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
                         <tr data-impot-key="patente"><td>Patente et impôts et taxes divers</td><td>64* hors 647</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
+                        <tr data-impot-key="ce"><td>Contribution Employeur (CE)</td><td>6413</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
+                        <tr data-impot-key="ta"><td>Taxe d'Apprentissage (TA)</td><td>6414</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
+                        <tr data-impot-key="tfpc"><td>Taxe de Formation Professionnelle Continue (TFPC)</td><td>6415</td><td style="text-align:center;">—</td><td class="calculated number impot-comptabilise">0</td><td><input type="number" class="editable number impot-declare" onchange="recomputeImpots()"></td><td class="calculated number impot-ecart"></td><td class="impot-statut"></td><td></td></tr>
                     </table>
                 </div>
             </div>

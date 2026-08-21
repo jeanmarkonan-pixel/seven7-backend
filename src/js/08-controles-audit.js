@@ -550,7 +550,12 @@ var IMPOTS_ROWS = [
     {key:'is', lib:"Impôt sur les Bénéfices (IS)", comptes:"89* (résultat)", fn:function(){ return computeResultat('n').RS; }},
     {key:'cnps', lib:"Charges sociales (CNPS)", comptes:"431*", fn:function(){ return SC('n','431')-SD('n','431'); }},
     {key:'its', lib:"Impôt sur salaires (ITS/IGR)", comptes:"447*", fn:function(){ return SC('n','447')-SD('n','447'); }},
-    {key:'patente', lib:"Patente et impôts et taxes divers", comptes:"64* hors 647", fn:function(){ return computeResultat('n').RI; }}
+    {key:'patente', lib:"Patente et impôts et taxes divers", comptes:"64* hors 647", fn:function(){ return computeResultat('n').RI; }},
+    // Rapprochement charge (compte 64xx, P&L) / déclaré — même principe que les lignes
+    // ci-dessus, comptes confirmés par le tableau de revue fiscale et sociale du cabinet.
+    {key:'ce', lib:"Contribution Employeur (CE)", comptes:"6413", fn:function(){ return SD('n','6413')-SC('n','6413'); }},
+    {key:'ta', lib:"Taxe d'Apprentissage (TA)", comptes:"6414", fn:function(){ return SD('n','6414')-SC('n','6414'); }},
+    {key:'tfpc', lib:"Taxe de Formation Professionnelle Continue (TFPC)", comptes:"6415", fn:function(){ return SD('n','6415')-SC('n','6415'); }}
 ];
 var IMPOTS_ROWS_MAP = {};
 IMPOTS_ROWS.forEach(function(r){ IMPOTS_ROWS_MAP[r.key] = r; });
