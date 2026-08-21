@@ -1,11 +1,11 @@
 /* ==================================================================
    LES ONGLETS AJOUTÉS, DANS UN VRAI DOM
 
-   Quatorze onglets ont été ajoutés par injection au chargement :
-   douze sections de diligences normatives, les faits marquants de
-   l'exercice et les constatations d'audit. S'y ajoutent les blocs
-   greffés dans des onglets existants — assertions du programme,
-   détail de la revue analytique, échantillonnage, rapports.
+   Douze onglets ont été ajoutés par injection au chargement : onze
+   sections de diligences normatives et les faits marquants de
+   l'exercice. S'y ajoutent les blocs greffés dans des onglets
+   existants — assertions du programme, détail de la revue analytique,
+   échantillonnage, rapports.
 
    Tout cela a été vérifié À L'ŒIL, une fois, dans le navigateur.
    Aucun test ne garantissait qu'un onglet s'installe encore après une
@@ -17,7 +17,7 @@
    onglet existe, qu'il est atteignable, qu'il porte ses champs, et
    qu'il est déclaré pour la sauvegarde.
    ================================================================== */
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
@@ -39,14 +39,22 @@ const D = W.document;
 const local = v => JSON.parse(JSON.stringify(v));
 
 const DILIGENCES = local(W.DILIGENCES);
-const AJOUTES = DILIGENCES.map(d => d.id).concat(['faits-exercice', 'constatations']);
+const AJOUTES = DILIGENCES.map(d => d.id).concat(['faits-exercice']);
+
+// Sans ce close(), un minuteur réel enregistré par la fenêtre (ex : déconnexion
+// automatique sur inactivité, 46-session-inactivite.js) retient le process Node
+// ouvert jusqu'à son échéance — jsdom n'expose pas d'identifiant unref()able,
+// seul close() annule ses minuteurs internes. Les autres fichiers de tests DOM
+// recréent une fenêtre par test et la ferment aussitôt ; celui-ci en partage une
+// seule pour tout le fichier, d'où ce close() unique, en tout dernier.
+after(() => { jsdom.window.close(); });
 
 /* ---------------- Existence et atteignabilité ---------------- */
 
-test('INJECTION — les quatorze onglets ajoutés existent dans le document', () => {
+test('INJECTION — les douze onglets ajoutés existent dans le document', () => {
     const manquants = AJOUTES.filter(id => !D.getElementById(id));
     assert.deepEqual(manquants, [], 'onglets non injectés');
-    assert.equal(AJOUTES.length, 14);
+    assert.equal(AJOUTES.length, 12);
 });
 
 test('INJECTION — chaque onglet ajouté est un panneau d’onglet à part entière', () => {
@@ -69,7 +77,7 @@ test('NAVIGATION — chaque onglet ajouté a son bouton, dans la bonne phase', (
 
 test('NAVIGATION — showTab est protégé par le contrôle d’accès', () => {
     // showTab est remplacé par une version qui refuse les onglets non
-    // accordés au collaborateur. Hors session, seuls le sommaire et la
+    // accordés au collaborateur. Hors session, seuls l'identification et la
     // messagerie passent : c'est la propriété de sécurité à préserver.
     //
     // CONSÉQUENCE EN PRODUCTION : les onglets ajoutés ne sont pas accordés
@@ -79,9 +87,9 @@ test('NAVIGATION — showTab est protégé par le contrôle d’accès', () => {
     // « Accès non autorisé » qui ressemble à une panne.
     let refus = 0;
     W.alert = function(){ refus++; };
-    W.showTab('acceptation');
+    W.showTab('fraude');
     assert.equal(refus, 1, 'un onglet non accordé doit être refusé, pas ouvert');
-    assert.ok(!D.getElementById('acceptation').classList.contains('active'));
+    assert.ok(!D.getElementById('fraude').classList.contains('active'));
 });
 
 test('NAVIGATION — chaque panneau ajouté peut devenir le seul actif', () => {
@@ -94,7 +102,7 @@ test('NAVIGATION — chaque panneau ajouté peut devenir le seul actif', () => {
         assert.deepEqual(actifs, [id], `${id} : l’affichage exclusif ne fonctionne pas`);
     }
     D.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
-    D.getElementById('sommaire').classList.add('active');
+    D.getElementById('identification').classList.add('active');
 });
 
 test('SAUVEGARDE — chaque onglet ajouté est déclaré dans TABS', () => {
@@ -124,11 +132,16 @@ test('DILIGENCES — chaque section porte sa base normative et son objectif', ()
 test('DILIGENCES — tous les points de contrôle sont rendus avec leur champ', () => {
     for(const d of DILIGENCES){
         const p = D.getElementById(d.id);
-        const lignes = p.querySelectorAll('table tr');
+        // Certains panneaux (ecritures) portent une seconde table greffée par un
+        // autre module (centralisation des anomalies) : on scope au premier
+        // tableau, toujours celui de la diligence elle-même (rendu avant toute
+        // greffe ultérieure).
+        const table = p.querySelector('table');
+        const lignes = table.querySelectorAll('tr');
         // en-tête + un point par ligne
         assert.equal(lignes.length, d.points.length + 1,
             `${d.id} : ${lignes.length - 1} lignes rendues pour ${d.points.length} points`);
-        const champs = p.querySelectorAll('table input, table select, table textarea');
+        const champs = table.querySelectorAll('input, select, textarea');
         assert.ok(champs.length >= d.points.length,
             `${d.id} : des points sont rendus sans champ de saisie`);
     }
@@ -175,8 +188,7 @@ test('GREFFES — les blocs ajoutés aux onglets existants sont bien en place', 
         ['rap-texte',          'redaction',           'rapport général'],
         ['conv-texte',         'redaction',           'rapport spécial'],
         ['table-conventions',  'redaction',           'saisie des conventions'],
-        ['charges-bloc',       'charges',             'échantillon charges'],
-        ['ventes',             'charges',             'échantillon ventes'],
+        ['an-table',           'ecritures',           'centralisation des anomalies'],
     ];
     for(const [id, onglet, quoi] of attendus){
         const el = D.getElementById(id);

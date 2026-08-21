@@ -210,9 +210,10 @@ test('IDENTIFICATION — la raison sociale manquante reste un marqueur', () => {
     assert.ok(t.includes('[Raison sociale]'));
 });
 
-test('CONSTATATIONS — les bloquants du dossier sont proposés au fondement', () => {
-    // On force un déséquilibre de balance : le rapport avec réserve doit
-    // reprendre la constatation, source comprise.
+test('CONSTATATIONS — sans source d’anomalies, le fondement reste vide sans casser', () => {
+    // L'onglet Constatations d'audit (fmCollecter) a été retiré : rapConstatations()
+    // doit se dégrader proprement (listes vides), pas lever d'exception. Le moteur de
+    // centralisation des anomalies est destiné à lui redonner une source réelle.
     const sauve = app.evaluer('JSON.stringify(balanceData)');
     try{
         app.chargerBalances({
@@ -220,10 +221,10 @@ test('CONSTATATIONS — les bloquants du dossier sont proposés au fondement', (
             n1: [],
         });
         const bloquants = local(S.rapConstatations()).bloquants;
-        assert.ok(bloquants.length, 'un déséquilibre doit produire une constatation bloquante');
+        assert.deepEqual(bloquants, [], 'aucune source d’anomalies branchée pour l’instant');
         const t = rapport({ 'rap-opinion': 'RESERVE' });
-        assert.match(t, /Éléments relevés au cours de nos travaux/);
-        assert.ok(t.includes(bloquants[0].libelle), 'la constatation n’est pas reprise au fondement');
+        assert.match(t, /Exposer ici, de façon claire et chiffrée/,
+            'sans bloquant collecté, le fondement doit rester un marqueur à compléter, pas planter');
     } finally { app.chargerBalances(JSON.parse(sauve)); }
 });
 

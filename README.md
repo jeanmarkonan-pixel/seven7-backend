@@ -12,13 +12,19 @@ calée sur une liasse fiscale réelle. Il est destiné à être repris dans Clau
 ## 1. Démarrage
 
 ```bash
-npm install          # jsdom et @firebase/rules-unit-testing
-npm test             # 100 tests — doivent tous passer avant toute livraison
-npm run build        # régénère dist/ à partir de src/ (voir §5)
-npm run verifier     # dist/ est-il bien à jour de ses sources ?
-npm run estampiller  # fige la version affichée dans l'application (voir §7)
-npm run emulateur    # émulateur Firestore, pour les tests de règles (JDK requis)
+pnpm install          # jsdom et @firebase/rules-unit-testing
+pnpm test             # 100 tests — doivent tous passer avant toute livraison
+pnpm run build        # régénère dist/ à partir de src/ (voir §5)
+pnpm run verifier     # dist/ est-il bien à jour de ses sources ?
+pnpm run estampiller  # fige la version affichée dans l'application (voir §7)
+pnpm run emulateur    # émulateur Firestore, pour les tests de règles (JDK requis)
 ```
+
+Le projet est passé de npm à pnpm (migration du 2026-08-21) pour activer la quarantaine de
+sécurité sur la chaîne d'approvisionnement : `pnpm-workspace.yaml` retarde de 7 jours
+l'installation de toute nouvelle version d'un paquet (`minimumReleaseAge: 10080`), le temps
+qu'une compromission éventuelle soit détectée et retirée du registre. `react`/`react-dom` sont
+exclus de ce délai par défaut du gabarit — ce projet ne les utilise pas.
 
 85 tests tournent sans rien d'autre que Node et jsdom. Les 15 tests de règles Firestore
 demandent un JDK ; sans lui ils se sautent proprement, au lieu de faire échouer la suite.
@@ -313,8 +319,8 @@ un marqueur manque, apparaît deux fois, n'est pas résolu, ou si un fichier du 
 absent.
 
 ```bash
-npm run build        # écrit dist/
-npm run verifier     # compare sans écrire — c'est ce que lance le test
+pnpm run build        # écrit dist/
+pnpm run verifier     # compare sans écrire — c'est ce que lance le test
 ```
 
 Quatre tests couvrent la construction elle-même : correspondance dist/sources, manifeste
@@ -326,7 +332,7 @@ fois.
 ## 6. Suite de tests
 
 ```bash
-npm test
+pnpm test
 ```
 
 | Fichier | Portée | Tests |
@@ -357,7 +363,7 @@ que `harness.js` et `liasse.test.js`.
 Pour tester un autre fichier :
 
 ```bash
-SEVEN7_HTML=chemin/vers/app.html npm test
+SEVEN7_HTML=chemin/vers/app.html pnpm test
 ```
 
 Les tests marqués **RÉGRESSION** correspondent à des bugs réels déjà corrigés une fois.
@@ -405,8 +411,8 @@ sous-collection `cabinets` des statistiques), mais n'avait plus le contrôle du 
 d'abonnement sur `seven7_cabinets`.
 
 ```bash
-npm run emulateur      # premier terminal (JDK requis)
-npm run test:regles    # second
+pnpm run emulateur      # premier terminal (JDK requis)
+pnpm run test:regles    # second
 ```
 
 Règles déployées le 03/08/2026 : dépôt et production sont alignés.
@@ -440,11 +446,11 @@ connexion en porte une copie parce qu'il recouvre l'en-tête : un client bloqué
 authentification doit pouvoir lire sa version.
 
 ```bash
-npm run estampiller && npm run build && git commit
+pnpm run estampiller && pnpm run build && git commit
 ```
 
 L'estampille est un fichier versionné, pas un produit du build : sinon la date et le hash
-changeraient à chaque construction et `npm run verifier` ne pourrait plus rien comparer. Un
+changeraient à chaque construction et `pnpm run verifier` ne pourrait plus rien comparer. Un
 livrable construit sur un dépôt modifié porte un suffixe `+modifié` visible dans
 l'application.
 

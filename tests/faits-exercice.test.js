@@ -1,9 +1,7 @@
 /* ==================================================================
    FAITS MARQUANTS DE L'EXERCICE
 
-   Ce que l'ENTITÉ expose à l'auditeur lors de la prise de connaissance
-   — à ne pas confondre avec les constatations issues de nos propres
-   contrôles (tests/constatations.test.js).
+   Ce que l'ENTITÉ expose à l'auditeur lors de la prise de connaissance.
 
    Le module ne devine pas les faits : il les recueille, puis les
    recoupe avec les comptes dans les deux sens. Un fait déclaré doit se
@@ -129,15 +127,6 @@ test('INSTALLATION — l’onglet est déclaré en phase 1, avant les travaux', 
     const t = local(S.TABS).find(x => x.id === 'faits-exercice');
     assert.ok(t, 'onglet absent de TABS — la saisie serait perdue');
     assert.equal(t.phase, 1);
-});
-
-test('INSTALLATION — les deux onglets ne se confondent pas', () => {
-    const TABS = local(S.TABS);
-    const fx = TABS.find(t => t.id === 'faits-exercice');
-    const fm = TABS.find(t => t.id === 'constatations');
-    assert.ok(fx && fm, 'les deux onglets doivent coexister');
-    assert.notEqual(fx.label, fm.label);
-    assert.equal(fm.phase, 3, 'les constatations se rassemblent en fin de mission');
 });
 
 test('RENDU — chaque ligne porte sa catégorie et un champ de survenance', () => {

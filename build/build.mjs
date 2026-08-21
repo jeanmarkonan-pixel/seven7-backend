@@ -51,6 +51,28 @@ for(const [marqueur, fichiers] of Object.entries(manifeste)){
     html = html.replace(jeton, () => morceaux.join('\n'));
 }
 
+/* ---- Variables d'environnement (clés Firebase — voir .env.example) ----
+   Marqueurs @@ENV_X@@ nus, sans balisage de commentaire autour, pour ne pas être
+   happés par le contrôle de marqueurs de fichiers ci-dessus ni par celui ci-dessous. */
+const ENV_MARQUEURS = {
+    ENV_FIREBASE_API_KEY: 'FIREBASE_API_KEY',
+    ENV_FIREBASE_AUTH_DOMAIN: 'FIREBASE_AUTH_DOMAIN',
+    ENV_FIREBASE_PROJECT_ID: 'FIREBASE_PROJECT_ID',
+    ENV_FIREBASE_STORAGE_BUCKET: 'FIREBASE_STORAGE_BUCKET',
+    ENV_FIREBASE_MESSAGING_SENDER_ID: 'FIREBASE_MESSAGING_SENDER_ID',
+    ENV_FIREBASE_APP_ID: 'FIREBASE_APP_ID'
+};
+const env = chargerEnv(path.join(RACINE, '.env'));
+for(const [marqueur, cleEnv] of Object.entries(ENV_MARQUEURS)){
+    const valeur = env[cleEnv];
+    if(!valeur) throw new Error(`.env : variable ${cleEnv} manquante ou vide (voir .env.example)`);
+    const jeton = `@@${marqueur}@@`;
+    const occurrencesEnv = html.split(jeton).length - 1;
+    if(occurrencesEnv !== 1)
+        throw new Error(`marqueur ${jeton} trouvé ${occurrencesEnv} fois dans les sources — il en faut exactement une`);
+    html = html.split(jeton).join(valeur);
+}
+
 const restants = html.match(/\/\* @@\w+@@ \*\//g);
 if(restants) throw new Error(`marqueurs non résolus : ${restants.join(', ')}`);
 
@@ -115,6 +137,26 @@ function ecrireStatiques(contenu){
     }
     console.log(`✓ dist/index.html, manifest.json, sw.js (cache « seven7-${version} ») et ${n} ressources`);
     ecrireVitrine(srcAssets);
+}
+
+/* Parseur .env minimal : KEY=VALUE par ligne, commentaires # et lignes vides
+   ignorés, valeurs entre guillemets simples ou doubles dépouillées. Volontairement
+   sans dépendance, comme le reste du build. */
+function chargerEnv(chemin){
+    const out = {};
+    if(!fs.existsSync(chemin)) return out;
+    for(const ligneBrute of fs.readFileSync(chemin, 'utf8').split(/\r?\n/)){
+        const ligne = ligneBrute.trim();
+        if(!ligne || ligne.startsWith('#')) continue;
+        const i = ligne.indexOf('=');
+        if(i === -1) continue;
+        const cle = ligne.slice(0, i).trim();
+        let val = ligne.slice(i + 1).trim();
+        if((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+            val = val.slice(1, -1);
+        out[cle] = val;
+    }
+    return out;
 }
 
 /* La vitrine est un site distinct — seven7.ci — servi par un autre site

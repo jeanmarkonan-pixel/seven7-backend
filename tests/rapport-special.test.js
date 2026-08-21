@@ -10,7 +10,7 @@
    · l'absence de convention s'y DIT — un rapport muet ne vaut pas
      déclaration d'absence.
    ================================================================== */
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
@@ -31,6 +31,11 @@ await new Promise(r => {
 await new Promise(r => setTimeout(r, 50));
 const S = jsdom.window;
 const local = v => JSON.parse(JSON.stringify(v));
+
+// Sans ce close(), un minuteur réel enregistré par la fenêtre (déconnexion
+// automatique sur inactivité, 46-session-inactivite.js) retient le process
+// Node ouvert jusqu'à son échéance — voir la même note dans onglets-dom.test.js.
+after(() => { jsdom.window.close(); });
 
 /** Vide le tableau, y saisit des conventions, puis produit le texte. */
 function rapportAvec(conventions){

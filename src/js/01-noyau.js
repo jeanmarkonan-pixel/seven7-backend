@@ -141,22 +141,47 @@ function copyInviteLink(){
 
 // ---------- Navigation onglets ----------
 var _tabContentEls = null, _tabBtnEls = null;
-// ---------- Menu d'onglets groupé par phase ----------
-// Les onglets ne sont plus tous affichés en entête : ils sont rangés dans 3 menus
-// déroulants (Phase 1 / 2 / 3) ouverts un à la fois, avec une barre indiquant l'onglet en cours.
+// ---------- Sidebar : 3 accordéons de phase, un ouvert à la fois ----------
+// La sidebar reste affichée en permanence (elle a remplacé le menu déroulant
+// horizontal) : contrairement à un popup, elle ne doit jamais se refermer au
+// clic sur un onglet ou en dehors d'elle — seul togglePhaseMenu() (clic sur
+// l'en-tête d'une phase) ou la restauration au chargement changent la phase
+// ouverte. L'état est mémorisé par appareil (localStorage), pas par dossier :
+// c'est un confort d'affichage, jamais une restriction d'accès.
+var PHASE_OUVERTE_CLE = 'seven7_phase_ouverte';
 function closeAllPhaseMenus(){
     document.querySelectorAll('.phase-group.open').forEach(function(g){ g.classList.remove('open'); });
+}
+function ouvrirPhaseGroup(group){
+    if(!group || group.classList.contains('open')) return;
+    closeAllPhaseMenus();
+    group.classList.add('open');
+    var m = /phase-group-(\d)/.exec(group.className);
+    if(m){ try{ localStorage.setItem(PHASE_OUVERTE_CLE, m[1]); }catch(e){} }
 }
 function togglePhaseMenu(n){
     var group = document.querySelector('.phase-group-' + n);
     if(!group) return;
-    var wasOpen = group.classList.contains('open');
-    closeAllPhaseMenus();
-    if(!wasOpen) group.classList.add('open');
+    if(group.classList.contains('open')){
+        closeAllPhaseMenus();
+        try{ localStorage.removeItem(PHASE_OUVERTE_CLE); }catch(e){}
+    } else {
+        ouvrirPhaseGroup(group);
+    }
 }
-document.addEventListener('click', function(e){
-    if(!e.target.closest('.phase-group')) closeAllPhaseMenus();
-});
+function restaurerPhaseOuverte(){
+    var n = '1';
+    try{ n = localStorage.getItem(PHASE_OUVERTE_CLE) || '1'; }catch(e){}
+    ouvrirPhaseGroup(document.querySelector('.phase-group-' + n));
+}
+try{
+    if(typeof document !== 'undefined'){
+        if(document.readyState === 'loading')
+            document.addEventListener('DOMContentLoaded', restaurerPhaseOuverte);
+        else
+            restaurerPhaseOuverte();
+    }
+}catch(e){}
 
 function showTab(id){
     // Les boutons/panneaux d'onglets sont statiques (jamais recréés après le chargement initial) :
@@ -177,11 +202,10 @@ function showTab(id){
     document.querySelectorAll('.phase-group').forEach(function(g){ g.classList.remove('has-active'); });
     if(btn){
         var group = btn.closest('.phase-group');
-        if(group) group.classList.add('has-active');
+        if(group){ group.classList.add('has-active'); ouvrirPhaseGroup(group); }
         var bar = document.getElementById('currentTabBar');
         if(bar) bar.textContent = btn.textContent;
     }
-    closeAllPhaseMenus();
 }
 
 // ---------- PCG SYSCOHADA révisé : recherche/filtre ----------

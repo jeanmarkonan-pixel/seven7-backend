@@ -160,11 +160,6 @@ function recomputeGLTable(kind){
         setText('gl-gestion-total-ventes', fmt(totVentes));
         var badgeG = document.getElementById('status-gl-gestion');
         if(badgeG && data.length){ badgeG.textContent = 'Importé ('+data.length+' lignes)'; badgeG.className='badge badge-success'; }
-        // Rafraîchit automatiquement les échantillons Charges/Ventes à chaque saisie du GL Gestion
-        if(typeof renderEchantillon === 'function'){
-            renderEchantillon('Charge');
-            renderEchantillon('Vente');
-        }
         if(typeof computeControleGLSondage === 'function') computeControleGLSondage();
     }
 }

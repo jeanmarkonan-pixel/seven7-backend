@@ -1,0 +1,8 @@
+minimumReleaseAge: 10080
+minimumReleaseAgeStrict: false
+minimumReleaseAgeExclude:
+  - 'react'
+  - 'react-dom'
+allowBuilds:
+  '@firebase/util': true
+  protobufjs: true

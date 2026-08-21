@@ -10,7 +10,7 @@
    milliers. La fonction doit donc toujours rendre un nombre
    exploitable, et la saisie de l'auditeur doit toujours l'emporter.
    ================================================================== */
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
@@ -30,6 +30,11 @@ const local = v => JSON.parse(JSON.stringify(v));
 
 W.balanceData = balancesMTTCI();
 W.seuils = { signif: 20000000, faible: 1000000, planif: 15000000, totalActifN: 385982204 };
+
+// Sans ce close(), un minuteur réel enregistré par la fenêtre (déconnexion
+// automatique sur inactivité, 46-session-inactivite.js) retient le process
+// Node ouvert jusqu'à son échéance — voir la même note dans onglets-dom.test.js.
+after(() => { jsdom.window.close(); });
 
 test('PROPOSITION — chaque cycle reçoit un seuil déduit de son risque', () => {
     const p = local(W.scProposer());

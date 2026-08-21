@@ -23,11 +23,14 @@ const TYPES = new Set(['oui', 'texte', 'zone', 'date', 'nom']);
 
 /* ---------------- Intégrité du référentiel ---------------- */
 
-test('SECTIONS — les douze sections couvrent les trois phases', () => {
-    assert.equal(DILIGENCES.length, 12);
+test('SECTIONS — les onze sections couvrent les trois phases', () => {
+    assert.equal(DILIGENCES.length, 11);
     const parPhase = {};
     for(const d of DILIGENCES) parPhase[d.phase] = (parPhase[d.phase] || 0) + 1;
-    assert.deepEqual(parPhase, { 1: 3, 2: 4, 3: 5 });
+    // parties-liees et ecritures sont passées en phase 3 (arborescence a→u : elles
+    // rejoignent respectivement « p. Vérifications spéci & obligations » et
+    // « s. Traitement de la réponse à la note de synthèse », toutes deux en clôture).
+    assert.deepEqual(parPhase, { 1: 2, 2: 2, 3: 7 });
 });
 
 test('SECTIONS — chaque section porte sa base normative et son objectif', () => {
@@ -44,7 +47,7 @@ test('SECTIONS — les identifiants sont uniques et ne heurtent aucun onglet exi
     const ids = DILIGENCES.map(d => d.id);
     assert.equal(new Set(ids).size, ids.length, 'identifiant de section en double');
     // Les onglets d'origine sont déclarés dans TABS par le module 10.
-    const origine = ['sommaire','identification','planification','programme','questionnaire',
+    const origine = ['identification','planification','programme','questionnaire',
                      'risques','bilan','resultat','detection','revue','synthese','redaction'];
     for(const id of ids)
         assert.ok(!origine.includes(id), `${id} écraserait un onglet existant`);
@@ -125,12 +128,6 @@ test('OHADA — les conventions réglementées alimentent le rapport spécial', 
         'le rapport spécial doit être exigé');
     assert.ok(p.points.some(x => /conventions interdites/i.test(x.q)),
         'les conventions interdites doivent être recherchées');
-});
-
-test('OBLIGATOIRE — indépendance, incompatibilités et lettre de mission', () => {
-    const a = DILIGENCES.find(d => d.id === 'acceptation');
-    for(const sujet of [/lettre de mission/i, /incompatibilité/i, /indépendance/i, /durée du mandat/i])
-        assert.ok(a.points.some(p => sujet.test(p.q)), `point manquant : ${sujet}`);
 });
 
 /* ---------------- Rendu et installation ---------------- */

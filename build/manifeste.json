@@ -35,15 +35,18 @@
     "32-assertions-risques.js",
     "33-diligences-normatives.js",
     "34-programme-assertions.js",
-    "35-constatations.js",
     "36-faits-exercice.js",
     "37-revue-detail.js",
     "38-rapport-general.js",
-    "39-echantillon-fusion.js",
     "40-rapport-special.js",
     "41-echantillonnage.js",
     "42-mobile-pwa.js",
     "43-seuils-cycles.js",
-    "44-vue-onglets.js"
+    "48-tableaux-fiscaux.js",
+    "49-centralisation-anomalies.js",
+    "47-choix-opinion.js",
+    "44-vue-onglets.js",
+    "45-securite-import.js",
+    "46-session-inactivite.js"
   ]
 }

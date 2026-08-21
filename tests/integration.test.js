@@ -9,7 +9,6 @@
        → balanceData
        → liasse : bilan, résultat, TFT
        → cycles et détection des erreurs
-       → constatations d'audit
        → rapport général
 
    Chaque maillon est couvert isolément ; c'est leur enchaînement qui
@@ -21,7 +20,7 @@
    régression parseNum. La chaîne est donc éprouvée sur le format qui
    l'avait cassée.
    ================================================================== */
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
@@ -58,6 +57,11 @@ await new Promise(r => {
 });
 await new Promise(r => setTimeout(r, 60));
 const W = jsdom.window;
+
+// Sans ce close(), un minuteur réel enregistré par la fenêtre (déconnexion
+// automatique sur inactivité, 46-session-inactivite.js) retient le process
+// Node ouvert jusqu'à son échéance — voir la même note dans onglets-dom.test.js.
+after(() => { jsdom.window.close(); });
 
 /* Étape 1 — l'auditeur colle ses deux balances */
 for(const ex of ['n', 'n1']){
@@ -123,15 +127,6 @@ test('CHAÎNE 7 — les contrôles croisés bloquants sortent à écart nul', ()
     }
 });
 
-test('CHAÎNE 8 — les constatations ne signalent aucun bloquant sur un jeu sain', () => {
-    // JSON.parse recopie dans notre realm : assert.deepEqual compare les
-    // prototypes, et un tableau né dans jsdom n'est jamais « égal » au nôtre.
-    const F = JSON.parse(JSON.stringify(W.fmCollecter()));
-    const bloquants = F.filter(x => x.degre === 'BLOQUANT').map(x => x.libelle);
-    assert.deepEqual(bloquants, [],
-        'un jeu réconcilié ne doit produire aucune constatation bloquante');
-});
-
 test('CHAÎNE 9 — la revue analytique détaillée recoupe les grandes masses', () => {
     assert.equal(arrondi(W.rvdTotaux('ai').n),  REF.actif.AZ[2]);
     assert.equal(arrondi(-W.rvdTotaux('cp').n), REF.passif.CP[0]);
@@ -173,7 +168,6 @@ test('CHAÎNE 13 — une balance vide ne casse aucun maillon', () => {
             const V = d.window;
             assert.doesNotThrow(() => V.runDetection());
             assert.doesNotThrow(() => V.liasseGetActif('n'));
-            assert.doesNotThrow(() => V.fmCollecter());
             assert.doesNotThrow(() => V.rapGenerer());
             assert.doesNotThrow(() => V.convGenerer());
             assert.ok(V.rapGenerer().includes('[Raison sociale]'),

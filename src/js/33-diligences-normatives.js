@@ -34,25 +34,6 @@ var DILIGENCES = [
 
 /* ---------------- PHASE 1 ---------------- */
 {
- id:'acceptation', ico:'🤝', titre:'Acceptation & Indépendance', phase:1,
- norme:'ISA 210 · ISA 220 · AUSCGIE art. 694 à 700',
- objectif:"Établir que la mission peut être acceptée ou maintenue, que le commissaire aux comptes est indépendant et qu'aucune incompatibilité ne l'atteint, et que les termes de la mission sont convenus par écrit.",
- points:[
-  {t:'oui', q:"Les conditions préalables à l'audit sont-elles réunies : référentiel comptable acceptable et accord de la direction sur ses responsabilités ?", aide:"ISA 210. Le référentiel est le SYSCOHADA révisé."},
-  {t:'oui', q:"La lettre de mission a-t-elle été signée et versée au dossier ?", aide:"ISA 210. À renouveler en cas de changement de circonstances."},
-  {t:'date', q:"Date de signature de la lettre de mission"},
-  {t:'oui', q:"La nomination résulte-t-elle d'une décision régulière de l'assemblée, et la durée du mandat est-elle conforme ?", aide:"AUSCGIE : six exercices pour les SA, trois pour les SARL. Vérifier le PV et le dépôt au RCCM."},
-  {t:'texte', q:"Exercices couverts par le mandat en cours (du … au …)"},
-  {t:'oui', q:"L'absence d'incompatibilité a-t-elle été vérifiée pour chaque signataire et chaque membre de l'équipe ?", aide:"AUSCGIE art. 697 et suivants : dirigeants, apparentés, salariés, apports en nature, rémunération autre que les honoraires."},
-  {t:'oui', q:"Une déclaration d'indépendance annuelle a-t-elle été recueillie auprès de chaque intervenant ?", aide:"ISA 220. Couvrir les liens financiers, personnels et d'affaires."},
-  {t:'oui', q:"Les services non-audit rendus à l'entité ou à son groupe ont-ils été recensés et leur compatibilité appréciée ?"},
-  {t:'oui', q:"Les honoraires proposés permettent-ils de couvrir les diligences nécessaires ?", aide:"Un honoraire manifestement insuffisant fait peser un risque sur la qualité et sur l'indépendance."},
-  {t:'oui', q:"L'entité a-t-elle été soumise au dispositif de lutte contre le blanchiment et le financement du terrorisme (identification du bénéficiaire effectif) ?"},
-  {t:'oui', q:"En cas de succession, le prédécesseur a-t-il été contacté et le dossier antérieur consulté ?", aide:"ISA 510 pour les soldes d'ouverture."},
-  {t:'zone', q:"Conclusion sur l'acceptation ou le maintien de la mission"}
- ]
-},
-{
  id:'fraude', ico:'🕵️', titre:'Risque de Fraude', phase:1,
  norme:'ISA 240 · ISA 315',
  objectif:"Identifier et évaluer le risque d'anomalies significatives résultant de fraudes, et concevoir les procédures qui répondent à ce risque. La responsabilité de la prévention incombe à la direction et à la gouvernance ; celle de l'auditeur est d'obtenir une assurance raisonnable.",
@@ -96,7 +77,7 @@ var DILIGENCES = [
 
 /* ---------------- PHASE 2 ---------------- */
 {
- id:'parties-liees', ico:'🔗', titre:'Parties liées & Conventions réglementées', phase:2,
+ id:'parties-liees', ico:'🔗', titre:'Parties liées & Conventions réglementées', phase:3,
  norme:'ISA 550 · AUSCGIE art. 438 et suivants',
  objectif:"Identifier les parties liées et les opérations conclues avec elles, apprécier leur traitement comptable et l'information donnée, et réunir les éléments du rapport spécial sur les conventions réglementées.",
  points:[
@@ -114,7 +95,7 @@ var DILIGENCES = [
  ]
 },
 {
- id:'ecritures', ico:'📓', titre:'Test des écritures comptables', phase:2,
+ id:'ecritures', ico:'📓', titre:'Test des écritures comptables', phase:3,
  norme:'ISA 240 §32',
  objectif:"Tester les écritures portées au grand livre et les autres ajustements, pour répondre au risque de contournement des contrôles par la direction. Cette diligence est obligatoire et ne se substitue à aucune autre.",
  points:[

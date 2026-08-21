@@ -1,16 +1,16 @@
-// >>>>>>>>>>>>>>>>>>> À REMPLIR (voir GUIDE_CONFIGURATION.md) <<<<<<<<<<<<<<<<<<<<
+// Valeurs résolues au build par build/build.mjs à partir de .env (voir .env.example) —
+// ne jamais coder de vraie valeur en dur ici, même si une clé Firebase Web n'est pas un
+// secret au sens strict (elle identifie le projet ; la vraie barrière est firestore.rules).
 var FIREBASE_CONFIG = {
-    apiKey: "AIzaSyA6aRwxUYc4L8vTHo4u5fREN66p4ehfeuA",
-    authDomain: "seven7-audit.firebaseapp.com",
-    projectId: "seven7-audit",
-    storageBucket: "seven7-audit.firebasestorage.app",
-    messagingSenderId: "447402032316",
-    appId: "1:447402032316:web:b79faf737b9f15144764b9"
+    apiKey: "@@ENV_FIREBASE_API_KEY@@",
+    authDomain: "@@ENV_FIREBASE_AUTH_DOMAIN@@",
+    projectId: "@@ENV_FIREBASE_PROJECT_ID@@",
+    storageBucket: "@@ENV_FIREBASE_STORAGE_BUCKET@@",
+    messagingSenderId: "@@ENV_FIREBASE_MESSAGING_SENDER_ID@@",
+    appId: "@@ENV_FIREBASE_APP_ID@@"
 };
-// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 var TABS = [
-    {id:'sommaire', label:'📋 Sommaire', phase:1},
     {id:'identification', label:'🏢 Fiche Identification', phase:1},
     {id:'planification', label:'📊 Planification', phase:1},
     {id:'programme', label:'📅 Programme Travail', phase:1},
@@ -26,8 +26,6 @@ var TABS = [
     {id:'resultat', label:'💰 RESULTAT', phase:2},
     {id:'detection', label:'🔎 Détection Erreurs', phase:2},
     {id:'revue', label:'📊 Revue Analytique', phase:2},
-    {id:'charges', label:'💸 CHARGES À CONTRÔLER', phase:2},
-    {id:'ventes', label:'💵 VENTES À CONTRÔLER', phase:2},
     {id:'impots', label:'🏛️ IMPÔTS ET TAXES', phase:2},
     {id:'calendrier', label:'📆 Calendrier Fiscal', phase:2},
     {id:'referentiel', label:'📚 Référentiel Juridique & Fiscal', phase:2},
@@ -45,7 +43,7 @@ var TABS = [
     {id:'redaction', label:'📄 Rédaction Rapport', phase:3},
     {id:'messagerie', label:'💬 Messagerie', phase:3}
 ];
-var ALWAYS_ALLOWED = ['sommaire', 'messagerie'];
+var ALWAYS_ALLOWED = ['identification', 'messagerie'];
 // La messagerie a son propre système de synchronisation temps réel (conversations/messages
 // Firestore, géré par le module SEVEN7_MSG_*) : elle ne doit JAMAIS passer par le système
 // générique de synchronisation "brute" du HTML d'un onglet (scheduleSave/applyRemoteTab
@@ -1468,10 +1466,10 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 btn.title = '';
             }
         });
-        // Si l'onglet actif vient d'être verrouillé, revenir au sommaire
+        // Si l'onglet actif vient d'être verrouillé, revenir à la fiche d'identification
         var activeTab = document.querySelector('.tab-content.active');
         if(activeTab && allowed.indexOf(activeTab.id) === -1){
-            originalShowTab('sommaire');
+            originalShowTab('identification');
             alert('Votre accès à cet onglet a été retiré par l\'administrateur.');
         }
         // Session pont : ces boutons pilotent la gestion ANCIEN modèle (inviter par
@@ -1534,11 +1532,11 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
 
     function startPresenceTracking(){
         var currentTab = document.querySelector('.tab-content.active');
-        updatePresence(currentTab ? currentTab.id : 'sommaire');
+        updatePresence(currentTab ? currentTab.id : 'identification');
         clearInterval(presenceTimer);
         presenceTimer = setInterval(function(){
             var t = document.querySelector('.tab-content.active');
-            updatePresence(t ? t.id : 'sommaire');
+            updatePresence(t ? t.id : 'identification');
         }, 20000);
         // Le coût réel grandit avec le nombre de sessions SIMULTANÉMENT connectées, pas
         // avec le nombre de dossiers stockés. Un onglet de navigateur laissé ouvert en
@@ -1577,10 +1575,10 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             presenceTimer = null;
         } else if(!presenceTimer){
             var t = document.querySelector('.tab-content.active');
-            updatePresence(t ? t.id : 'sommaire'); // rafraîchit tout de suite au retour, sans attendre jusqu'à 20s
+            updatePresence(t ? t.id : 'identification'); // rafraîchit tout de suite au retour, sans attendre jusqu'à 20s
             presenceTimer = setInterval(function(){
                 var tt = document.querySelector('.tab-content.active');
-                updatePresence(tt ? tt.id : 'sommaire');
+                updatePresence(tt ? tt.id : 'identification');
             }, 20000);
         }
     }
@@ -2143,14 +2141,10 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     }
 
     // ---------- 5. Changer de dossier / Déconnexion (avec sauvegarde préalable) ----------
-    window.logoutDossier = function(){
-        if(!dossierId || !db){
-            // Aucune session collaborative active : retour direct à l'écran de sélection
-            document.getElementById('lock-screen').style.display = 'flex';
-            document.getElementById('collab-bar').style.display = 'none';
-            return;
-        }
-        if(!confirm('Sauvegarder le travail en cours et revenir à l\'écran de sélection de dossier ?\n\nVous pourrez rouvrir ce dossier plus tard exactement où vous vous êtes arrêté(e).')) return;
+    // Corps commun, sans confirmation : utilisé par la déconnexion manuelle (après confirm())
+    // et par la déconnexion automatique sur inactivité (voir 46-session-inactivite.js), qui ne
+    // doit surtout pas ouvrir de confirm() bloquant après 30 minutes sans personne à l'écran.
+    function executerDeconnexion(){
         setStatus('💾 Sauvegarde en cours avant déconnexion…');
         // Flush immédiat : annule les sauvegardes différées et enregistre tous les onglets maintenant
         var promises = TABS.filter(function(t){ return TAB_SYNC_EXCLUDED.indexOf(t.id) === -1; }).map(function(t){
@@ -2169,6 +2163,24 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             // Le dossier quitté reste intégralement sauvegardé côté Firestore et pourra être rouvert plus tard.
             window.location.reload();
         });
+    }
+    window.logoutDossier = function(){
+        if(!dossierId || !db){
+            // Aucune session collaborative active : retour direct à l'écran de sélection
+            document.getElementById('lock-screen').style.display = 'flex';
+            document.getElementById('collab-bar').style.display = 'none';
+            return;
+        }
+        if(!confirm('Sauvegarder le travail en cours et revenir à l\'écran de sélection de dossier ?\n\nVous pourrez rouvrir ce dossier plus tard exactement où vous vous êtes arrêté(e).')) return;
+        executerDeconnexion();
+    };
+    window.logoutDossierSilencieux = function(){
+        if(!dossierId || !db){
+            document.getElementById('lock-screen').style.display = 'flex';
+            document.getElementById('collab-bar').style.display = 'none';
+            return;
+        }
+        executerDeconnexion();
     };
 
     // Les règles Firestore de l'app couvrent uniquement /seven7_dossiers/{dossier}/tabs/{tabId}

@@ -1,0 +1,132 @@
+/* ==================================================================
+   TABLEAUX FISCAUX ET SOCIAUX MENSUELS (onglet l)
+
+   Le rapprochement comptes/déclaré (IMPOTS_ROWS, 08-controles-audit.js)
+   a ses propres tests ailleurs ; ceux-ci couvrent uniquement le suivi
+   déclaratif mensuel ajouté par 48-tableaux-fiscaux.js : la TVA (solde,
+   bascule due/crédit), la patente (écart) et les totaux calculés (CNPS).
+   ================================================================== */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { JSDOM, VirtualConsole } from 'jsdom';
+import { cheminApplication } from './harness.js';
+
+const html = fs.readFileSync(cheminApplication(), 'utf8');
+
+function dom(){
+    return new JSDOM(html, {
+        runScripts: 'dangerously', pretendToBeVisual: true,
+        url: 'https://seven7-audit.web.app/', virtualConsole: new VirtualConsole(),
+    });
+}
+async function domPret(){
+    const d = dom();
+    const w = d.window;
+    if(w.document.readyState !== 'complete')
+        await new Promise(r => w.addEventListener('load', r, { once:true }));
+    await new Promise(r => setTimeout(r, 60));
+    return d;
+}
+
+test('INSTALLATION — les tableaux fiscaux sont posés une seule fois dans l’onglet impôts', async () => {
+    const d = await domPret();
+    const w = d.window;
+    const avant = w.document.querySelectorAll('#impots .card').length;
+    w.tfInstaller();
+    w.tfInstaller();
+    assert.equal(w.document.querySelectorAll('#impots .card').length, avant, 'carte dupliquée');
+    assert.ok(w.document.getElementById('tf-tva'), 'tableau TVA absent');
+    assert.ok(w.document.getElementById('tf-groupe1'), 'tableau impôts groupe 1 absent');
+    assert.ok(w.document.getElementById('tf-groupe2'), 'tableau impôts groupe 2 absent');
+    assert.ok(w.document.getElementById('tf-cnps'), 'tableau CNPS absent');
+    assert.ok(w.document.getElementById('tf-cmu'), 'tableau CMU isolée absent');
+    // 12 lignes de mois + 1 en-tête
+    assert.equal(w.document.getElementById('tf-tva').rows.length, 13);
+    d.window.close();
+});
+
+test('TVA — un solde mensuel positif alimente TVA due, jamais le crédit', async () => {
+    const d = await domPret();
+    const w = d.window;
+    const tr = w.document.getElementById('tf-tva').rows[1]; // Janvier
+    tr.querySelector('[data-tf-col="TVA_Collectee"]').value = '1000000';
+    tr.querySelector('[data-tf-col="TVA_Recuperable"]').value = '400000';
+    w.tfRecalculerTVA();
+    assert.equal(w.parseNum(tr.querySelector('[data-tf-col="TVA_Due"]').textContent), 600000);
+    assert.equal(w.parseNum(tr.querySelector('[data-tf-col="Credit_TVA"]').textContent), 0);
+    d.window.close();
+});
+
+test('TVA — un solde mensuel négatif alimente le crédit, jamais la TVA due', async () => {
+    const d = await domPret();
+    const w = d.window;
+    const tr = w.document.getElementById('tf-tva').rows[1];
+    tr.querySelector('[data-tf-col="TVA_Collectee"]').value = '200000';
+    tr.querySelector('[data-tf-col="TVA_Recuperable"]').value = '500000';
+    w.tfRecalculerTVA();
+    assert.equal(w.parseNum(tr.querySelector('[data-tf-col="TVA_Due"]').textContent), 0);
+    assert.equal(w.parseNum(tr.querySelector('[data-tf-col="Credit_TVA"]').textContent), 300000);
+    d.window.close();
+});
+
+test('CRÉDIT DE TVA — solde annuel positif grise et désactive la section', async () => {
+    const d = await domPret();
+    const w = d.window;
+    const table = w.document.getElementById('tf-tva');
+    table.rows[1].querySelector('[data-tf-col="TVA_Collectee"]').value = '1000000';
+    w.tfRecalculerTVA();
+    const section = w.document.getElementById('tf-credit-tva-section');
+    assert.ok(section.classList.contains('tf-section-grisee'), 'section devrait être grisée');
+    assert.equal(w.document.getElementById('tf-credit-tva-montant').disabled, true);
+    d.window.close();
+});
+
+test('CRÉDIT DE TVA — solde annuel négatif ouvre la section à la saisie', async () => {
+    const d = await domPret();
+    const w = d.window;
+    const table = w.document.getElementById('tf-tva');
+    table.rows[1].querySelector('[data-tf-col="TVA_Recuperable"]').value = '1000000';
+    w.tfRecalculerTVA();
+    const section = w.document.getElementById('tf-credit-tva-section');
+    assert.equal(section.classList.contains('tf-section-grisee'), false, 'section ne devrait pas être grisée');
+    assert.equal(w.document.getElementById('tf-credit-tva-montant').disabled, false);
+    d.window.close();
+});
+
+test('CNPS — le total se recalcule à partir des quatre cotisations', async () => {
+    const d = await domPret();
+    const w = d.window;
+    const tr = w.document.getElementById('tf-cnps').rows[1];
+    const input = tr.querySelector('[data-tf-col="RETRAITE"]');
+    input.value = '50000';
+    tr.querySelector('[data-tf-col="ACT"]').value = '10000';
+    tr.querySelector('[data-tf-col="ASSM_PRES_F"]').value = '20000';
+    tr.querySelector('[data-tf-col="CMU"]').value = '5000';
+    w.tfRecalculerLigne('cnps', input);
+    assert.equal(w.parseNum(tr.querySelector('[data-tf-col="CNPS"]').textContent), 85000);
+    d.window.close();
+});
+
+test('PATENTE — l’écart compare le comptabilisé aux deux tranches payées', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.document.getElementById('tf-patente-Comptabilite').value = '500000';
+    w.document.getElementById('tf-patente-Tranche_1').value = '200000';
+    w.document.getElementById('tf-patente-Tranche_2').value = '250000';
+    w.tfRecalculerPatente();
+    assert.equal(w.parseNum(w.document.getElementById('tf-patente-Ecart').value), 50000);
+    assert.equal(w.tfEcartPatente(), 50000);
+    d.window.close();
+});
+
+test('PATENTE — sans écart, tfEcartPatente rend 0', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.document.getElementById('tf-patente-Comptabilite').value = '450000';
+    w.document.getElementById('tf-patente-Tranche_1').value = '200000';
+    w.document.getElementById('tf-patente-Tranche_2').value = '250000';
+    w.tfRecalculerPatente();
+    assert.equal(w.tfEcartPatente(), 0);
+    d.window.close();
+});

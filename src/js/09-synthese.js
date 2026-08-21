@@ -173,8 +173,6 @@ function updateAllCalculations(){
     // Étape 2 : contrôles d'audit automatisés
     runDetection();
     runRevueAnalytique();
-    renderEchantillon('Charge');
-    renderEchantillon('Vente');
     recomputeImpots();
     computeAnormaux();
     if(typeof computeSelectionComptes === 'function') computeSelectionComptes();

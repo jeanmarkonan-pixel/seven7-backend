@@ -100,6 +100,15 @@ function pasteBalance(ex){
     var text = document.getElementById('paste-'+ex).value;
     if(!text.trim()) return;
     var lines = text.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; });
+    balanceInsererLignes(ex, lines);
+    document.getElementById('paste-'+ex).value = '';
+}
+
+// Insère des lignes tab-délimitées (compte / intitulé / od / oc / md / mc / sd / sc)
+// dans la table de balance. Point d'entrée commun au collage (ci-dessus) et à
+// l'import de fichier CSV (voir 45-securite-import.js), qui normalise d'abord
+// l'ordre de ses colonnes vers ce même format avant d'appeler cette fonction.
+function balanceInsererLignes(ex, lines){
     var table = document.getElementById('table-balance-'+ex);
     lines.forEach(function(line){
         var parts = line.split('\t');
@@ -119,7 +128,6 @@ function pasteBalance(ex){
         tr.innerHTML = balanceRowHtml(ex, row);
         table.appendChild(tr);
     });
-    document.getElementById('paste-'+ex).value = '';
     recomputeBalanceFromTable(ex);
 }
 

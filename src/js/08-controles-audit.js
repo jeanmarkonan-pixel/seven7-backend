@@ -513,59 +513,6 @@ function runRevueAnalytique(){
     if(badge){ badge.textContent = 'Auto'; badge.className='badge badge-success'; }
 }
 
-// ---------- 3 & 4. ÉCHANTILLONS CHARGES / VENTES ----------
-function renderEchantillon(type){
-    var isCharge = type === 'Charge';
-    var prefix = isCharge ? 'ch' : 've';
-    var tableId = isCharge ? 'charges-table' : 'ventes-table';
-    scrapeConclusions(tableId); // préserve les conclusions déjà saisies avant de reconstruire le tableau
-    var lignes = (grandLivreData||[]).filter(function(r){ return r.type === type; });
-    lignes.sort(function(a,b){ return b.montant - a.montant; });
-    var total = lignes.reduce(function(s,r){ return s+r.montant; }, 0);
-
-    // Seuils modifiables par l'utilisateur : préremplis avec les seuils de planification
-    // à la première initialisation, mais jamais écrasés ensuite tant qu'ils ne sont pas
-    // explicitement réinitialisés via le bouton dédié.
-    var inputOblig = document.getElementById(prefix+'-seuil-oblig');
-    var inputCompl = document.getElementById(prefix+'-seuil-compl');
-    if(inputOblig && inputOblig.value === ''){ inputOblig.value = Math.round(seuils.planif) || ''; }
-    if(inputCompl && inputCompl.value === ''){ inputCompl.value = Math.round(seuils.faible) || ''; }
-    var seuilObligatoire = inputOblig ? parseNum(inputOblig.value) : seuils.planif;
-    var seuilComplementaire = inputCompl ? parseNum(inputCompl.value) : seuils.faible;
-
-    var cumul = 0, nbSelect = 0, montantSelect = 0, nbAnomalies = 0;
-    var html = '<tr><th>N° Compte</th><th>Intitulé</th><th>Date</th><th>Référence</th><th>Libellé</th><th>Montant</th><th>% cumulé</th><th>Sélection</th><th>Conclusion</th><th>Observation</th><th>📷 Facture</th></tr>';
-    if(lignes.length===0){
-        html += '<tr><td colspan="11" style="text-align:center;color:#888;">Aucune écriture de type « '+type+' » dans le Grand Livre</td></tr>';
-    }
-    lignes.forEach(function(r){
-        cumul += r.montant;
-        var pctCumul = total !== 0 ? (cumul/total)*100 : 0;
-        var selection = '';
-        if(r.montant >= seuilObligatoire && seuilObligatoire > 0){ selection = '✓ Obligatoire (> seuil)'; nbSelect++; montantSelect += r.montant; }
-        else if(r.montant >= seuilComplementaire && seuilComplementaire > 0){ selection = '~ Complémentaire'; nbSelect++; montantSelect += r.montant; }
-        var key = glRowKey(r);
-        if(conclusionsEcritures[key] && conclusionsEcritures[key].statut === 'Anomalie') nbAnomalies++;
-        html += '<tr'+(selection?' class="risk-high"':'')+'><td>'+esc(r.compte)+'</td><td>'+esc(r.intitule)+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.ref)+'</td><td>'+esc(r.libelle)+'</td><td class="number">'+fmt(r.montant)+'</td><td class="number">'+pctCumul.toFixed(1)+'%</td><td>'+selection+'</td>'+renderConclusionCells(key)+renderFactureCell(key, r.montant)+'</tr>';
-    });
-    setHtml(tableId, html);
-    setText(prefix+'-nb-total', lignes.length);
-    setText(prefix+'-nb-select', nbSelect);
-    setText(prefix+'-taux-couverture', total !== 0 ? ((montantSelect/total)*100).toFixed(1)+'%' : '0%');
-    setText(prefix+'-nb-anomalies', nbAnomalies);
-    var badge = document.getElementById('status-'+(isCharge?'charges':'ventes'));
-    if(badge){ badge.textContent = lignes.length ? nbSelect+' sélectionnée(s)' : 'En attente'; badge.className = lignes.length ? 'badge badge-success' : 'badge badge-danger'; }
-}
-function resetEchantillonSeuil(type){
-    var isCharge = type === 'Charge';
-    var prefix = isCharge ? 'ch' : 've';
-    var inputOblig = document.getElementById(prefix+'-seuil-oblig');
-    var inputCompl = document.getElementById(prefix+'-seuil-compl');
-    if(inputOblig) inputOblig.value = Math.round(seuils.planif) || '';
-    if(inputCompl) inputCompl.value = Math.round(seuils.faible) || '';
-    renderEchantillon(type);
-}
-
 // ---------- Seuils de planification modifiables ----------
 // Seuls "signif" (seuil de signification global) reste librement surchargeable.
 // "faible" et "planif" sont désormais calculés automatiquement à partir de taux (%) ajustables.

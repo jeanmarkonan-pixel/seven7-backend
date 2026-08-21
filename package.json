@@ -4,6 +4,7 @@
   "description": "SEVEN7 AUDIT — outil d'audit externe sous référentiel SYSCOHADA révisé / OHADA",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "estampiller": "node build/version.mjs",
     "build": "node build/build.mjs",

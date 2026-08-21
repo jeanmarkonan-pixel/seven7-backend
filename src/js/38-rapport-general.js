@@ -80,15 +80,32 @@ function rapDonnees(){
 }
 
 /* Les constatations bloquantes et majeures nourrissent le fondement de
-   l'opinion : ce sont elles qui justifient une réserve. */
+   l'opinion : ce sont elles qui justifient une réserve.
+
+   fmCollecter() vivait dans l'onglet Constatations d'audit, retiré avec
+   le reste de l'onglet (chantier 4). Le moteur de centralisation des
+   anomalies (49-centralisation-anomalies.js, onglet s) en tient lieu
+   désormais : une anomalie encore SANS justification vaut bloquante —
+   dès qu'elle est justifiée, elle sort du fondement de l'opinion, elle
+   n'est plus considérée comme y faisant obstacle. Pas de distinction
+   « majeure » de son côté : tout non résolu remonte en bloquant. */
 function rapConstatations(){
     try{
-        if(typeof fmCollecter !== 'function') return { bloquants:[], majeurs:[] };
-        var c = fmCollecter();
-        return {
-            bloquants: c.filter(function(x){ return x.degre === 'BLOQUANT'; }),
-            majeurs:   c.filter(function(x){ return x.degre === 'MAJEUR'; })
-        };
+        if(typeof fmCollecter === 'function'){
+            var c = fmCollecter();
+            return {
+                bloquants: c.filter(function(x){ return x.degre === 'BLOQUANT'; }),
+                majeurs:   c.filter(function(x){ return x.degre === 'MAJEUR'; })
+            };
+        }
+        if(typeof anToutesAnomalies === 'function'){
+            var bloquants = anToutesAnomalies().filter(function(a){ return !a.resolue; }).map(function(a){
+                return { source: a.source, libelle: a.description,
+                    incidence: (a.montant === null || a.montant === undefined) ? '' : fmt(a.montant) };
+            });
+            return { bloquants: bloquants, majeurs: [] };
+        }
+        return { bloquants:[], majeurs:[] };
     }catch(e){ return { bloquants:[], majeurs:[] }; }
 }
 

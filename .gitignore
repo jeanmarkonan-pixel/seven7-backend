@@ -1,5 +1,6 @@
 node_modules/
 *.log
+.env
 firebase-debug.log
 firestore-debug.log
 .DS_Store
