@@ -84,18 +84,30 @@
         #phaseNav.vue-reduite .onglet-groupe > .tab-btn { display: none; width: 100%; text-align: left; padding-left: 30px; }
         #phaseNav.vue-reduite .onglet-groupe.ouvert > .tab-btn { display: block; }
 
-        /* ---- Menu déroulant par phase (22/08) : la version « toujours visible » (tous les
-           onglets d'une phase affichés en permanence en ligne) devenait trop volumineuse et
-           touffue dès qu'une phase compte beaucoup d'onglets (Phase 2/3). Un clic sur une
-           phase révèle maintenant un petit panneau déroulant avec ses onglets ; un clic sur
-           un onglet (ou ailleurs) le referme. Repose sur les règles génériques .tabs-container
-           / .phase-group / .phase-menu-btn / .phase-dropdown ci-dessus (déjà présentes dans le
-           fichier) : #phaseNav ne leur ajoute ici que de menus ajustements. */
+        /* ---- Bloc dépliable par phase (22/08, v2) : un clic sur une phase révèle ses
+           onglets, mais en BLOC horizontal (1-2 lignes qui se rangent), pas en colonne
+           déroulante étroite — le repli reste identique (clic à nouveau, ou sélection
+           d'un onglet ailleurs). La phase ouverte prend toute la largeur de #phaseNav
+           (flex-basis:100%) pour que son bloc ait la place de s'étaler sur 1-2 lignes
+           plutôt que de s'empiler verticalement dans la largeur étroite de son bouton. */
         #phaseNav { border-bottom: 2px solid #ddd; }
+        #phaseNav .phase-group.open { flex: 1 1 100%; }
+        #phaseNav .phase-dropdown { position: static; top: auto; left: auto;
+            flex-direction: row; flex-wrap: wrap; width: 100%;
+            background: #fafbfc; border: 1px solid #eee; border-top: none;
+            box-shadow: none; min-width: 0; max-width: none; max-height: none;
+            overflow: visible; padding: 8px 10px; }
+        #phaseNav .phase-dropdown .tab-btn { width: auto; text-align: center;
+            border-left: none; border-bottom: 3px solid transparent; padding: 10px 13px;
+            font-size: 12px; white-space: nowrap; }
+        #phaseNav .phase-dropdown .tab-btn.active { font-weight: 700; }
+        #phaseNav .phase-dropdown .tab-btn.phase1.active { border-left-color: transparent; border-bottom-color: #3498db; }
+        #phaseNav .phase-dropdown .tab-btn.phase2.active { border-left-color: transparent; border-bottom-color: #e67e22; }
+        #phaseNav .phase-dropdown .tab-btn.phase3.active { border-left-color: transparent; border-bottom-color: #27ae60; }
         #phaseNav .vue-onglets-toggle-btn { margin: 10px 14px; }
         @media (max-width: 700px) {
             .phase-menu-btn { flex: 1; justify-content: center; padding: 12px 8px; font-size: 11px; }
-            .phase-dropdown { left: 0; right: 0; min-width: 0; max-width: none; }
+            #phaseNav .phase-dropdown .tab-btn { padding: 9px 10px; font-size: 11.5px; }
         }
         .current-tab-bar { background: #eaf2f8; color: #1a5276; font-size: 12px; font-weight: 600; padding: 8px 20px; border-bottom: 1px solid #ddd; }
         .content { padding: 20px; max-width: 1400px; margin: 0 auto; }
