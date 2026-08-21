@@ -234,6 +234,14 @@ function showTab(id){
         var bar = document.getElementById('currentTabBar');
         if(bar) bar.textContent = btn.textContent;
     }
+    // Emmène directement le contenu de l'onglet cliqué à l'écran : sans ça, sur
+    // petit écran (sidebar empilée au-dessus, voir #phaseNav en @media max-width:900px)
+    // ou avec un menu de phase déplié, le panneau activé reste hors champ et l'auditeur
+    // doit défiler à l'aveugle pour le trouver. scroll-margin-top (voir .tab-content.active)
+    // tient compte du bandeau fixe pour ne pas masquer le haut du panneau.
+    var panneau = document.getElementById(id);
+    if(panneau && typeof panneau.scrollIntoView === 'function')
+        panneau.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ---------- PCG SYSCOHADA révisé : recherche/filtre ----------
