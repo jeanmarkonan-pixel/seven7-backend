@@ -136,8 +136,14 @@
         .tab-content.active > * { max-width: 1400px; margin-left: auto; margin-right: auto; }
         @media (max-width: 900px) {
             #interface-audit-wrap { display: block; }
+            /* max-height:60vh + l'overflow-y:auto hérité de la règle de base créaient une
+               mini-zone de défilement INTERNE à la sidebar : ouvrir une phase (ex. Phase 2,
+               12 boutons groupés) pouvait faire défiler son propre en-tête hors de cette
+               fenêtre de 60vh, donnant l'impression que l'onglet « disparaissait ». Sur
+               petit écran, la sidebar suit maintenant le défilement normal de la page (pas
+               de scroll imbriqué) : elle grandit avec son contenu, jamais ne le cache. */
             #phaseNav { position: static; width: 100%; flex: none; height: auto;
-                min-height: 0; max-height: 60vh;
+                min-height: 0; max-height: none; overflow-y: visible; overflow-x: hidden;
                 border-right: none; border-bottom: 2px solid #ddd; }
             .tab-content.active { padding: 14px; }
         }
