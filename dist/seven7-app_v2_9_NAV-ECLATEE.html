@@ -20,14 +20,15 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f6fa; color: #2c3e50; }
-        /* Compact et fixe ("continu") en haut de l'écran, quel que soit le défilement
-           de la zone de travail — c'est ce contre quoi la sidebar et le collab-bar
-           se calent (voir HEADER_HAUTEUR et leurs "top"). */
+        /* Fixe ("continu") en haut de l'écran, quel que soit le défilement de la zone
+           de travail — taille d'origine restaurée (28/08) sur demande, seule la fixité
+           (position:sticky) reste. La sidebar et le collab-bar se calent sur sa hauteur
+           réelle (~90px) via leurs "top" respectifs, sans quoi la sidebar déborderait. */
         .header { background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%); color: white;
-            padding: 8px 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: sticky; top: 0; z-index: 9600; }
-        .header h1 { font-size: 16px; margin-bottom: 1px; }
-        .header p { font-size: 11px; opacity: 0.9; }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .header p { font-size: 14px; opacity: 0.9; }
         /* ---- Sidebar gauche pleine hauteur (remplace la barre horizontale) ---- */
         #interface-audit-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
         .tabs-container { background: #fff; display: flex; flex-wrap: wrap; }
@@ -82,19 +83,20 @@
 
         /* ---- Sidebar : tous les onglets rangés verticalement, groupés par phase
            dans 3 accordéons dépliables (état persistant, voir togglePhaseMenu). ---- */
-        /* top/min-height calés sur la hauteur du bandeau fixe (52px, voir .header) : sans
-           ça la sidebar débordait de 100vh sous un bandeau qui prend déjà de la place,
-           rendant la Phase 3 atteignable seulement par un second défilement interne. */
-        #phaseNav { display: flex; flex-direction: column; flex: 0 0 225px; width: 225px;
-            position: sticky; top: 52px; align-self: flex-start; min-height: calc(100vh - 52px);
-            max-height: calc(100vh - 52px); overflow-y: auto;
+        /* Largeur d'origine restaurée (270px, sur demande). top/min-height calés sur la
+           hauteur réelle du bandeau fixe (90px, voir .header) : sans ça la sidebar déborde
+           sous un bandeau qui prend déjà de la place, rendant la Phase 3 atteignable
+           seulement par un second défilement interne. */
+        #phaseNav { display: flex; flex-direction: column; flex: 0 0 270px; width: 270px;
+            position: sticky; top: 90px; align-self: flex-start; min-height: calc(100vh - 90px);
+            max-height: calc(100vh - 90px); overflow-y: auto;
             background: #fff; border-right: 1px solid #e2e8f0; box-shadow: 2px 0 10px rgba(16,24,40,.03); }
         #phaseNav .phase-group { display: block; position: static; border-bottom: 1px solid #eef1f4; }
         #phaseNav .phase-group:last-child { border-bottom: none; }
         #phaseNav .phase-group.has-active .phase-menu-btn { background: #f7fafc; }
         #phaseNav .phase-menu-btn { pointer-events: auto; width: 100%;
             display: flex; align-items: center; justify-content: space-between; gap: 8px;
-            padding: 12px 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+            padding: 14px 16px; font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
             color: #5b6b7a; background: transparent; border: none; border-bottom: none; box-shadow: none; cursor: pointer;
             white-space: normal; text-align: left; line-height: 1.3; }
         #phaseNav .phase-menu-btn:hover { background: #f7fafc; }
@@ -366,7 +368,7 @@
 
     <div id="collab-invite-toast" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#27ae60; color:#fff; padding:10px 18px; border-radius:6px; font-size:12px; z-index:99999; box-shadow:0 4px 12px rgba(0,0,0,.3);">✅ Lien copié dans le presse-papiers !</div>
 
-    <div id="collab-bar" style="display:none; position:sticky; top:52px; z-index:9000; background:#12324a; color:#fff; padding:6px 14px; font-size:12px; align-items:center; gap:10px; flex-wrap:wrap; box-shadow:0 2px 6px rgba(0,0,0,.2);">
+    <div id="collab-bar" style="display:none; position:sticky; top:90px; z-index:9000; background:#12324a; color:#fff; padding:6px 14px; font-size:12px; align-items:center; gap:10px; flex-wrap:wrap; box-shadow:0 2px 6px rgba(0,0,0,.2);">
         <span id="collab-who">👤 —</span>
         <span id="collab-dossier-label">📁 —</span>
         <span id="collab-cabinet-quota" style="display:none; background:rgba(255,255,255,0.12); border-radius:4px; padding:3px 9px; font-size:11px; white-space:nowrap;">🏢 —</span>
