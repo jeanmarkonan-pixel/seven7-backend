@@ -31,8 +31,6 @@
             position: sticky; top: var(--collab-bar-h, 0px); z-index: 9500; }
         .header h1 { font-size: 24px; margin-bottom: 5px; }
         .header p { font-size: 14px; opacity: 0.9; }
-        /* ---- Sidebar gauche pleine hauteur (remplace la barre horizontale) ---- */
-        #interface-audit-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
         .tabs-container { background: #fff; display: flex; flex-wrap: wrap; }
         .tab-btn { padding: 12px 18px; border: none; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: #555; border-bottom: 3px solid transparent; transition: all 0.3s; white-space: nowrap; }
         .tab-btn:hover { background: #f0f4f8; color: #2980b9; }
@@ -86,67 +84,47 @@
         #phaseNav.vue-reduite .onglet-groupe > .tab-btn { display: none; width: 100%; text-align: left; padding-left: 30px; }
         #phaseNav.vue-reduite .onglet-groupe.ouvert > .tab-btn { display: block; }
 
-        /* ---- Sidebar : tous les onglets rangés verticalement, groupés par phase
-           dans 3 accordéons dépliables (état persistant, voir togglePhaseMenu). ---- */
-        /* Largeur d'origine restaurée (270px, sur demande). top/min-height calés sur la
-           hauteur réelle CUMULÉE de #collab-bar + .header via --top-total-h (recalculée en
-           JS, voir ajusterOffsetsEntete() dans 01-noyau.js) : sans ça la sidebar déborde
-           sous un bandeau qui prend déjà de la place, rendant la Phase 3 atteignable
-           seulement par un second défilement interne. Le fallback 90px ne sert qu'avant le
-           premier calcul JS (ou si ResizeObserver est indisponible). */
-        #phaseNav { display: flex; flex-direction: column; flex: 0 0 270px; width: 270px;
-            position: sticky; top: var(--top-total-h, 90px); align-self: flex-start;
-            min-height: calc(100vh - var(--top-total-h, 90px));
-            max-height: calc(100vh - var(--top-total-h, 90px)); overflow-y: auto; overflow-x: hidden;
-            background: #fff; border-right: 1px solid #e2e8f0; box-shadow: 2px 0 10px rgba(16,24,40,.03); }
-        #phaseNav .phase-group { display: block; position: static; border-bottom: 1px solid #eef1f4; }
+        /* ---- Navigation horizontale au-dessus de la zone de travail : restaurée le 22/08,
+           telle qu'elle était avant la sidebar verticale du 21/08. Chaque phase affiche sa
+           ligne d'onglets en permanence (pas d'accordéon à ouvrir) : la sidebar à gauche
+           obligeait à chercher où étaient passés les onglets, ce qui allait à l'encontre du
+           but recherché. ---- */
+        #phaseNav { display: block; background: #fff; border-bottom: 2px solid #ddd; }
+        #phaseNav .phase-group { display: flex; flex-wrap: wrap; align-items: stretch;
+            position: static; border-bottom: 1px solid #eee; }
         #phaseNav .phase-group:last-child { border-bottom: none; }
-        #phaseNav .phase-group.has-active .phase-menu-btn { background: #f7fafc; }
-        #phaseNav .phase-menu-btn { pointer-events: auto; width: 100%;
-            display: flex; align-items: center; justify-content: space-between; gap: 8px;
-            padding: 14px 16px; font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
-            color: #5b6b7a; background: transparent; border: none; border-bottom: none; box-shadow: none; cursor: pointer;
-            white-space: normal; text-align: left; line-height: 1.3; }
-        #phaseNav .phase-menu-btn:hover { background: #f7fafc; }
-        #phaseNav .phase-group.open .phase-menu-btn { background: #eaf2f8; color: #1a5276; }
-        #phaseNav .phase-menu-btn .chevron { display: inline-block; font-size: 10px; transition: transform .2s; }
-        #phaseNav .phase-group.open .phase-menu-btn .chevron { transform: rotate(180deg); }
+        #phaseNav .phase-group.open .phase-menu-btn,
+        #phaseNav .phase-group.has-active .phase-menu-btn { background: transparent; }
+        #phaseNav .phase-menu-btn { pointer-events: none; background: transparent;
+            display: flex; align-items: center; min-width: 132px; padding: 10px 12px;
+            font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+            color: #7a8794; border-bottom: none; border-right: 1px solid #eee; }
+        #phaseNav .phase-menu-btn .chevron { display: none; }
         #phaseNav .phase-menu-btn.phase1 { box-shadow: inset 4px 0 0 #3498db; }
         #phaseNav .phase-menu-btn.phase2 { box-shadow: inset 4px 0 0 #e67e22; }
         #phaseNav .phase-menu-btn.phase3 { box-shadow: inset 4px 0 0 #27ae60; }
-        #phaseNav .phase-dropdown { display: none; flex-direction: column;
+        #phaseNav .phase-dropdown { display: flex !important; flex-direction: row; flex-wrap: wrap;
             position: static; top: auto; left: auto; background: transparent; border: none;
             box-shadow: none; min-width: 0; max-width: none; max-height: none;
-            overflow: visible; padding: 4px 0 10px; }
-        #phaseNav .phase-group.open .phase-dropdown { display: flex; }
-        #phaseNav .phase-dropdown .tab-btn { width: 100%; text-align: left;
-            border-left: 3px solid transparent; border-bottom: none; padding: 9px 16px 9px 20px;
-            font-size: 12px; white-space: normal; overflow-wrap: break-word; }
-        #phaseNav .phase-dropdown .tab-btn.active { font-weight: 700; background: #e8f4f8; }
-        #phaseNav .phase-dropdown .tab-btn.phase1.active { border-left-color: #3498db; }
-        #phaseNav .phase-dropdown .tab-btn.phase2.active { border-left-color: #e67e22; }
-        #phaseNav .phase-dropdown .tab-btn.phase3.active { border-left-color: #27ae60; }
+            overflow: visible; padding: 0; flex: 1; }
+        #phaseNav .phase-dropdown .tab-btn { width: auto; text-align: center;
+            border-left: none; border-bottom: 3px solid transparent; padding: 10px 13px;
+            font-size: 12px; white-space: nowrap; }
+        #phaseNav .phase-dropdown .tab-btn.active { font-weight: 700; }
+        #phaseNav .phase-dropdown .tab-btn.phase1.active { border-left-color: transparent; border-bottom-color: #3498db; }
+        #phaseNav .phase-dropdown .tab-btn.phase2.active { border-left-color: transparent; border-bottom-color: #e67e22; }
+        #phaseNav .phase-dropdown .tab-btn.phase3.active { border-left-color: transparent; border-bottom-color: #27ae60; }
         #phaseNav .vue-onglets-toggle-btn { margin: 10px 14px; }
+        @media (max-width: 700px) {
+            #phaseNav .phase-group { display: block; }
+            #phaseNav .phase-menu-btn { width: 100%; min-width: 0; border-right: none;
+                border-bottom: 1px solid #eee; justify-content: flex-start; }
+            #phaseNav .phase-dropdown .tab-btn { padding: 9px 10px; font-size: 11.5px; }
+        }
         .current-tab-bar { background: #eaf2f8; color: #1a5276; font-size: 12px; font-weight: 600; padding: 8px 20px; border-bottom: 1px solid #ddd; }
         .content { padding: 20px; max-width: 1400px; margin: 0 auto; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; padding: 20px;
-            scroll-margin-top: var(--top-total-h, 90px); }
-        .tab-content.active > .card:first-child,
-        .tab-content.active > * { max-width: 1400px; margin-left: auto; margin-right: auto; }
-        @media (max-width: 900px) {
-            #interface-audit-wrap { display: block; }
-            /* max-height:60vh + l'overflow-y:auto hérité de la règle de base créaient une
-               mini-zone de défilement INTERNE à la sidebar : ouvrir une phase (ex. Phase 2,
-               12 boutons groupés) pouvait faire défiler son propre en-tête hors de cette
-               fenêtre de 60vh, donnant l'impression que l'onglet « disparaissait ». Sur
-               petit écran, la sidebar suit maintenant le défilement normal de la page (pas
-               de scroll imbriqué) : elle grandit avec son contenu, jamais ne le cache. */
-            #phaseNav { position: static; width: 100%; flex: none; height: auto;
-                min-height: 0; max-height: none; overflow-y: visible; overflow-x: hidden;
-                border-right: none; border-bottom: 2px solid #ddd; }
-            .tab-content.active { padding: 14px; }
-        }
+        .tab-content.active { display: block; scroll-margin-top: var(--top-total-h, 90px); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .card h2 { color: #1a5276; margin-bottom: 15px; font-size: 18px; border-bottom: 2px solid #e8f4f8; padding-bottom: 10px; }
