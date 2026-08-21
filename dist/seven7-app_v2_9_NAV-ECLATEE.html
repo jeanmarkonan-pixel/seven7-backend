@@ -71,9 +71,12 @@
         .vue-onglets-toggle-btn:hover { background: #e0eaf2; }
         .onglet-groupe-entete { display: none; }
         #phaseNav.vue-reduite .onglet-groupe { display: block; width: 100%; }
-        #phaseNav.vue-reduite .onglet-groupe-entete { display: flex; align-items: center; gap: 6px;
-            width: 100%; text-align: left; padding: 9px 14px; background: transparent; border: none;
-            border-bottom: 1px solid #f0f0f0; font-size: 12px; font-weight: 700; color: #1a5276; cursor: pointer; }
+        #phaseNav.vue-reduite .onglet-groupe-entete { display: flex; align-items: flex-start; gap: 6px;
+            width: 100%; max-width: 100%; box-sizing: border-box; text-align: left; padding: 9px 14px;
+            background: transparent; border: none; border-bottom: 1px solid #f0f0f0; font-size: 12px;
+            font-weight: 700; color: #1a5276; cursor: pointer;
+            white-space: normal; overflow-wrap: break-word; word-break: break-word; line-height: 1.35; }
+        #phaseNav.vue-reduite .onglet-groupe-chevron { flex: 0 0 auto; }
         #phaseNav.vue-reduite .onglet-groupe-entete:hover { background: #f7fafc; }
         #phaseNav.vue-reduite .onglet-groupe-chevron { transition: transform 0.15s; font-size: 10px; }
         #phaseNav.vue-reduite .onglet-groupe.ouvert .onglet-groupe-chevron { transform: rotate(90deg); }
@@ -89,7 +92,7 @@
            seulement par un second défilement interne. */
         #phaseNav { display: flex; flex-direction: column; flex: 0 0 270px; width: 270px;
             position: sticky; top: 90px; align-self: flex-start; min-height: calc(100vh - 90px);
-            max-height: calc(100vh - 90px); overflow-y: auto;
+            max-height: calc(100vh - 90px); overflow-y: auto; overflow-x: hidden;
             background: #fff; border-right: 1px solid #e2e8f0; box-shadow: 2px 0 10px rgba(16,24,40,.03); }
         #phaseNav .phase-group { display: block; position: static; border-bottom: 1px solid #eef1f4; }
         #phaseNav .phase-group:last-child { border-bottom: none; }
