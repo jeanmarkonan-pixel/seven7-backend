@@ -20,13 +20,15 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f6fa; color: #2c3e50; }
-        /* Fixe ("continu") en haut de l'écran, quel que soit le défilement de la zone
-           de travail — taille d'origine restaurée (28/08) sur demande, seule la fixité
-           (position:sticky) reste. La sidebar et le collab-bar se calent sur sa hauteur
-           réelle (~90px) via leurs "top" respectifs, sans quoi la sidebar déborderait. */
+        /* Empilement fixe ("continu") en haut de l'écran, dans l'ordre voulu :
+           1) #collab-bar (paramètres de connexion), 2) .header (logo/titre), 3) zone de
+           travail. #collab-bar colle en top:0 (il est premier dans le DOM) ; .header colle
+           juste en dessous, à la hauteur réelle de #collab-bar (0 si masqué) via la variable
+           --collab-bar-h, recalculée en JS (voir ajusterOffsetsEntete() dans 01-noyau.js) car
+           cette hauteur varie (bandeau masqué, ou replié sur 2 lignes en petit écran). */
         .header { background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%); color: white;
             padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: sticky; top: 0; z-index: 9600; }
+            position: sticky; top: var(--collab-bar-h, 0px); z-index: 9500; }
         .header h1 { font-size: 24px; margin-bottom: 5px; }
         .header p { font-size: 14px; opacity: 0.9; }
         /* ---- Sidebar gauche pleine hauteur (remplace la barre horizontale) ---- */
@@ -87,12 +89,15 @@
         /* ---- Sidebar : tous les onglets rangés verticalement, groupés par phase
            dans 3 accordéons dépliables (état persistant, voir togglePhaseMenu). ---- */
         /* Largeur d'origine restaurée (270px, sur demande). top/min-height calés sur la
-           hauteur réelle du bandeau fixe (90px, voir .header) : sans ça la sidebar déborde
+           hauteur réelle CUMULÉE de #collab-bar + .header via --top-total-h (recalculée en
+           JS, voir ajusterOffsetsEntete() dans 01-noyau.js) : sans ça la sidebar déborde
            sous un bandeau qui prend déjà de la place, rendant la Phase 3 atteignable
-           seulement par un second défilement interne. */
+           seulement par un second défilement interne. Le fallback 90px ne sert qu'avant le
+           premier calcul JS (ou si ResizeObserver est indisponible). */
         #phaseNav { display: flex; flex-direction: column; flex: 0 0 270px; width: 270px;
-            position: sticky; top: 90px; align-self: flex-start; min-height: calc(100vh - 90px);
-            max-height: calc(100vh - 90px); overflow-y: auto; overflow-x: hidden;
+            position: sticky; top: var(--top-total-h, 90px); align-self: flex-start;
+            min-height: calc(100vh - var(--top-total-h, 90px));
+            max-height: calc(100vh - var(--top-total-h, 90px)); overflow-y: auto; overflow-x: hidden;
             background: #fff; border-right: 1px solid #e2e8f0; box-shadow: 2px 0 10px rgba(16,24,40,.03); }
         #phaseNav .phase-group { display: block; position: static; border-bottom: 1px solid #eef1f4; }
         #phaseNav .phase-group:last-child { border-bottom: none; }
@@ -371,7 +376,7 @@
 
     <div id="collab-invite-toast" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#27ae60; color:#fff; padding:10px 18px; border-radius:6px; font-size:12px; z-index:99999; box-shadow:0 4px 12px rgba(0,0,0,.3);">✅ Lien copié dans le presse-papiers !</div>
 
-    <div id="collab-bar" style="display:none; position:sticky; top:90px; z-index:9000; background:#12324a; color:#fff; padding:6px 14px; font-size:12px; align-items:center; gap:10px; flex-wrap:wrap; box-shadow:0 2px 6px rgba(0,0,0,.2);">
+    <div id="collab-bar" style="display:none; position:sticky; top:0; z-index:9600; background:#12324a; color:#fff; padding:6px 14px; font-size:12px; align-items:center; gap:10px; flex-wrap:wrap; box-shadow:0 2px 6px rgba(0,0,0,.2);">
         <span id="collab-who">👤 —</span>
         <span id="collab-dossier-label">📁 —</span>
         <span id="collab-cabinet-quota" style="display:none; background:rgba(255,255,255,0.12); border-radius:4px; padding:3px 9px; font-size:11px; white-space:nowrap;">🏢 —</span>

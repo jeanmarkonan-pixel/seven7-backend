@@ -16,6 +16,34 @@ document.addEventListener('DOMContentLoaded', function(){
     if(el) el.textContent = NOM_CABINET_CLIENT;
 });
 
+// ---------- Empilement fixe #collab-bar / .header / zone de travail ----------
+// #collab-bar (paramètres de connexion) doit toujours s'afficher au-dessus de .header
+// (logo/titre), lui-même au-dessus de la zone de travail. Les deux bandeaux sont en
+// position:sticky ; comme la hauteur de #collab-bar varie (masqué par défaut, replié sur
+// plusieurs lignes en petit écran), .header et #phaseNav ne peuvent pas se caler sur une
+// valeur figée en CSS : on mesure la hauteur réelle des bandeaux et on la republie dans
+// deux variables CSS (--collab-bar-h, --top-total-h) à chaque changement.
+function ajusterOffsetsEntete(){
+    var barre = document.getElementById('collab-bar');
+    var entete = document.querySelector('.header');
+    if(!barre || !entete) return;
+    var hBarre = barre.offsetHeight;
+    var hEntete = entete.offsetHeight;
+    document.documentElement.style.setProperty('--collab-bar-h', hBarre + 'px');
+    document.documentElement.style.setProperty('--top-total-h', (hBarre + hEntete) + 'px');
+}
+document.addEventListener('DOMContentLoaded', function(){
+    ajusterOffsetsEntete();
+    if(typeof ResizeObserver !== 'undefined'){
+        var barre = document.getElementById('collab-bar');
+        var entete = document.querySelector('.header');
+        var ro = new ResizeObserver(ajusterOffsetsEntete);
+        if(barre) ro.observe(barre);
+        if(entete) ro.observe(entete);
+    }
+    window.addEventListener('resize', ajusterOffsetsEntete);
+});
+
 // ---------- Verrouillage : mot de passe propre à chaque dossier ----------
 var LOCK_MODE = 'create'; // 'create' ou 'join', déterminé au chargement
 
