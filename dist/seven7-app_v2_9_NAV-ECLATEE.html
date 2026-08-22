@@ -18741,19 +18741,26 @@ try{
    moment via « Annuler ».
    ================================================================== */
 
+// racine : préfixe utilisé pour la DÉTECTION (large, tolère toute sous-
+// numérotation propre au cabinet). precis : le compte SYSCOHADA révisé à 4
+// chiffres affiché comme recommandation, quand la nomenclature officielle en
+// définit un de portée générale. Pour les comptes de tiers (40/41) et les
+// banques (52), le 4ᵉ chiffre dépend du fournisseur/client/établissement
+// concerné — aucun code universel n'existe, donc pas de "precis" inventé :
+// mieux vaut le dire que d'afficher un numéro faux.
 var SYSC_MOTS_CLES = [
-    { motif: /achat.*(march|marchandise)/i, racine:'601' },
-    { motif: /achat.*(mati[eè]re|premi[eè]re)/i, racine:'602' },
-    { motif: /vente.*(march|marchandise)/i, racine:'701' },
-    { motif: /(salaire|personnel|r[eé]mun[eé]ration)/i, racine:'66' },
+    { motif: /achat.*(march|marchandise)/i, racine:'601', precis:'6011' },
+    { motif: /achat.*(mati[eè]re|premi[eè]re)/i, racine:'602', precis:'6021' },
+    { motif: /vente.*(march|marchandise)/i, racine:'701', precis:'7011' },
+    { motif: /(salaire|personnel|r[eé]mun[eé]ration)/i, racine:'66', precis:'6611' },
     { motif: /banque/i, racine:'52' },
-    { motif: /caisse/i, racine:'57' },
+    { motif: /caisse/i, racine:'57', precis:'5711' },
     { motif: /fournisseur/i, racine:'40' },
     { motif: /client/i, racine:'41' },
-    { motif: /terrain/i, racine:'22' },
-    { motif: /b[aâ]timent/i, racine:'23' },
-    { motif: /(mat[eé]riel|mobilier)/i, racine:'24' },
-    { motif: /^capital/i, racine:'101' }
+    { motif: /terrain/i, racine:'22', precis:'2211' },
+    { motif: /b[aâ]timent/i, racine:'23', precis:'2311' },
+    { motif: /(mat[eé]riel|mobilier)/i, racine:'24', precis:'2441' },
+    { motif: /^capital/i, racine:'101', precis:'1011' }
 ];
 
 var SYSC_ACCENTS = { 'É':'E','È':'E','Ê':'E','Ë':'E','À':'A','Â':'A','Ä':'A','Ô':'O','Ö':'O','Ù':'U','Û':'U','Ü':'U','Ç':'C','Î':'I','Ï':'I' };
@@ -18775,9 +18782,13 @@ function syscDetecterRacine(){
             var regle = SYSC_MOTS_CLES[i];
             if(!regle.motif.test(r.intitule || '')) continue;
             if(compte.indexOf(regle.racine) === 0) break; // conforme, règle suivante inutile
+            var applicable = regle.precis || regle.racine;
+            var recommande = regle.precis
+                ? regle.precis
+                : regle.racine + ' (4ᵉ chiffre selon le tiers/l’établissement concerné — sans code universel)';
             out.push({ compte:compte, intitule:r.intitule,
                 erreur:'Libellé évoquant un compte ' + regle.racine + ', mais numéroté ' + compte,
-                compteRecommande: regle.racine, montant: montant });
+                compteRecommande: recommande, compteApplicable: applicable, montant: montant });
             break; // une seule règle de mot-clé par compte, la première qui matche
         }
     });
@@ -18796,9 +18807,11 @@ function syscDetecterGenerique(){
         var compte = String(r.compte || '').trim();
         var montant = (r.sd || 0) || (r.sc || 0);
         if(!montant || !syscEstGenerique(compte)) return;
+        var exemple = compte.slice(0, 3) + '1'; // ex. 401000 → 4011, premier sous-compte à 4 chiffres
         out.push({ compte:compte, intitule:r.intitule,
             erreur:'Compte collectif générique, jamais ventilé par tiers',
-            compteRecommande: compte.slice(0, 3) + '00X (un sous-compte par tiers)', montant: montant });
+            compteRecommande: exemple + ' (exemple — un compte à 4 chiffres par tiers, ex. ' + exemple + ', ' + compte.slice(0, 3) + '2…)',
+            compteApplicable: exemple, montant: montant });
     });
     return out;
 }
@@ -18822,7 +18835,7 @@ function syscDetecterIncoherenceNN1(){
         if(compteN.slice(0, 2) === compteN1.slice(0, 2)) return; // même racine, juste un sous-compte différent
         out.push({ compte:compteN, intitule:r.intitule,
             erreur:'Compte ' + compteN1 + ' en N-1 (même libellé), racine différente en N sans écriture de transfert visible',
-            compteRecommande: compteN1, montant: (r.sd || 0) || (r.sc || 0) });
+            compteRecommande: compteN1, compteApplicable: compteN1, montant: (r.sd || 0) || (r.sc || 0) });
     });
     return out;
 }
@@ -18840,13 +18853,17 @@ function syscDetecterTiers(){
             var montant = (r.sd || 0) || (r.sc || 0);
             if(!compte || !montant) return;
             if(compte.slice(0, 2) !== racineAttendue){
+                var exempleClasse = racineAttendue + '11'; // 4011 (fournisseurs) ou 4111 (clients), à titre indicatif
                 out.push({ compte:compte, intitule:r.intitule,
                     erreur:'Compte hors classe ' + racineAttendue + ' dans la Balance tiers ' + (type === 'fourn' ? 'fournisseurs' : 'clients'),
-                    compteRecommande: racineAttendue, montant: montant });
+                    compteRecommande: exempleClasse + ' (exemple — le compte réel à 4 chiffres dépend du tiers concerné)',
+                    compteApplicable: exempleClasse, montant: montant });
             } else if(syscEstGenerique(compte)){
+                var exempleTiers = compte.slice(0, 3) + '1';
                 out.push({ compte:compte, intitule:r.intitule,
                     erreur:'Compte collectif générique, jamais ventilé par tiers',
-                    compteRecommande: compte.slice(0, 3) + '00X (un sous-compte par tiers)', montant: montant });
+                    compteRecommande: exempleTiers + ' (exemple — un compte à 4 chiffres par tiers, ex. ' + exempleTiers + ', ' + compte.slice(0, 3) + '2…)',
+                    compteApplicable: exempleTiers, montant: montant });
             }
         });
         return out;
@@ -18888,7 +18905,7 @@ function syscRendrePanneau(erreurs, panneauId){
             + '<td>' + (reclasse
                 ? '<span class="badge badge-success">✓ Reclassé en ' + esc(reclasse) + '</span> '
                   + '<button class="btn btn-warning" style="padding:4px 10px;font-size:11px;" onclick="syscAnnulerReclassification(\'' + esc(e.compte) + '\')">Annuler</button>'
-                : '<button class="btn btn-primary" style="padding:4px 10px;font-size:11px;" onclick="syscAppliquerReclassification(\'' + esc(e.compte) + '\', \'' + esc(e.compteRecommande) + '\')">Appliquer la re-classification</button>')
+                : '<button class="btn btn-primary" style="padding:4px 10px;font-size:11px;" onclick="syscAppliquerReclassification(\'' + esc(e.compte) + '\', \'' + esc(e.compteApplicable) + '\')">Appliquer la re-classification</button>')
             + '</td></tr>';
     }).join('');
     return '<div id="' + panneauId + '" class="card" style="background:#fff8e1; border-left:4px solid #f39c12;">'

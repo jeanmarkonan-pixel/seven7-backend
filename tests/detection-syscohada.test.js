@@ -41,7 +41,8 @@ test('RACINE — un libellé « achat de marchandises » hors compte 601 est sig
     const liste = w.syscDetecterRacine();
     assert.equal(liste.length, 1, 'seul le compte mal racine doit être signalé');
     assert.equal(liste[0].compte, '6112000');
-    assert.equal(liste[0].compteRecommande, '601');
+    assert.equal(liste[0].compteRecommande, '6011', 'doit proposer le compte SYSCOHADA précis à 4 chiffres, pas juste la racine 601');
+    assert.equal(liste[0].compteApplicable, '6011');
     d.window.close();
 });
 
@@ -63,6 +64,7 @@ test('GÉNÉRIQUE — un compte tiers racine nue (401000) est signalé, un sous-
     const liste = w.syscDetecterGenerique();
     assert.equal(liste.length, 1);
     assert.equal(liste[0].compte, '401000');
+    assert.equal(liste[0].compteApplicable, '4011', 'doit proposer un exemple de compte à 4 chiffres, pas un gabarit "00X"');
     d.window.close();
 });
 
@@ -75,6 +77,7 @@ test('N/N-1 — même libellé, racine différente d’un exercice à l’autre 
     assert.equal(liste.length, 1);
     assert.equal(liste[0].compte, '601002');
     assert.equal(liste[0].compteRecommande, '411002');
+    assert.equal(liste[0].compteApplicable, '411002');
     d.window.close();
 });
 
@@ -93,7 +96,8 @@ test('TIERS — un compte hors classe 40/41 dans la Balance tiers est signalé',
     w.tiersData.fourn = [{ compte:'601500', intitule:'FOURNISSEUR MAL CLASSÉ', sd:0, sc:200000 }];
     const liste = w.syscDetecterTiers().fourn;
     assert.equal(liste.length, 1);
-    assert.equal(liste[0].compteRecommande, '40');
+    assert.equal(liste[0].compteApplicable, '4011', 'doit proposer un compte à 4 chiffres, pas juste la racine 40');
+    assert.match(liste[0].compteRecommande, /^4011/);
     d.window.close();
 });
 
@@ -165,5 +169,20 @@ test('ANOMALIES — anScannerSYSCOHADA remonte les erreurs non reclassées, plus
     w.syscAppliquerReclassification('6112000', '601');
     liste = w.anScannerSYSCOHADA();
     assert.ok(!liste.some(a => a.cle === 'sysc:balance:6112000'), 'une anomalie reclassée ne doit plus remonter');
+    d.window.close();
+});
+
+test('PANNEAU — le bouton « Appliquer » utilise le compte applicable (4 chiffres), jamais le texte affiché', async () => {
+    const d = await domPret();
+    const w = d.window;
+    // Cas générique (401000) : compteRecommande contient un texte explicatif,
+    // le bouton doit quand même passer un préfixe propre (4011) à
+    // syscAppliquerReclassification, sinon la reclassification échoue.
+    w.balanceData.n = [{ compte:'401000', intitule:'FOURNISSEURS DIVERS', od:0, oc:0, md:0, mc:0, sd:0, sc:900000 }];
+    w.syscRafraichirTout();
+    const panneau = w.document.getElementById('sysc-panneau-balance-n');
+    const bouton = panneau.querySelector('button.btn-primary');
+    assert.match(bouton.getAttribute('onclick'), /syscAppliquerReclassification\('401000', '4011'\)/,
+        'le bouton doit utiliser compteApplicable (4011), pas le texte explicatif de compteRecommande');
     d.window.close();
 });
