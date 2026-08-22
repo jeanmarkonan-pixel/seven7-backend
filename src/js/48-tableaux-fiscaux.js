@@ -539,11 +539,29 @@ function tfInstaller(){
     tfRecalculerPied('tf-bic');
 }
 
+// Bug réel constaté en production (22/08) : sur certains chargements, l'appel
+// automatique à tfInstaller() échouait silencieusement (l'erreur était avalée
+// par un try/catch vide) et la section « Suivi mensuel des déclarations »
+// n'apparaissait jamais — alors qu'un appel manuel de tfInstaller() depuis la
+// console, plus tard, réussissait à chaque fois (tfInstaller() est idempotent,
+// sa toute première ligne vérifie si tf-tva existe déjà). Plutôt que de
+// deviner la cause exacte du mauvais ordre de chargement, on se protège des
+// deux façons : l'erreur est désormais loguée au lieu d'être avalée, et une
+// deuxième tentative a lieu à 'load' (après DOMContentLoaded, quand toutes
+// les ressources ont fini de charger) au cas où la première échouerait encore.
+function tfInstallerSecurise(){
+    try{
+        tfInstaller();
+    }catch(e){
+        console.error('SEVEN7 — l’installation des tableaux fiscaux (onglet Impôts) a échoué, nouvelle tentative au prochain chargement :', e);
+    }
+}
 try{
     if(typeof document !== 'undefined'){
         if(document.readyState === 'loading')
-            document.addEventListener('DOMContentLoaded', tfInstaller);
+            document.addEventListener('DOMContentLoaded', tfInstallerSecurise);
         else
-            tfInstaller();
+            tfInstallerSecurise();
+        window.addEventListener('load', tfInstallerSecurise);
     }
 }catch(e){}
