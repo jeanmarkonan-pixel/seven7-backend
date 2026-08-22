@@ -226,6 +226,13 @@ function showTab(id){
         syncComptesAuditManuelFromDom();
         if(typeof refreshNouveauCompteOptions === 'function') refreshNouveauCompteOptions();
     }
+    // Troisième filet de sécurité pour les tableaux fiscaux (voir
+    // tfInstallerSecurise, 48-tableaux-fiscaux.js) : les deux tentatives
+    // automatiques (DOMContentLoaded, 'load') peuvent échouer sur une
+    // connexion instable en tout début de chargement — un clic sur l'onglet
+    // arrive forcément après, à un moment où la page tourne déjà. Idempotent :
+    // ne fait rien si la section existe déjà.
+    if(id === 'impots' && typeof tfInstallerSecurise === 'function') tfInstallerSecurise();
     // Met à jour la barre "onglet courant" et le surlignage du menu de phase concerné
     document.querySelectorAll('.phase-group').forEach(function(g){ g.classList.remove('has-active'); });
     if(btn){
