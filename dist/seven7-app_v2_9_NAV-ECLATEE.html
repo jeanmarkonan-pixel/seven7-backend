@@ -14693,9 +14693,17 @@ function computeBilanActif(ex){
     var L = MOTEUR_PLAN_ACTIF.map(function(p){
         var v = A[p[0]] || {};
         return {
+            // Brut/Amort renseignés sur TOUTES les lignes, total compris (AD, AI,
+            // AQ, BA, BB, BG, BK, BT, AZ, BZ) : la planche officielle SYSCOHADA
+            // (BILAN ACTIF - MODELE) porte ces deux colonnes sur chaque ligne, sans
+            // exception pour les sous-totaux — liasseResolveTree() les additionne
+            // déjà correctement pour les lignes à enfants, seul l'affichage les
+            // masquait ici. Bug réel corrigé le 22/08 : un total « Immobilisations
+            // corporelles » sans Brut ni Amortissements affichés, alors que Net
+            // seul ne suffit pas à la présentation exigée par le référentiel.
             ref: p[0], poste: p[1],
-            brut:  p[2] ? null : (v.brut  || 0),
-            amort: p[2] ? null : (v.amort || 0),
+            brut:  v.brut  || 0,
+            amort: v.amort || 0,
             net:   v.net || 0,
             isTotal: p[2],
             isGrandTotal: p[0] === 'BZ'
