@@ -70,15 +70,14 @@ test('SCAN — sous le seuil, aucune anomalie tiers ne remonte', async () => {
 test('SCAN — l’écart de patente non nul remonte, nul il ne remonte pas', async () => {
     const d = await domPret();
     const w = d.window;
-    w.document.getElementById('tf-patente-Comptabilite').value = '500000';
-    w.document.getElementById('tf-patente-Tranche_1').value = '200000';
-    w.document.getElementById('tf-patente-Tranche_2').value = '200000';
+    w.balanceData.n = [{ compte:'64120000', intitule:'PATENTES', od:0, oc:0, md:400000, mc:0, sd:400000, sc:0 }];
+    w.document.getElementById('tf-patente-Declaration').value = '500000';
     w.tfRecalculerPatente();
     let liste = w.anScannerPatente();
     assert.equal(liste.length, 1);
     assert.equal(liste[0].montant, 100000);
 
-    w.document.getElementById('tf-patente-Tranche_2').value = '300000';
+    w.document.getElementById('tf-patente-Declaration').value = '400000';
     w.tfRecalculerPatente();
     liste = w.anScannerPatente();
     assert.deepEqual(local(liste), []);

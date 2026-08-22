@@ -7,6 +7,8 @@
      Balance tiers, computeAnormaux() dans 08-controles-audit.js,
      relue ici sans dupliquer son rendu) ;
    - l'écart de Patente (tfEcartPatente(), 48-tableaux-fiscaux.js) ;
+   - les écarts de rapprochement fiscal annuel déclaré/comptabilisé pour
+     ITS/CE/TA/TFPC et CNPS (anScannerFiscal(), même fichier, TF_COMPTES) ;
    - les points de Contrôle Interne à risque (Risque du CI) : une
      réponse « Non » vaut non-conformité, une efficacité notée 1 ou 2
      vaut risque critique. Le questionnaire n'utilise pas ces libellés
@@ -76,8 +78,28 @@ function anScannerPatente(){
     var ecart = tfEcartPatente();
     if(!ecart) return [];
     return [{ cle:'patente:ecart', source:'Patente',
-        description: 'Écart entre le montant comptabilisé et les deux tranches payées',
+        description: 'Écart entre la déclaration et le comptabilisé (compte 6412)',
         montant: ecart, onglet:'impots' }];
+}
+// Rapprochement annuel déclaré/comptabilisé pour ITS/CE/TA/TFPC (comptes
+// 4471-4474) et CNPS (comptes 4311+4312) — voir tfRecalculerCompta() et
+// TF_COMPTES dans 48-tableaux-fiscaux.js. Recalculé à chaque scan (fonction
+// pure sur la balance + le déclaré déjà saisi), pas de valeur mise en cache.
+function anScannerFiscal(){
+    if(typeof tfRecalculerCompta !== 'function' || typeof TF_COMPTES === 'undefined') return [];
+    var libelles = { ITS:'ITS (447)', CE:'CE (447)', TA:'TA (447)', TFPC:'TFPC (447)', CNPS:'CNPS (4311/4312)' };
+    var out = [];
+    [{ id:'tf-groupe1', conf: TF_COMPTES.impots_groupe_1 }, { id:'tf-cnps', conf: TF_COMPTES.cnps }]
+        .forEach(function(s){
+            var ecarts = tfRecalculerCompta(s.id, s.conf);
+            Object.keys(ecarts).forEach(function(col){
+                if(!ecarts[col]) return;
+                out.push({ cle:'fiscal:' + s.id + ':' + col, source:'Impôts et taxes — ' + (libelles[col] || col),
+                    description: 'Écart entre le déclaré et le comptabilisé (' + (libelles[col] || col) + ')',
+                    montant: ecarts[col], onglet:'impots' });
+            });
+        });
+    return out;
 }
 function anScannerCI(){
     var table = document.getElementById('table-questionnaire');
@@ -112,7 +134,7 @@ function anScannerManuelles(){
 /** Liste consolidée, chaque anomalie enrichie de son statut de résolution. */
 function anToutesAnomalies(){
     var justifs = anChargerJustifs();
-    var brut = [].concat(anScannerTiers(), anScannerPatente(), anScannerCI(), anScannerManuelles());
+    var brut = [].concat(anScannerTiers(), anScannerPatente(), anScannerFiscal(), anScannerCI(), anScannerManuelles());
     return brut.map(function(a){
         var justification = justifs[a.cle] || '';
         a.justification = justification;

@@ -244,3 +244,10 @@ function sumif(ex, prefix, field){
 }
 function SD(ex,p){ return sumif(ex,p,'sd'); }
 function SC(ex,p){ return sumif(ex,p,'sc'); }
+// OD/OC (solde d'OUVERTURE, à-nouveaux) et MD/MC (MOUVEMENTS de l'exercice) :
+// mêmes conventions que SD/SC, pour l'extraction automatique du Solde Initial
+// et le rapprochement fiscal (48-tableaux-fiscaux.js) sans dupliquer sumif().
+function OD(ex,p){ return sumif(ex,p,'od'); }
+function OC(ex,p){ return sumif(ex,p,'oc'); }
+function MD(ex,p){ return sumif(ex,p,'md'); }
+function MC(ex,p){ return sumif(ex,p,'mc'); }
