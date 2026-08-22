@@ -18317,6 +18317,29 @@ function tfEcartPatente(){
 }
 
 /* ---------- Installation ---------- */
+// Accordéon (22/08, v2) : neuf tableaux affichés à la suite sans repli
+// rendaient la page bien trop longue — au premier coup d'œil, ça donnait
+// l'impression que « rien ne s'affichait ». Chaque impôt/taxe est maintenant
+// une section repliée par défaut, listée d'un coup d'œil, dépliée à la
+// demande — les fonctions de calcul tournent normalement même repliées
+// (display:none n'empêche pas le JS de lire/écrire les valeurs).
+function tfSection(titre, contenuHtml, id){
+    return '<div class="tf-section" style="margin-top:10px; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden;">'
+        + '<button type="button" class="tf-section-entete" onclick="tfBasculerSection(this)" '
+        + 'style="width:100%; text-align:left; padding:12px 16px; background:#eaf2f8; border:none; '
+        + 'font-weight:700; font-size:13px; color:#1a5276; cursor:pointer; display:flex; align-items:center; gap:8px;">'
+        + '<span class="tf-section-chevron" style="font-size:10px;">▸</span> ' + esc(titre) + '</button>'
+        + '<div class="tf-section-contenu" id="' + id + '" style="display:none; padding:14px 16px;">' + contenuHtml + '</div>'
+        + '</div>';
+}
+function tfBasculerSection(btn){
+    var contenu = btn.parentNode.querySelector('.tf-section-contenu');
+    var chevron = btn.querySelector('.tf-section-chevron');
+    var ouvert = contenu.style.display !== 'none';
+    contenu.style.display = ouvert ? 'none' : 'block';
+    if(chevron) chevron.textContent = ouvert ? '▸' : '▾';
+}
+
 function tfInstaller(){
     if(document.getElementById('tf-tva')) return;
     var panneau = document.getElementById('impots');
@@ -18327,29 +18350,26 @@ function tfInstaller(){
     carte.innerHTML =
       '<h2>📅 SUIVI MENSUEL DES DÉCLARATIONS (TVA, IMPÔTS, CNPS)</h2>'
     + '<div class="alert alert-info">Suivi déclaratif mois par mois, distinct du rapprochement comptes/déclaré '
-    + 'ci-dessus. Chaque tableau porte un pied Total / Solde Initial / Règlement / Solde Final qui suit la dette '
-    + 'fiscale comme un compte. La TVA due et le crédit de TVA se calculent automatiquement à partir des montants saisis. '
-    + 'Quand le compte SYSCOHADA associé est connu (TVA, ITS/CE/TA/TFPC, Patente, CNPS), le Solde Initial est extrait '
-    + 'automatiquement de la balance d\'ouverture, et une ligne Comptabilité/Écart compare le déclaré au comptabilisé '
-    + '(alerte 🟠 si écart ≠ 0).</div>'
-    + '<h3>TVA</h3>' + tfRendreTVA()
-    + '<div id="tf-credit-tva-section" class="card" style="background:#f6f8fa; margin-top:14px;">'
-    + '<h3>Crédit de TVA</h3>'
-    + '<p id="tf-credit-tva-info" style="font-size:12px; color:#666; margin-bottom:8px;"></p>'
-    + tfRendreCreditTVA()
-    + '</div>'
-    + '<h3 style="margin-top:22px;">ITS(447)</h3>' + tfRendreTableGenerique('impots_groupe_1')
-    + '<h3 style="margin-top:22px;">ITS(6413,6414,6415)</h3>' + tfRendreITSAnnuel()
-    + '<h3 style="margin-top:22px;">Autres Impôts Mensuels</h3>' + tfRendreTableGenerique('impots_groupe_2')
-    + '<h3 style="margin-top:22px;">PATENTE(64;44)</h3>' + tfRendrePatente()
-    + '<h3 style="margin-top:22px;">CNPS</h3>' + tfRendreTableGenerique('cnps')
-    + '<h3 style="margin-top:22px;">CMU</h3>' + tfRendreTableGenerique('cmu_isolee')
-    + '<h3 style="margin-top:22px;">IRVM</h3>'
-    + '<div class="alert alert-info" style="font-size:12px;">Retenue trimestrielle sur dividendes/intérêts '
-    + 'distribués — à rapprocher du compte 447 sur la Balance Générale N.</div>' + tfRendreIRVM()
-    + '<h3 style="margin-top:22px;">BIC</h3>'
-    + '<div class="alert alert-info" style="font-size:12px;">Deux acomptes provisionnels puis solde de liquidation '
-    + '— à rapprocher du compte 4494 sur la Balance Générale N.</div>' + tfRendreBIC();
+    + 'ci-dessus. Cliquez sur un impôt pour déplier son tableau. Chaque tableau porte un pied Total / Solde Initial / '
+    + 'Règlement / Solde Final qui suit la dette fiscale comme un compte. Quand le compte SYSCOHADA associé est connu '
+    + '(TVA, ITS/CE/TA/TFPC, Patente, CNPS), le Solde Initial est extrait automatiquement de la balance d\'ouverture, '
+    + 'et une ligne Comptabilité/Écart compare le déclaré au comptabilisé (alerte 🟠 si écart ≠ 0).</div>'
+    + tfSection('TVA', tfRendreTVA()
+        + '<div id="tf-credit-tva-section" class="card" style="background:#f6f8fa; margin-top:14px;">'
+        + '<h3>Crédit de TVA</h3>'
+        + '<p id="tf-credit-tva-info" style="font-size:12px; color:#666; margin-bottom:8px;"></p>'
+        + tfRendreCreditTVA()
+        + '</div>', 'tf-sec-tva')
+    + tfSection('ITS(447)', tfRendreTableGenerique('impots_groupe_1'), 'tf-sec-groupe1')
+    + tfSection('ITS(6413,6414,6415)', tfRendreITSAnnuel(), 'tf-sec-its-annuel')
+    + tfSection('Autres Impôts Mensuels', tfRendreTableGenerique('impots_groupe_2'), 'tf-sec-groupe2')
+    + tfSection('PATENTE(64;44)', tfRendrePatente(), 'tf-sec-patente')
+    + tfSection('CNPS', tfRendreTableGenerique('cnps'), 'tf-sec-cnps')
+    + tfSection('CMU', tfRendreTableGenerique('cmu_isolee'), 'tf-sec-cmu')
+    + tfSection('IRVM', '<div class="alert alert-info" style="font-size:12px;">Retenue trimestrielle sur dividendes/intérêts '
+        + 'distribués — à rapprocher du compte 447 sur la Balance Générale N.</div>' + tfRendreIRVM(), 'tf-sec-irvm')
+    + tfSection('BIC', '<div class="alert alert-info" style="font-size:12px;">Deux acomptes provisionnels puis solde de liquidation '
+        + '— à rapprocher du compte 4494 sur la Balance Générale N.</div>' + tfRendreBIC(), 'tf-sec-bic');
     panneau.appendChild(carte);
     tfRecalculerTVA();
     tfRecalculerCreditTVA();
