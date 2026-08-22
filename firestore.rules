@@ -457,5 +457,28 @@ service cloud.firestore {
         allow delete: if estAdmin(code);
       }
     }
+
+    // TUNNEL D'INSCRIPTION PUBLIC (vitrine seven7.ci) — demande de création
+    // de cabinet avant toute authentification. Écriture publique volontaire
+    // (formulaire anonyme), mais AUCUNE lecture ni modification côté client :
+    // le traitement (création du compte Auth admin, écriture dans
+    // /cabinets/{code} au schéma existant) se fait exclusivement via
+    // l'Admin SDK (migration/activer-demande-cabinet.mjs), qui n'est pas
+    // soumis à ces règles. Ne jamais écrire directement dans /cabinets/
+    // depuis ce tunnel : le schéma exige un adminPrincipalUid (compte Auth)
+    // qui n'existe pas encore à ce stade.
+    match /demandes_cabinet/{demandeId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // Déclenche l'extension Firebase officielle Trigger Email
+    // (firestore-send-email) : écrit par le même formulaire public, au même
+    // instant que /demandes_cabinet, jamais relu ni modifié côté client —
+    // seule l'extension (Admin SDK) traite ces documents.
+    match /mail/{mailId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
   }
 }

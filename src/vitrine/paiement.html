@@ -1,0 +1,261 @@
+<!--
+  À REMPLACER AVANT TOUT DÉPLOIEMENT RÉEL — coordonnées de paiement réelles,
+  introuvables ailleurs dans le projet, donc laissées en placeholders explicites :
+    [WAVE_NUMERO]              — numéro de dépôt Wave de l'entreprise
+    [ORANGE_MONEY_NUMERO]      — numéro de dépôt Orange Money de l'entreprise
+    [NOM_COMPTE_COMMERCIAL]    — nom du compte affiché pour Wave et Orange Money
+    [RIB_BANQUE], [RIB_CODE_BANQUE], [RIB_GUICHET], [RIB_COMPTE], [RIB_CLE], [RIB_IBAN], [RIB_BIC]
+                                — coordonnées bancaires complètes pour le virement
+  Chercher "[" dans ce fichier pour les retrouver toutes.
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paiement de votre inscription — SEVEN7</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/seven7-icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2B45; --paper:#F4F6EF; --ledger-line:#C9D4C1; --ledger-line-strong:#9FAF95;
+    --gold:#A9792C; --gold-deep:#8A6222; --verified:#2E6B4C; --muted:#5B6470; --card:#FBFCF8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased; padding:48px 20px 72px; line-height:1.55;
+  }
+  .wrap{ max-width:640px; margin:0 auto; }
+  .retour{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--muted);
+           text-decoration:none; display:inline-block; margin-bottom:26px; }
+  .retour:hover{ color:var(--ink); }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.14em;
+            text-transform:uppercase; color:var(--gold-deep); margin:0 0 10px; }
+  h1{ font-family:'Source Serif 4', serif; font-weight:600; font-size:32px; margin:0 0 8px; }
+  .lede{ color:var(--muted); font-size:15px; margin:0 0 32px; }
+  .rule{ height:2px; background:var(--ink); margin:0 0 34px; }
+
+  h2{ font-family:'Source Serif 4', serif; font-weight:600; font-size:19px; margin:0 0 4px; }
+  .box{ background:var(--card); border:1px solid var(--ledger-line-strong); padding:22px 24px; margin-bottom:18px; }
+  .methodes{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .methode{ border-left:4px solid var(--ledger-line-strong); padding:16px 18px; background:var(--card);
+            border-top:1px solid var(--ledger-line-strong); border-right:1px solid var(--ledger-line-strong);
+            border-bottom:1px solid var(--ledger-line-strong); }
+  .methode.wave{ border-left-color:#1ca1f2; }
+  .methode.orange{ border-left-color:#ff6600; }
+  .methode h3{ margin:0 0 8px; font-family:'Source Serif 4', serif; font-size:16px; }
+  .methode .valeur{ font-family:'IBM Plex Mono', monospace; font-size:14px; word-break:break-word; }
+  .methode .delai{ font-size:12px; color:var(--muted); margin-top:8px; }
+  .rib{ font-family:'IBM Plex Mono', monospace; font-size:13px; background:var(--paper);
+        border:1px solid var(--ledger-line); padding:14px 16px; line-height:1.9; }
+  .placeholder{ color:#a33322; }
+
+  .champ{ margin-bottom:16px; }
+  .champ label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.06em;
+                text-transform:uppercase; color:var(--gold-deep); margin-bottom:6px; }
+  .champ input, .champ select{
+    width:100%; padding:11px 12px; border:1px solid var(--ledger-line-strong);
+    background:var(--card); font-family:'Inter',sans-serif; font-size:14px; color:var(--ink);
+  }
+  .champ input:focus, .champ select:focus{ outline:2px solid var(--ink); outline-offset:1px; }
+  .methodes-radio{ display:flex; gap:18px; flex-wrap:wrap; margin-bottom:20px; }
+  .methodes-radio label{ display:flex; align-items:center; gap:7px; font-size:14px; cursor:pointer; }
+
+  .cta{
+    display:block; width:100%; text-align:center; padding:14px; border:2px solid var(--ink);
+    background:var(--ink); color:#fff; font-family:'IBM Plex Mono', monospace; font-size:13px;
+    letter-spacing:.06em; text-transform:uppercase; cursor:pointer; transition:background .18s;
+  }
+  .cta:hover{ background:#12203a; }
+  .cta:disabled{ opacity:.6; cursor:not-allowed; }
+  .erreur{ color:#a33322; font-size:13px; margin:0 0 16px; }
+  .note-bas{ font-size:12.5px; color:var(--muted); margin-top:22px; text-align:center; }
+
+  @media (max-width:560px){ .methodes{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="retour" href="index.html#tarifs">← Retour à la grille tarifaire</a>
+
+  <p class="eyebrow" id="palierLabel">Formule —</p>
+  <h1>Réglez votre inscription</h1>
+  <p class="lede">
+    Choisissez un moyen de paiement manuel, effectuez le transfert, puis renseignez la référence
+    de la transaction. Votre inscription est validée par notre équipe sous 24h (Wave, Orange
+    Money) ou 3 jours ouvrés (virement bancaire).
+  </p>
+  <div class="rule"></div>
+
+  <div class="methodes">
+    <div class="methode wave">
+      <h3>🌊 Wave</h3>
+      <p class="valeur">N° : <span class="placeholder">[WAVE_NUMERO]</span></p>
+      <p class="valeur">Compte : <span class="placeholder">[NOM_COMPTE_COMMERCIAL]</span></p>
+      <p class="delai">Vérification sous 24 heures</p>
+    </div>
+    <div class="methode orange">
+      <h3>🍊 Orange Money</h3>
+      <p class="valeur">N° : <span class="placeholder">[ORANGE_MONEY_NUMERO]</span></p>
+      <p class="valeur">Compte : <span class="placeholder">[NOM_COMPTE_COMMERCIAL]</span></p>
+      <p class="delai">Vérification sous 24 heures</p>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>🏦 Virement bancaire</h2>
+    <div class="rib">
+      Banque : <span class="placeholder">[RIB_BANQUE]</span><br>
+      Code banque : <span class="placeholder">[RIB_CODE_BANQUE]</span>
+      · Guichet : <span class="placeholder">[RIB_GUICHET]</span><br>
+      Compte : <span class="placeholder">[RIB_COMPTE]</span>
+      · Clé : <span class="placeholder">[RIB_CLE]</span><br>
+      IBAN : <span class="placeholder">[RIB_IBAN]</span><br>
+      BIC : <span class="placeholder">[RIB_BIC]</span>
+    </div>
+    <p class="delai">Validation sous 3 jours ouvrés (délai interbancaire)</p>
+  </div>
+
+  <form id="formPaiement">
+    <div class="champ">
+      <label>Moyen de paiement utilisé</label>
+      <div class="methodes-radio">
+        <label><input type="radio" name="modePaiement" value="wave" checked> Wave</label>
+        <label><input type="radio" name="modePaiement" value="orange_money"> Orange Money</label>
+        <label><input type="radio" name="modePaiement" value="virement"> Virement bancaire</label>
+      </div>
+    </div>
+    <div class="champ">
+      <label for="pai-reference">Référence ou ID de la transaction</label>
+      <input id="pai-reference" required placeholder="Ex : TXN-987654321">
+    </div>
+    <p class="erreur" id="paiErreur" hidden></p>
+    <button type="submit" class="cta" id="paiSubmit">Confirmer mon paiement</button>
+  </form>
+
+  <p class="note-bas">
+    Besoin d'aide ? <a href="mailto:jeanmarkonan@gmail.com">jeanmarkonan@gmail.com</a>
+    · WhatsApp <a href="https://wa.me/2250789746930">07 89 74 69 30</a>
+  </p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  var PLAN_LABELS = { STARTER: 'Starter', PRO: 'Cabinet', CABINET: 'Cabinet Plus' };
+  var PLANS_CONNUS = Object.keys(PLAN_LABELS);
+
+  var params = new URLSearchParams(window.location.search);
+  var plan = params.get('plan');
+  var brut = sessionStorage.getItem('seven7_inscription');
+  var inscription = null;
+  try { inscription = brut ? JSON.parse(brut) : null; } catch(e) { inscription = null; }
+
+  // Sans identité connue ou palier reconnu : rien à payer, retour à l'inscription.
+  if(!inscription || !plan || PLANS_CONNUS.indexOf(plan) === -1 || inscription.planSouscrit !== plan){
+    window.location.href = 'index.html#tarifs';
+    return;
+  }
+
+  document.getElementById('palierLabel').textContent = 'Formule ' + (PLAN_LABELS[plan] || plan);
+
+  var firebaseConfig = {
+    apiKey: "@@ENV_FIREBASE_API_KEY@@",
+    authDomain: "@@ENV_FIREBASE_AUTH_DOMAIN@@",
+    projectId: "@@ENV_FIREBASE_PROJECT_ID@@",
+    storageBucket: "@@ENV_FIREBASE_STORAGE_BUCKET@@",
+    messagingSenderId: "@@ENV_FIREBASE_MESSAGING_SENDER_ID@@",
+    appId: "@@ENV_FIREBASE_APP_ID@@"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+
+  var form = document.getElementById('formPaiement');
+  var erreurEl = document.getElementById('paiErreur');
+  var submitBtn = document.getElementById('paiSubmit');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    erreurEl.hidden = true;
+
+    var reference = document.getElementById('pai-reference').value.trim();
+    var modePaiement = form.querySelector('input[name="modePaiement"]:checked').value;
+    if(!reference){
+      erreurEl.textContent = 'Merci de renseigner la référence de votre transaction.';
+      erreurEl.hidden = false;
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enregistrement…';
+
+    var demande = {
+      nomCabinet: inscription.nomCabinet,
+      nomContact: inscription.nomContact,
+      prenomContact: inscription.prenomContact,
+      emailContact: inscription.emailContact,
+      telephone: inscription.telephone,
+      planSouscrit: plan,
+      modePaiement: modePaiement,
+      referenceTransaction: reference,
+      statut: 'en_attente_de_validation',
+      dateCreation: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    var mailAlerteOperateur = {
+      to: 'jeanmarkonan@gmail.com',
+      message: {
+        subject: '🚨 Nouvelle demande d’inscription SEVEN7 — ' + demande.nomCabinet,
+        html: '<p>Cabinet : ' + demande.nomCabinet + '</p>'
+            + '<p>Palier : ' + (PLAN_LABELS[plan] || plan) + '</p>'
+            + '<p>Contact : ' + demande.prenomContact + ' ' + demande.nomContact
+              + ' — ' + demande.emailContact + ' — ' + demande.telephone + '</p>'
+            + '<p>Paiement : ' + demande.modePaiement + ', réf. ' + demande.referenceTransaction + '</p>'
+            + '<p>Vérifiez le règlement puis lancez migration/activer-demande-cabinet.mjs.</p>',
+      },
+    };
+    var mailAccuseClient = {
+      to: demande.emailContact,
+      message: {
+        subject: '✅ Votre inscription SEVEN7 est enregistrée',
+        html: '<p>Bonjour ' + demande.prenomContact + ',</p>'
+            + '<p>Votre demande d’inscription pour <b>' + demande.nomCabinet + '</b> '
+              + '(formule ' + (PLAN_LABELS[plan] || plan) + ') a bien été enregistrée, '
+              + 'avec la référence de paiement <code>' + demande.referenceTransaction + '</code>.</p>'
+            + '<p>Notre équipe vérifie votre règlement : activation sous 24h (Wave/Orange Money) '
+              + 'ou 3 jours ouvrés (virement bancaire).</p>'
+            + '<p>Vous recevrez vos identifiants de connexion dès validation.</p>'
+            + '<p>Merci pour votre confiance,<br>L’équipe SEVEN7.</p>',
+      },
+    };
+
+    Promise.all([
+      db.collection('demandes_cabinet').add(demande),
+      db.collection('mail').add(mailAlerteOperateur),
+      db.collection('mail').add(mailAccuseClient),
+    ]).then(function(){
+      sessionStorage.setItem('seven7_confirmation', JSON.stringify({
+        modePaiement: modePaiement, emailContact: demande.emailContact,
+      }));
+      sessionStorage.removeItem('seven7_inscription');
+      window.location.href = 'succes.html';
+    }).catch(function(err){
+      erreurEl.textContent = "Une erreur est survenue, votre paiement n'a pas été enregistré : "
+        + (err && err.message ? err.message : err) + '. Réessayez, ou contactez-nous directement.';
+      erreurEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Confirmer mon paiement';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

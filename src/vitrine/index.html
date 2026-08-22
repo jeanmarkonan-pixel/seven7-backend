@@ -127,12 +127,41 @@
   .tick{ width:15px; height:15px; flex-shrink:0; margin-top:3px; fill:none;
          stroke:var(--verified); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
   .cta{
-    display:block; text-align:center; text-decoration:none; padding:13px;
-    border:2px solid var(--ink); color:var(--ink); font-family:'IBM Plex Mono', monospace;
-    font-size:12.5px; letter-spacing:.06em; text-transform:uppercase;
-    transition:background .18s, color .18s;
+    display:block; width:100%; text-align:center; text-decoration:none; padding:13px;
+    border:2px solid var(--ink); background:transparent; color:var(--ink);
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; letter-spacing:.06em;
+    text-transform:uppercase; cursor:pointer; transition:background .18s, color .18s;
   }
   .cta:hover{ background:var(--ink); color:#fff; }
+
+  /* ---------- Modale d'inscription ---------- */
+  [hidden]{ display:none !important; }
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(27,43,69,.55); z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-box{
+    background:var(--paper); border:2px solid var(--ink); max-width:440px; width:100%;
+    padding:34px 30px 30px; position:relative; max-height:92vh; overflow-y:auto;
+  }
+  .modal-box h2{ text-align:left; margin-top:0; }
+  .modal-close{
+    position:absolute; top:14px; right:14px; background:none; border:none;
+    font-size:22px; line-height:1; cursor:pointer; color:var(--muted); padding:4px;
+  }
+  .champ{ margin-bottom:16px; }
+  .champ label{
+    display:block; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--gold-deep); margin-bottom:6px;
+  }
+  .champ input{
+    width:100%; padding:11px 12px; border:1px solid var(--ledger-line-strong);
+    background:var(--card); font-family:'Inter',sans-serif; font-size:14px; color:var(--ink);
+  }
+  .champ input:focus{ outline:2px solid var(--ink); outline-offset:1px; }
+  .champ-ligne{ display:flex; gap:14px; }
+  .champ-ligne .champ{ flex:1; }
+  .modal-erreur{ color:#a33322; font-size:13px; margin:-4px 0 14px; }
 
   /* ---------- Notes ---------- */
   .footnotes{ display:flex; gap:44px; justify-content:space-between; margin-top:34px; flex-wrap:wrap; }
@@ -280,7 +309,7 @@
           <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Support par email, réponse en 48-72h</li>
           <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Historique conservé 12 mois</li>
         </ul>
-        <a class="cta" href="mailto:jeanmarkonan@gmail.com?subject=SEVEN7%20-%20Formule%20Starter">Choisir Starter</a>
+        <button type="button" class="cta" data-plan="STARTER">Choisir Starter</button>
       </div>
 
       <div class="tier featured">
@@ -297,7 +326,7 @@
           <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Support prioritaire, réponse en 24h</li>
           <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Historique 24 mois + export des données</li>
         </ul>
-        <a class="cta" href="mailto:jeanmarkonan@gmail.com?subject=SEVEN7%20-%20Formule%20Cabinet">Choisir Cabinet</a>
+        <button type="button" class="cta" data-plan="PRO">Choisir Cabinet</button>
       </div>
 
       <div class="tier">
@@ -313,7 +342,7 @@
           <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Ligne de support dédiée + formation initiale des équipes</li>
           <li><svg class="tick" viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4"/></svg>Conservation illimitée + sauvegardes automatiques</li>
         </ul>
-        <a class="cta" href="mailto:jeanmarkonan@gmail.com?subject=SEVEN7%20-%20Formule%20Cabinet%20Plus">Choisir Cabinet Plus</a>
+        <button type="button" class="cta" data-plan="CABINET">Choisir Cabinet Plus</button>
       </div>
 
     </div>
@@ -345,6 +374,96 @@
   <p class="signoff">— Chaque chiffre de vos dossiers, pointé et vérifié.</p>
 
 </div>
+
+<!-- ==================== MODALE D'INSCRIPTION ==================== -->
+<div class="modal-overlay" id="modalInscription" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitre">
+    <button type="button" class="modal-close" id="modalClose" aria-label="Fermer">×</button>
+    <p class="eyebrow" id="modalPalierLabel">Formule</p>
+    <h2 id="modalTitre">Vos coordonnées</h2>
+    <p class="section-lede" style="text-align:left; margin:0 0 22px;">
+      L'étape suivante vous présente les moyens de paiement manuel (Wave, Orange Money,
+      virement). Votre inscription est traitée sous 24h à 3 jours ouvrés.
+    </p>
+    <form id="formInscription" novalidate>
+      <div class="champ">
+        <label for="ins-cabinet">Nom du cabinet</label>
+        <input id="ins-cabinet" required autocomplete="organization">
+      </div>
+      <div class="champ-ligne">
+        <div class="champ">
+          <label for="ins-nom">Nom</label>
+          <input id="ins-nom" required autocomplete="family-name">
+        </div>
+        <div class="champ">
+          <label for="ins-prenom">Prénom</label>
+          <input id="ins-prenom" required autocomplete="given-name">
+        </div>
+      </div>
+      <div class="champ">
+        <label for="ins-email">Email professionnel</label>
+        <input id="ins-email" type="email" required autocomplete="email">
+      </div>
+      <div class="champ">
+        <label for="ins-telephone">Téléphone</label>
+        <input id="ins-telephone" type="tel" required autocomplete="tel">
+      </div>
+      <p class="modal-erreur" id="modalErreur" hidden></p>
+      <button type="submit" class="btn btn-primaire" style="width:100%; text-align:center; border:none; cursor:pointer;">
+        Continuer vers le paiement
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  var PLAN_LABELS = { STARTER: 'Starter', PRO: 'Cabinet', CABINET: 'Cabinet Plus' };
+  var modal = document.getElementById('modalInscription');
+  var form = document.getElementById('formInscription');
+  var erreurEl = document.getElementById('modalErreur');
+  var palierLabelEl = document.getElementById('modalPalierLabel');
+  var planCourant = null;
+
+  document.querySelectorAll('.cta[data-plan]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      planCourant = btn.getAttribute('data-plan');
+      palierLabelEl.textContent = 'Formule ' + (PLAN_LABELS[planCourant] || planCourant);
+      erreurEl.hidden = true;
+      modal.hidden = false;
+      document.getElementById('ins-cabinet').focus();
+    });
+  });
+
+  document.getElementById('modalClose').addEventListener('click', function(){ modal.hidden = true; });
+  modal.addEventListener('click', function(e){ if(e.target === modal) modal.hidden = true; });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !modal.hidden) modal.hidden = true;
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var val = function(id){ return document.getElementById(id).value.trim(); };
+    var donnees = {
+      nomCabinet: val('ins-cabinet'),
+      nomContact: val('ins-nom'),
+      prenomContact: val('ins-prenom'),
+      emailContact: val('ins-email'),
+      telephone: val('ins-telephone'),
+      planSouscrit: planCourant,
+    };
+    if(!donnees.nomCabinet || !donnees.nomContact || !donnees.prenomContact
+       || !donnees.emailContact || !donnees.telephone || !donnees.planSouscrit){
+      erreurEl.textContent = 'Merci de renseigner tous les champs avant de continuer.';
+      erreurEl.hidden = false;
+      return;
+    }
+    // sessionStorage : clé propre à ce tunnel, distincte de temp_cabinet (app principale)
+    sessionStorage.setItem('seven7_inscription', JSON.stringify(donnees));
+    window.location.href = 'paiement.html?plan=' + encodeURIComponent(planCourant);
+  });
+})();
+</script>
 
 </body>
 </html>

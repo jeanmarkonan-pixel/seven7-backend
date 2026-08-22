@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscription enregistrée — SEVEN7</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/seven7-icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2B45; --paper:#F4F6EF; --ledger-line-strong:#9FAF95;
+    --gold-deep:#8A6222; --verified:#2E6B4C; --muted:#5B6470; --card:#FBFCF8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased; padding:64px 20px; line-height:1.6;
+    display:flex; align-items:center; justify-content:center; min-height:100vh;
+  }
+  .wrap{ max-width:520px; text-align:center; }
+  .coche{
+    width:64px; height:64px; margin:0 auto 24px; border-radius:50%; background:var(--verified);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .coche svg{ width:30px; height:30px; fill:none; stroke:#fff; stroke-width:2.6;
+              stroke-linecap:round; stroke-linejoin:round; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.14em;
+            text-transform:uppercase; color:var(--gold-deep); margin:0 0 10px; }
+  h1{ font-family:'Source Serif 4', serif; font-weight:600; font-size:30px; margin:0 0 16px; }
+  p{ color:var(--muted); font-size:15px; margin:0 0 14px; }
+  .box{ background:var(--card); border:1px solid var(--ledger-line-strong); padding:20px 24px;
+        text-align:left; font-size:14px; margin:26px 0; }
+  .box strong{ color:var(--ink); }
+  .retour{
+    display:inline-block; margin-top:18px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    letter-spacing:.06em; text-transform:uppercase; text-decoration:none; color:var(--ink);
+    border:2px solid var(--ink); padding:13px 30px;
+  }
+  .retour:hover{ background:var(--ink); color:#fff; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="coche"><svg viewBox="0 0 24 24"><path d="M4 12.5 L9.5 18 L20 6"/></svg></div>
+  <p class="eyebrow">Inscription enregistrée</p>
+  <h1>Merci — votre demande est en cours de traitement</h1>
+  <p>
+    Notre équipe vérifie votre règlement avant d'activer votre accès. Vous recevrez vos
+    identifiants de connexion par e-mail dès validation.
+  </p>
+  <div class="box" id="delaiBox">
+    <strong>Délai estimé :</strong> <span id="delaiTexte">sous 24h à 3 jours ouvrés selon le moyen de paiement choisi</span>.
+  </div>
+  <p>
+    Une question en attendant ? <a href="mailto:jeanmarkonan@gmail.com">jeanmarkonan@gmail.com</a>
+    · WhatsApp <a href="https://wa.me/2250789746930">07 89 74 69 30</a>
+  </p>
+  <a class="retour" href="index.html">Retour à l'accueil</a>
+</div>
+
+<script>
+(function(){
+  var brut = sessionStorage.getItem('seven7_confirmation');
+  var confirmation = null;
+  try { confirmation = brut ? JSON.parse(brut) : null; } catch(e) { confirmation = null; }
+  if(!confirmation) return;
+
+  var DELAIS = {
+    wave: 'sous 24 heures (Wave)',
+    orange_money: 'sous 24 heures (Orange Money)',
+    virement: 'sous 3 jours ouvrés (délai interbancaire)',
+  };
+  var texte = DELAIS[confirmation.modePaiement];
+  if(texte) document.getElementById('delaiTexte').textContent = texte;
+
+  sessionStorage.removeItem('seven7_confirmation');
+})();
+</script>
+
+</body>
+</html>

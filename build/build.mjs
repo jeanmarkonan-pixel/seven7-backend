@@ -95,7 +95,7 @@ if(verifier){
     fs.mkdirSync(path.dirname(SORTIE), { recursive: true });
     fs.writeFileSync(SORTIE, html, 'utf8');
     console.log(`✓ dist/${path.basename(SORTIE)} — ${totalFichiers} fichiers, ${(html.length/1024/1024).toFixed(2)} Mo`);
-    ecrireStatiques(html);
+    ecrireStatiques(html, env);
 }
 
 /* ==================================================================
@@ -107,7 +107,7 @@ if(verifier){
    service worker porte le numéro de version, pour que chaque
    construction invalide les caches de la précédente.
    ================================================================== */
-function ecrireStatiques(contenu){
+function ecrireStatiques(contenu, env){
     const dist = path.dirname(SORTIE);
     const statique = path.join(RACINE, 'src', 'statique');
 
@@ -136,7 +136,7 @@ function ecrireStatiques(contenu){
         n++;
     }
     console.log(`✓ dist/index.html, manifest.json, sw.js (cache « seven7-${version} ») et ${n} ressources`);
-    ecrireVitrine(srcAssets);
+    ecrireVitrine(srcAssets, env);
 }
 
 /* Parseur .env minimal : KEY=VALUE par ligne, commentaires # et lignes vides
@@ -161,15 +161,42 @@ function chargerEnv(chemin){
 
 /* La vitrine est un site distinct — seven7.ci — servi par un autre site
    d'hébergement que l'application. Elle ne contient aucune donnée de
-   mission : une page unique et les icônes. */
-function ecrireVitrine(srcAssets){
-    const src = path.join(RACINE, 'src', 'vitrine', 'index.html');
-    if(!fs.existsSync(src)) return;
+   mission : ses pages HTML (index.html, et depuis le tunnel d'inscription,
+   paiement.html/succes.html) et les icônes.
+
+   Certaines de ces pages écrivent dans Firestore (tunnel d'inscription) et
+   portent donc les mêmes marqueurs @@ENV_FIREBASE_*@@ que src/app.html — on
+   réutilise le même .env, pas une seconde configuration. Contrairement à
+   la substitution de l'application (stricte : chaque marqueur doit
+   apparaître EXACTEMENT une fois), celle-ci est souple : un fichier de
+   src/vitrine/ qui ne contient aucun marqueur (index.html aujourd'hui)
+   n'a pas besoin d'y échapper. */
+function substituerEnvVitrine(html, env, nomFichier){
+    for(const [marqueur, cleEnv] of Object.entries(ENV_MARQUEURS)){
+        const jeton = `@@${marqueur}@@`;
+        if(html.indexOf(jeton) === -1) continue;
+        const valeur = env[cleEnv];
+        if(!valeur) throw new Error(
+            `.env : variable ${cleEnv} manquante ou vide (voir .env.example) — `
+          + `requise par src/vitrine/${nomFichier}`);
+        html = html.split(jeton).join(valeur);
+    }
+    return html;
+}
+
+function ecrireVitrine(srcAssets, env){
+    const dossierSrc = path.join(RACINE, 'src', 'vitrine');
+    if(!fs.existsSync(dossierSrc)) return;
     const dest = path.join(RACINE, 'dist-vitrine');
     const destAssets = path.join(dest, 'assets');
     fs.mkdirSync(destAssets, { recursive: true });
-    fs.copyFileSync(src, path.join(dest, 'index.html'));
+
+    const pages = fs.readdirSync(dossierSrc).filter(f => f.endsWith('.html'));
+    for(const page of pages){
+        const contenu = fs.readFileSync(path.join(dossierSrc, page), 'utf8');
+        fs.writeFileSync(path.join(dest, page), substituerEnvVitrine(contenu, env, page), 'utf8');
+    }
     for(const f of fs.readdirSync(srcAssets))
         fs.copyFileSync(path.join(srcAssets, f), path.join(destAssets, f));
-    console.log(`✓ dist-vitrine/index.html et ses ressources`);
+    console.log(`✓ dist-vitrine/ : ${pages.join(', ')} et ses ressources`);
 }

@@ -218,3 +218,32 @@ test('STATISTIQUES — la sous-collection cabinets est couverte', opts, async ()
     await assertSucceeds(db(A).doc('seven7_usage_stats/2026-08-03/cabinets/CAB1').set({ lectures: 1 }));
     await assertFails(db(null).doc('seven7_usage_stats/2026-08-03/cabinets/CAB1').set({ lectures: 1 }));
 });
+
+/* --- Tunnel d'inscription public (vitrine) ----------------------------
+   demandes_cabinet et mail sont écrits par un formulaire public, avant
+   toute authentification — create seul doit être ouvert, tout le reste
+   fermé : le traitement se fait par migration/activer-demande-cabinet.mjs
+   (Admin SDK, hors règles), jamais par le client. */
+
+test('INSCRIPTION — une demande de cabinet se crée sans compte, mais ne se relit pas', opts, async () => {
+    await assertSucceeds(db(null).collection('demandes_cabinet').add({
+        nomCabinet: 'Cabinet Test', planSouscrit: 'STARTER', statut: 'en_attente_de_validation',
+    }));
+    const ref = await env.withSecurityRulesDisabled(async ctx =>
+        ctx.firestore().collection('demandes_cabinet').add({ nomCabinet: 'X' }));
+    await assertFails(db(null).doc(`demandes_cabinet/${ref.id}`).get());
+    await assertFails(db(A).doc(`demandes_cabinet/${ref.id}`).get());
+    await assertFails(db(null).doc(`demandes_cabinet/${ref.id}`).update({ statut: 'traitee' }));
+    await assertFails(db(null).doc(`demandes_cabinet/${ref.id}`).delete());
+});
+
+test('INSCRIPTION — un accusé de courriel se crée sans compte, mais ne se relit pas', opts, async () => {
+    await assertSucceeds(db(null).collection('mail').add({
+        to: 'jeanmarkonan@gmail.com', message: { subject: 'Test', html: '<p>Test</p>' },
+    }));
+    const ref = await env.withSecurityRulesDisabled(async ctx =>
+        ctx.firestore().collection('mail').add({ to: 'x@example.com' }));
+    await assertFails(db(null).doc(`mail/${ref.id}`).get());
+    await assertFails(db(A).doc(`mail/${ref.id}`).get());
+    await assertFails(db(null).doc(`mail/${ref.id}`).update({ to: 'detourne@example.com' }));
+});
