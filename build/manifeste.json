@@ -44,6 +44,7 @@
     "43-seuils-cycles.js",
     "48-tableaux-fiscaux.js",
     "49-centralisation-anomalies.js",
+    "50-detection-syscohada.js",
     "47-choix-opinion.js",
     "44-vue-onglets.js",
     "45-securite-import.js",

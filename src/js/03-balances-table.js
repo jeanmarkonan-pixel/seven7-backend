@@ -52,6 +52,7 @@ function recomputeBalanceFromTable(ex){
     var badge = document.getElementById('status-balance-'+ex);
     if(badge && rows.length){ badge.textContent = 'Importée ('+rows.length+' lignes)'; badge.className='badge badge-success'; }
     if(typeof liasseRefreshAll === 'function') liasseRefreshAll();
+    if(typeof syscRafraichirTout === 'function') syscRafraichirTout();
 }
 
 function updateBalanceStats(ex){

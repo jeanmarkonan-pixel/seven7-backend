@@ -650,6 +650,7 @@ function recomputeTiersFromTable(type){
     updateTiersStats(type);
     computeAnormaux();
     refreshCircSeuilCalc(type);
+    if(typeof syscRafraichirTout === 'function') syscRafraichirTout();
 }
 function updateTiersStats(type){
     var rows = tiersData[type]||[];

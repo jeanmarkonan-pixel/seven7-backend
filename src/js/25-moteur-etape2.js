@@ -138,6 +138,11 @@ function paramResolve(compte, sd, sc){
     var m = raw.match(/^\d+/);
     if(!m) return null;
     var digits = m[0];
+    // Reclassification virtuelle validée par l'auditeur (voir « Appliquer la
+    // re-classification », 50-detection-syscohada.js) : le compte se résout
+    // comme s'il commençait par la racine SYSCOHADA recommandée, sans que
+    // balanceData ni le CSV d'origine ne soient jamais modifiés.
+    if(typeof syscOverrides !== 'undefined' && syscOverrides[digits]) digits = syscOverrides[digits];
     var tables = paramBuildIndex();
     var net = (parseNum(sd) || 0) - (parseNum(sc) || 0);
     var maxLen = Math.min(digits.length, 12);

@@ -9,6 +9,9 @@
    - l'écart de Patente (tfEcartPatente(), 48-tableaux-fiscaux.js) ;
    - les écarts de rapprochement fiscal annuel déclaré/comptabilisé pour
      ITS/CE/TA/TFPC et CNPS (anScannerFiscal(), même fichier, TF_COMPTES) ;
+   - les anomalies de codification SYSCOHADA (racine de classe, compte
+     générique, incohérence N/N-1 — anScannerSYSCOHADA(),
+     50-detection-syscohada.js), sauf celles déjà reclassées par l'auditeur ;
    - les points de Contrôle Interne à risque (Risque du CI) : une
      réponse « Non » vaut non-conformité, une efficacité notée 1 ou 2
      vaut risque critique. Le questionnaire n'utilise pas ces libellés
@@ -148,7 +151,7 @@ function anScannerManuelles(){
 /** Liste consolidée, chaque anomalie enrichie de son statut de résolution. */
 function anToutesAnomalies(){
     var justifs = anChargerJustifs();
-    var brut = [].concat(anScannerTiers(), anScannerPatente(), anScannerFiscal(), anScannerCI(), anScannerManuelles());
+    var brut = [].concat(anScannerTiers(), anScannerPatente(), anScannerFiscal(), anScannerSYSCOHADA(), anScannerCI(), anScannerManuelles());
     return brut.map(function(a){
         var justification = justifs[a.cle] || '';
         a.justification = justification;
