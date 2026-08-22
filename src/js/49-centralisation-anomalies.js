@@ -87,7 +87,8 @@ function anScannerPatente(){
 // pure sur la balance + le déclaré déjà saisi), pas de valeur mise en cache.
 function anScannerFiscal(){
     if(typeof tfRecalculerCompta !== 'function' || typeof TF_COMPTES === 'undefined') return [];
-    var libelles = { ITS:'ITS (447)', CE:'CE (447)', TA:'TA (447)', TFPC:'TFPC (447)', CNPS:'CNPS (4311/4312)' };
+    var libelles = { ITS:'ITS (447)', CE:'CE (447)', TA:'TA (447)', TFPC:'TFPC (447)', CNPS:'CNPS (4311/4312)',
+        TVA_Collectee:'TVA collectée (443)', TVA_Recuperable:'TVA récupérable (445)' };
     var out = [];
     [{ id:'tf-groupe1', conf: TF_COMPTES.impots_groupe_1 }, { id:'tf-cnps', conf: TF_COMPTES.cnps }]
         .forEach(function(s){
@@ -95,10 +96,23 @@ function anScannerFiscal(){
             Object.keys(ecarts).forEach(function(col){
                 if(!ecarts[col]) return;
                 out.push({ cle:'fiscal:' + s.id + ':' + col, source:'Impôts et taxes — ' + (libelles[col] || col),
-                    description: 'Écart entre le déclaré et le comptabilisé (' + (libelles[col] || col) + ')',
+                    description: 'Écart annuel entre le déclaré et le comptabilisé (' + (libelles[col] || col) + ')',
                     montant: ecarts[col], onglet:'impots' });
             });
         });
+    // Rapprochement MENSUEL (Grand Livre) : TVA et ITS/CE/TA/TFPC, voir
+    // tfRecalculerRapprochementMensuel() dans 48-tableaux-fiscaux.js.
+    if(typeof tfRecalculerRapprochementMensuel === 'function' && typeof TF_MOIS !== 'undefined'){
+        [{ id:'tf-tva', conf: TF_COMPTES.tva }, { id:'tf-groupe1', conf: TF_COMPTES.impots_groupe_1 }]
+            .forEach(function(s){
+                tfRecalculerRapprochementMensuel(s.id, s.conf).forEach(function(e){
+                    out.push({ cle:'fiscal-mensuel:' + s.id + ':' + e.col + ':' + e.mois,
+                        source:'Impôts et taxes — ' + (libelles[e.col] || e.col),
+                        description: 'Écart en ' + TF_MOIS[e.mois] + ' entre le déclaré et le Grand Livre (' + (libelles[e.col] || e.col) + ')',
+                        montant: e.ecart, onglet:'impots' });
+                });
+            });
+    }
     return out;
 }
 function anScannerCI(){

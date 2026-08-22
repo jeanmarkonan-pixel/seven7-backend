@@ -292,3 +292,52 @@ test('ANOMALIES — anScannerFiscal remonte les écarts ITS/CE/TA/TFPC et CNPS n
     assert.equal(its.montant, 50000);
     d.window.close();
 });
+
+test('RAPPROCHEMENT MENSUEL — TVA se compare au Grand Livre du même mois (compte 443)', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.grandLivreBilanData = [
+        { compte:'44300000', intitule:'TVA COLLECTEE', date:'2026-01-15', ref:'', libelle:'', debit:0, credit:300000 },
+        { compte:'44300000', intitule:'TVA COLLECTEE', date:'2026-02-10', ref:'', libelle:'', debit:0, credit:400000 },
+    ];
+    const table = w.document.getElementById('tf-tva');
+    const janvier = table.rows[1].querySelector('[data-tf-col="TVA_Collectee"]');
+    const fevrier = table.rows[2].querySelector('[data-tf-col="TVA_Collectee"]');
+    janvier.value = '300000'; // déclaré = Grand Livre de janvier
+    fevrier.value = '450000'; // déclaré ≠ Grand Livre de février (400 000)
+    w.tfRecalculerTVA();
+    assert.equal(janvier.style.background, '', 'janvier concorde avec le Grand Livre, pas d’alerte');
+    assert.notEqual(fevrier.style.background, '', 'février diverge du Grand Livre, doit être surligné');
+    assert.ok(fevrier.title.indexOf(w.fmt(400000)) !== -1, 'l’infobulle doit indiquer le montant du Grand Livre');
+    d.window.close();
+});
+
+test('RAPPROCHEMENT MENSUEL — ITS/CE/TA/TFPC se comparent au Grand Livre (4471-4474)', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.grandLivreBilanData = [
+        { compte:'44710000', intitule:'ITS', date:'2026-03-05', ref:'', libelle:'', debit:0, credit:120000 },
+    ];
+    const table = w.document.getElementById('tf-groupe1');
+    const mars = table.rows[3].querySelector('[data-tf-col="ITS"]');
+    mars.value = '150000';
+    w.tfRecalculerLigne('impots_groupe_1', mars);
+    assert.notEqual(mars.style.background, '', 'mars diverge du Grand Livre (120 000 déclaré 150 000)');
+    d.window.close();
+});
+
+test('ANOMALIES — les écarts mensuels TVA/Groupe 1 remontent aussi dans anScannerFiscal', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.grandLivreBilanData = [
+        { compte:'44300000', intitule:'TVA COLLECTEE', date:'2026-01-15', ref:'', libelle:'', debit:0, credit:300000 },
+    ];
+    const table = w.document.getElementById('tf-tva');
+    table.rows[1].querySelector('[data-tf-col="TVA_Collectee"]').value = '350000';
+    w.tfRecalculerTVA();
+    const liste = w.anScannerFiscal();
+    const ecart = liste.find(a => a.cle === 'fiscal-mensuel:tf-tva:TVA_Collectee:0');
+    assert.ok(ecart, 'écart mensuel de TVA collectée (janvier) doit remonter');
+    assert.equal(ecart.montant, 50000);
+    d.window.close();
+});

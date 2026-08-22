@@ -17923,6 +17923,56 @@ function tfSoldesAutoTVA(){
     };
 }
 
+// Rapprochement MENSUEL (Phase 2, 22/08) : seul le Grand Livre porte des
+// écritures datées dans l'app (la balance N/N-1 est annuelle) — on y lit le
+// mouvement du mois pour comparer au montant déclaré du même mois, sans
+// ajouter de colonnes : la cellule déclarée elle-même se surligne et porte
+// l'écart en infobulle quand elle diverge du Grand Livre.
+function tfMouvementMensuel(compte, sens, moisIndex){
+    var rows = (typeof grandLivreData !== 'undefined') ? grandLivreData : [];
+    var md = 0, mc = 0;
+    tfComptesArr(compte).forEach(function(cpt){
+        var digits = String(cpt).replace('*', '');
+        for(var i = 0; i < rows.length; i++){
+            var r = rows[i];
+            if(String(r.compte || '').trim().indexOf(digits) !== 0) continue;
+            var mois = parseInt(String(r.date || '').slice(5, 7), 10) - 1;
+            if(mois !== moisIndex) continue;
+            md += parseNum(r.debit);
+            mc += parseNum(r.credit);
+        }
+    });
+    return sens === 'SC' ? mc : md;
+}
+// Applique le surlignage + l'infobulle sur chaque cellule mensuelle déclarée
+// dont le compte est connu (TF_COMPTES) ; rend la liste des écarts non nuls
+// {colonne, moisIndex, ecart} pour le pont vers l'onglet s (anScannerFiscal).
+function tfRecalculerRapprochementMensuel(tableId, comptaConf){
+    var table = document.getElementById(tableId);
+    if(!table || !comptaConf) return [];
+    var ecarts = [];
+    Array.prototype.slice.call(table.querySelectorAll('tr[data-tf-mois]')).forEach(function(tr){
+        var moisIndex = parseInt(tr.getAttribute('data-tf-mois'), 10);
+        Object.keys(comptaConf).forEach(function(c){
+            var conf = comptaConf[c];
+            var el = tr.querySelector('[data-tf-col="' + c + '"]');
+            if(!el || el.tagName !== 'INPUT') return; // colonnes calculées (Due/Crédit) exclues
+            var declare = parseNum(el.value);
+            var compta = tfMouvementMensuel(conf.compte, conf.sens, moisIndex);
+            var ecart = declare - compta;
+            if(ecart !== 0){
+                el.style.background = '#fff3cd';
+                el.title = 'Grand Livre (compte ' + tfComptesArr(conf.compte).join('/') + ') : ' + fmt(compta) + ' — écart de ' + fmt(ecart);
+                ecarts.push({ col:c, mois:moisIndex, ecart:ecart });
+            } else {
+                el.style.background = '';
+                el.title = '';
+            }
+        });
+    });
+    return ecarts;
+}
+
 function tfCol(nom){
     return nom.replace(/_/g, ' ');
 }
@@ -18056,6 +18106,7 @@ function tfRecalculerLigne(cle, input){
     }
     tfRecalculerPied(def.id);
     tfRecalculerCompta(def.id, TF_COMPTES[cle]);
+    tfRecalculerRapprochementMensuel(def.id, TF_COMPTES[cle]);
 }
 
 /* ---------- TVA (calcul du solde mensuel, report de crédit) ---------- */
@@ -18090,6 +18141,7 @@ function tfRecalculerTVA(){
         if(creditEl) creditEl.textContent = fmt(credit);
     });
     tfRecalculerPied('tf-tva');
+    tfRecalculerRapprochementMensuel('tf-tva', TF_COMPTES.tva);
 }
 
 /* ---------- Crédit de TVA (feuille "TVA DUE-CREDIT TVA", 6 lignes, saisie
@@ -18288,6 +18340,7 @@ function tfInstaller(){
     tfRecalculerCreditTVA();
     tfRecalculerPied('tf-groupe1');
     tfRecalculerCompta('tf-groupe1', TF_COMPTES.impots_groupe_1);
+    tfRecalculerRapprochementMensuel('tf-groupe1', TF_COMPTES.impots_groupe_1);
     tfRecalculerITSAnnuel();
     tfRecalculerPied('tf-groupe2');
     tfRecalculerPatente();
@@ -18396,7 +18449,8 @@ function anScannerPatente(){
 // pure sur la balance + le déclaré déjà saisi), pas de valeur mise en cache.
 function anScannerFiscal(){
     if(typeof tfRecalculerCompta !== 'function' || typeof TF_COMPTES === 'undefined') return [];
-    var libelles = { ITS:'ITS (447)', CE:'CE (447)', TA:'TA (447)', TFPC:'TFPC (447)', CNPS:'CNPS (4311/4312)' };
+    var libelles = { ITS:'ITS (447)', CE:'CE (447)', TA:'TA (447)', TFPC:'TFPC (447)', CNPS:'CNPS (4311/4312)',
+        TVA_Collectee:'TVA collectée (443)', TVA_Recuperable:'TVA récupérable (445)' };
     var out = [];
     [{ id:'tf-groupe1', conf: TF_COMPTES.impots_groupe_1 }, { id:'tf-cnps', conf: TF_COMPTES.cnps }]
         .forEach(function(s){
@@ -18404,10 +18458,23 @@ function anScannerFiscal(){
             Object.keys(ecarts).forEach(function(col){
                 if(!ecarts[col]) return;
                 out.push({ cle:'fiscal:' + s.id + ':' + col, source:'Impôts et taxes — ' + (libelles[col] || col),
-                    description: 'Écart entre le déclaré et le comptabilisé (' + (libelles[col] || col) + ')',
+                    description: 'Écart annuel entre le déclaré et le comptabilisé (' + (libelles[col] || col) + ')',
                     montant: ecarts[col], onglet:'impots' });
             });
         });
+    // Rapprochement MENSUEL (Grand Livre) : TVA et ITS/CE/TA/TFPC, voir
+    // tfRecalculerRapprochementMensuel() dans 48-tableaux-fiscaux.js.
+    if(typeof tfRecalculerRapprochementMensuel === 'function' && typeof TF_MOIS !== 'undefined'){
+        [{ id:'tf-tva', conf: TF_COMPTES.tva }, { id:'tf-groupe1', conf: TF_COMPTES.impots_groupe_1 }]
+            .forEach(function(s){
+                tfRecalculerRapprochementMensuel(s.id, s.conf).forEach(function(e){
+                    out.push({ cle:'fiscal-mensuel:' + s.id + ':' + e.col + ':' + e.mois,
+                        source:'Impôts et taxes — ' + (libelles[e.col] || e.col),
+                        description: 'Écart en ' + TF_MOIS[e.mois] + ' entre le déclaré et le Grand Livre (' + (libelles[e.col] || e.col) + ')',
+                        montant: e.ecart, onglet:'impots' });
+                });
+            });
+    }
     return out;
 }
 function anScannerCI(){
