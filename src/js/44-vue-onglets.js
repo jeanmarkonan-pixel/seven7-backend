@@ -102,7 +102,10 @@ var VUE_ONGLETS_INFO_CATEGORIE = {
     ref: { icone:'📚', libelle:'Références' }
 };
 
-var VUE_ONGLETS_CLE = 'seven7_vue_onglets_mode'; // 'complete' | 'reduite'
+// Clé changée le 22/08 (_v2) : l'ancienne clé avait été auto-écrite avec 'reduite' au
+// chargement de CHAQUE poste (jamais un choix explicite de l'auditeur, un défaut mal
+// choisi le temps d'un aller-retour) — la renommer efface ce faux "choix" partout.
+var VUE_ONGLETS_CLE = 'seven7_vue_onglets_mode_v2'; // 'complete' | 'reduite'
 
 // Ne regroupe qu'une seule fois : les boutons sont RE-parentés (déplacés dans
 // des .onglet-groupe), pas dupliqués — un second passage n'aurait rien à faire
@@ -150,7 +153,12 @@ function vueOngletsGrouperPhase(dropdown){
     dropdown.dataset.groupe = '1';
 }
 
-function vueOngletsAppliquer(mode){
+// persister=false lors de l'application automatique au chargement (vueOngletsInit) :
+// sans ça, le simple fait d'ouvrir la page réécrit la préférence en localStorage,
+// même si l'auditeur n'a jamais cliqué sur le bouton — c'est ainsi que le défaut
+// 'reduite' d'origine s'était figé comme un faux "choix" impossible à corriger par
+// un simple changement de valeur par défaut dans le code.
+function vueOngletsAppliquer(mode, persister){
     var nav = document.getElementById('phaseNav');
     if(nav) nav.classList.toggle('vue-reduite', mode === 'reduite');
     document.querySelectorAll('.phase-dropdown').forEach(function(dropdown){
@@ -158,7 +166,9 @@ function vueOngletsAppliquer(mode){
     });
     var btn = document.getElementById('vue-onglets-toggle');
     if(btn) btn.textContent = mode === 'reduite' ? '☰ Vue complète' : '▤ Vue réduite par catégorie';
-    try{ localStorage.setItem(VUE_ONGLETS_CLE, mode); }catch(e){}
+    if(persister !== false){
+        try{ localStorage.setItem(VUE_ONGLETS_CLE, mode); }catch(e){}
+    }
 }
 
 window.vueOngletsBasculer = function(){
@@ -175,15 +185,17 @@ function vueOngletsInit(){
     btn.id = 'vue-onglets-toggle';
     btn.className = 'vue-onglets-toggle-btn';
     btn.onclick = window.vueOngletsBasculer;
-    // Dans la sidebar (pas à côté d'elle) : premier élément, au-dessus des 3 accordéons.
+    // Premier élément de la barre, avant les 3 boutons de phase.
     nav.insertBefore(btn, nav.firstChild);
 
-    // Vue regroupée a→u par défaut : c'est désormais l'arborescence de référence du
-    // cabinet. La préférence par appareil (localStorage) reste prioritaire si un
-    // auditeur a explicitement choisi la vue complète à plat.
-    var prefere = 'reduite';
-    try{ prefere = localStorage.getItem(VUE_ONGLETS_CLE) || 'reduite'; }catch(e){}
-    vueOngletsAppliquer(prefere);
+    // Vue complète à plat par défaut (22/08) : avec le menu par phase en bloc horizontal,
+    // le regroupement par catégorie empilait les onglets verticalement à l'intérieur de
+    // chaque catégorie — l'inverse du "alignés les uns à la suite des autres" demandé. La
+    // préférence par appareil (localStorage) reste prioritaire si un auditeur a explicitement
+    // choisi la vue regroupée par catégorie.
+    var prefere = 'complete';
+    try{ prefere = localStorage.getItem(VUE_ONGLETS_CLE) || 'complete'; }catch(e){}
+    vueOngletsAppliquer(prefere, false);
 }
 
 try{
