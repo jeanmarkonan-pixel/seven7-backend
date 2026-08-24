@@ -97,14 +97,15 @@ test('SDK — un SDK complet ne déclenche aucun bandeau', () => {
     d.window.close();
 });
 
-test('NAVIGATION — les 44 onglets sont répartis sur trois phases', async () => {
+test('NAVIGATION — les 45 onglets sont répartis sur trois phases', async () => {
     const d = await domPret();
     const w = d.window;
 
     assert.ok(Array.isArray(w.TABS), 'TABS absent');
     // 31 onglets d’origine (dont Messagerie), 11 sections de diligences normatives,
-    // les faits marquants de l’exercice, et le choix de l’opinion à opérer.
-    assert.equal(w.TABS.length, 44, 'le nombre d’onglets a changé');
+    // les faits marquants de l’exercice, le choix de l’opinion à opérer, et le
+    // rapprochement bancaire (25/08).
+    assert.equal(w.TABS.length, 45, 'le nombre d’onglets a changé');
 
     const phases = [...new Set(w.TABS.map(t => t.phase))].sort();
     assert.deepEqual(phases, [1, 2, 3], 'les onglets doivent couvrir trois phases, une par rangée');

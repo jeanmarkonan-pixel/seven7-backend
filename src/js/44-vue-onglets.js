@@ -60,7 +60,7 @@ var VUE_ONGLETS_CATEGORIES = {
     'circ-fourn':'g', 'circ-clients':'g',
     bilan:'h', resultat:'h', revue:'h', detection:'h',
     'selection-comptes':'i',
-    'gl-bilan':'j', 'gl-gestion':'j',
+    'gl-bilan':'j', 'gl-gestion':'j', 'rapprochement-bancaire':'j',
     'controle-gl-sondage':'k',
     impots:'l', calendrier:'l',
     'indemnite-retraite':'m', 'conges-payes':'m',

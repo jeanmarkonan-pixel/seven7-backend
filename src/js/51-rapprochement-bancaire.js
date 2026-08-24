@@ -1,0 +1,348 @@
+/* ==================================================================
+   SEVEN7 — RAPPROCHEMENT BANCAIRE (Novembre / Décembre)
+
+   Nouvel onglet, rattaché à la lettre j (Grand Livre) de l'arborescence
+   a→u : sur le même modèle que 47-choix-opinion.js (panneau auto-installé,
+   déclaré dans TABS, jamais dupliqué, bouton inséré dans le menu Phase 2
+   juste après GL Gestion).
+
+   Portée volontairement limitée aux deux derniers mois de l'exercice
+   (novembre, décembre) — demande explicite du cabinet, pas une limite
+   technique : RB_MOIS peut recevoir d'autres mois plus tard sans reprendre
+   la structure.
+
+   Pour chaque mois : import CSV du relevé bancaire (format générique
+   Date;Libellé;Débit;Crédit, délimiteur auto-détecté — parsing autonome,
+   volontairement dupliqué de 45-securite-import.js plutôt que réutilisé,
+   car ce module charge AVANT lui dans build/manifeste.json), affiché en
+   face des écritures du Grand Livre déjà importées (04-grand-livre.js)
+   sur le(s) compte(s) banque configuré(s) (préfixe(s), ex. "52"), pour
+   le même mois. L'auditeur pointe manuellement chaque ligne du relevé
+   rapprochée ; une suggestion automatique (🔎) signale une écriture GL du
+   même mois au même montant, mais ne pointe jamais elle-même — ce serait
+   trop risqué sur un rapprochement dont la fiabilité dépend justement du
+   contrôle humain.
+
+   Sens des colonnes — piège classique du rapprochement bancaire : sur un
+   relevé, "Crédit" = argent REÇU par le compte (encaissement), "Débit" =
+   argent SORTI (décaissement) — c'est l'INVERSE des colonnes Débit/Crédit
+   du compte 52 en comptabilité (où Débit = encaissement, l'actif augmente).
+   Le mouvement net comparé est donc (Crédit relevé − Débit relevé) contre
+   (Débit compta − Crédit compta), jamais colonne à colonne.
+
+   Persistance : comme tout onglet de l'app, la sauvegarde Firestore capture
+   le innerHTML entier du div#rapprochement-bancaire (voir doSaveTab dans
+   10-config-collaboration.js) — les lignes importées et les cases "Pointé"
+   cochées doivent donc exister comme lignes de table réelles (comme GL
+   Bilan/Gestion), jamais comme simple variable JS en mémoire.
+   ================================================================== */
+
+var RB_MOIS = [
+    { index: 10, id: 'nov', nom: 'Novembre' },
+    { index: 11, id: 'dec', nom: 'Décembre' }
+];
+
+/* ---------- Parsing CSV autonome (voir note d'en-tête sur l'ordre de chargement) ---------- */
+function rbDetecterDelimiteur(ligne){
+    var candidats = [';', ',', '\t'];
+    var meilleur = ';', max = -1;
+    candidats.forEach(function(d){
+        var n = ligne.split(d).length - 1;
+        if(n > max){ max = n; meilleur = d; }
+    });
+    return meilleur;
+}
+function rbDecouperLigne(ligne, delim){
+    var champs = [], cur = '', enGuillemets = false;
+    for(var i = 0; i < ligne.length; i++){
+        var c = ligne[i];
+        if(enGuillemets){
+            if(c === '"'){
+                if(ligne[i+1] === '"'){ cur += '"'; i++; }
+                else enGuillemets = false;
+            } else cur += c;
+        } else {
+            if(c === '"') enGuillemets = true;
+            else if(c === delim){ champs.push(cur); cur = ''; }
+            else cur += c;
+        }
+    }
+    champs.push(cur);
+    return champs;
+}
+// Accepte AAAA-MM-JJ (natif <input type=date>) ou JJ/MM/AAAA — sinon chaîne vide (ligne signalée en rouge).
+function rbNormaliserDate(s){
+    s = String(s || '').trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if(m) return m[3] + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0');
+    return '';
+}
+function rbEnteteEstDonnee(champs){
+    // Une ligne d'en-tête n'a ni date reconnaissable ni chiffre en 1re/3e colonne
+    // (parseNum() ne distingue pas "0" d'un libellé non numérique — un simple
+    // test de présence de chiffre suffit ici, où l'enjeu est juste d'ignorer
+    // une éventuelle ligne de titres).
+    return rbNormaliserDate(champs[0]) !== '' || /[0-9]/.test(champs[2] || '');
+}
+
+/* ---------- Import fichier ---------- */
+function rbImporterReleve(input, moisIndex){
+    var file = input.files && input.files[0];
+    if(!file){ return; }
+    if(!/\.csv$/i.test(file.name || '')){
+        alert('Le fichier doit avoir l’extension .csv.');
+        input.value = '';
+        return;
+    }
+    if(file.size > 5 * 1024 * 1024){
+        alert('Fichier trop volumineux (' + (file.size/1024/1024).toFixed(1) + ' Mo) — 5 Mo maximum.');
+        input.value = '';
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(){
+        var texte = String(reader.result || '');
+        reader = null;
+        var lignes = texte.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; });
+        texte = null;
+        if(!lignes.length){ alert('Fichier vide.'); return; }
+        var delim = rbDetecterDelimiteur(lignes[0]);
+        var depart = rbEnteteEstDonnee(rbDecouperLigne(lignes[0], delim)) ? 0 : 1;
+        var nb = 0;
+        for(var i = depart; i < lignes.length; i++){
+            var c = rbDecouperLigne(lignes[i], delim);
+            if(!c[0] && !c[1]) continue;
+            rbAjouterLigne(moisIndex, {
+                date: rbNormaliserDate(c[0]),
+                libelle: (c[1] || '').trim(),
+                debit: parseNum(c[2]),
+                credit: parseNum(c[3]),
+                pointe: false
+            });
+            nb++;
+        }
+        rbRecalculer(moisIndex);
+        alert('✅ Import réussi : ' + nb + ' ligne(s) ajoutée(s) au relevé de ' + rbInfoMois(moisIndex).nom + '.');
+    };
+    reader.onerror = function(){ reader = null; alert('Lecture du fichier impossible.'); };
+    reader.readAsText(file, 'UTF-8');
+    input.value = '';
+}
+function rbInfoMois(moisIndex){
+    return RB_MOIS.filter(function(m){ return m.index === moisIndex; })[0];
+}
+
+/* ---------- Table du relevé importé (une ligne = une écriture bancaire) ---------- */
+function rbLigneHtml(row){
+    row = row || { date:'', libelle:'', debit:'', credit:'', pointe:false };
+    var oc = 'rbRecalculerDeCellule(this)';
+    return '<td><input type="date" class="editable rb-date date-input" value="' + esc(row.date) + '" onchange="' + oc + '"></td>'
+         + '<td><input type="text" class="editable rb-libelle" value="' + esc(row.libelle) + '" onchange="' + oc + '"></td>'
+         + '<td><input type="number" class="editable rb-debit number" value="' + (row.debit || '') + '" onchange="' + oc + '"></td>'
+         + '<td><input type="number" class="editable rb-credit number" value="' + (row.credit || '') + '" onchange="' + oc + '"></td>'
+         + '<td style="text-align:center;"><input type="checkbox" class="rb-pointe"' + (row.pointe ? ' checked' : '') + ' onchange="' + oc + '"></td>'
+         + '<td class="calculated rb-suggestion" style="font-size:11px;"></td>'
+         + '<td><button class="btn btn-danger" onclick="rbSupprimerLigne(this)">✕</button></td>';
+}
+function rbAjouterLigne(moisIndex, row){
+    var info = rbInfoMois(moisIndex);
+    var table = document.getElementById('rb-table-' + info.id);
+    if(!table) return;
+    var tr = document.createElement('tr');
+    tr.innerHTML = rbLigneHtml(row);
+    table.appendChild(tr);
+}
+function rbSupprimerLigne(btn){
+    var tr = btn.closest('tr');
+    var table = tr.closest('table');
+    tr.remove();
+    var moisIndex = rbMoisDeTable(table);
+    if(moisIndex !== null) rbRecalculer(moisIndex);
+}
+function rbMoisDeTable(table){
+    if(!table) return null;
+    for(var i = 0; i < RB_MOIS.length; i++){
+        if(table.id === 'rb-table-' + RB_MOIS[i].id) return RB_MOIS[i].index;
+    }
+    return null;
+}
+function rbRecalculerDeCellule(el){
+    var moisIndex = rbMoisDeTable(el.closest('table'));
+    if(moisIndex !== null) rbRecalculer(moisIndex);
+}
+
+/* ---------- Comptes GL rapprochés (préfixes, ex. "52" ou "521,522") ---------- */
+function rbComptesConfigures(){
+    var input = document.getElementById('rb-comptes-banque');
+    var brut = input ? input.value : '52';
+    return String(brut || '52').split(/[,\s]+/).filter(function(s){ return s !== ''; });
+}
+// Écritures GL du mois pour ces comptes — même logique de préfixe que tfMouvementMensuel (48-tableaux-fiscaux.js).
+function rbEcrituresGL(moisIndex, prefixes){
+    var rows = (typeof grandLivreData !== 'undefined') ? grandLivreData : [];
+    var out = [];
+    for(var i = 0; i < rows.length; i++){
+        var r = rows[i];
+        var compte = String(r.compte || '').trim();
+        var correspond = prefixes.some(function(p){ return compte.indexOf(p) === 0; });
+        if(!correspond) continue;
+        var mois = parseInt(String(r.date || '').slice(5, 7), 10) - 1;
+        if(mois !== moisIndex) continue;
+        out.push(r);
+    }
+    return out;
+}
+
+/* ---------- Recalcul d'un mois : totaux, écart, table GL en regard, suggestions ---------- */
+function rbRecalculer(moisIndex){
+    var info = rbInfoMois(moisIndex);
+    var table = document.getElementById('rb-table-' + info.id);
+    if(!table) return;
+    var prefixes = rbComptesConfigures();
+    var ecrituresGL = rbEcrituresGL(moisIndex, prefixes);
+
+    var totDebitReleve = 0, totCreditReleve = 0, nbPointe = 0, nbNonPointe = 0, montantNonPointe = 0;
+    var trs = Array.prototype.slice.call(table.querySelectorAll('tr'));
+    trs.forEach(function(tr){
+        var debit = parseNum(tr.querySelector('.rb-debit').value);
+        var credit = parseNum(tr.querySelector('.rb-credit').value);
+        var pointe = tr.querySelector('.rb-pointe').checked;
+        totDebitReleve += debit;
+        totCreditReleve += credit;
+        if(pointe) nbPointe++;
+        else { nbNonPointe++; montantNonPointe += (credit - debit); }
+
+        // Suggestion : une écriture GL du même mois, même compte configuré, montant identique
+        // (à l'inversion de sens près — voir note d'en-tête). Indicative uniquement : ne pointe rien.
+        var cible = credit > 0 ? credit : debit;
+        var sensGL = credit > 0 ? 'debit' : 'credit'; // crédit relevé (encaissement) ↔ débit compta, et inversement
+        var trouve = cible > 0 && ecrituresGL.some(function(r){ return Math.abs(parseNum(r[sensGL]) - cible) < 0.5; });
+        var cellSugg = tr.querySelector('.rb-suggestion');
+        cellSugg.textContent = trouve ? '🔎 écriture GL correspondante' : '';
+    });
+
+    var totDebitGL = 0, totCreditGL = 0;
+    ecrituresGL.forEach(function(r){ totDebitGL += parseNum(r.debit); totCreditGL += parseNum(r.credit); });
+
+    var mouvementReleve = totCreditReleve - totDebitReleve;   // variation du solde selon la banque
+    var mouvementCompta = totDebitGL - totCreditGL;           // variation du solde selon la comptabilité
+    var ecart = mouvementReleve - mouvementCompta;
+
+    setText2('rb-tot-debit-releve-' + info.id, fmt(totDebitReleve));
+    setText2('rb-tot-credit-releve-' + info.id, fmt(totCreditReleve));
+    setText2('rb-tot-debit-gl-' + info.id, fmt(totDebitGL));
+    setText2('rb-tot-credit-gl-' + info.id, fmt(totCreditGL));
+    setText2('rb-mouvement-releve-' + info.id, fmt(mouvementReleve));
+    setText2('rb-mouvement-compta-' + info.id, fmt(mouvementCompta));
+    var elEcart = document.getElementById('rb-ecart-' + info.id);
+    if(elEcart){
+        elEcart.textContent = fmt(ecart);
+        elEcart.style.color = Math.abs(ecart) < 0.5 ? '#27ae60' : '#e74c3c';
+        elEcart.style.fontWeight = '700';
+    }
+    setText2('rb-nb-pointe-' + info.id, nbPointe);
+    setText2('rb-nb-non-pointe-' + info.id, nbNonPointe);
+    setText2('rb-montant-non-pointe-' + info.id, fmt(montantNonPointe));
+
+    // Table GL en regard : simple reflet en lecture seule des écritures déjà importées ailleurs
+    // (04-grand-livre.js) — rebâtie à chaque recalcul, jamais la source de vérité elle-même.
+    var tableGL = document.getElementById('rb-table-gl-' + info.id);
+    if(tableGL){
+        tableGL.innerHTML = ecrituresGL.length
+            ? ecrituresGL.map(function(r){
+                return '<tr><td>' + esc(r.compte) + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.libelle) + '</td>'
+                     + '<td class="number">' + (r.debit ? fmt(r.debit) : '') + '</td>'
+                     + '<td class="number">' + (r.credit ? fmt(r.credit) : '') + '</td></tr>';
+            }).join('')
+            : '<tr><td colspan="5" style="text-align:center; color:#999;">Aucune écriture Grand Livre sur ce(s) compte(s) pour ' + info.nom.toLowerCase() + '.</td></tr>';
+    }
+}
+function setText2(id, val){
+    var el = document.getElementById(id);
+    if(el) el.textContent = val;
+}
+// Recalcule les deux mois — appelé quand le champ "Comptes banque" change (affecte les deux tables GL).
+function rbRecalculerTout(){
+    RB_MOIS.forEach(function(m){ rbRecalculer(m.index); });
+}
+
+/* ---------- Rendu d'un bloc mensuel ---------- */
+function rbRendreMois(info){
+    return '<div class="scroll-table">'
+        + '<table><thead><tr><th>Date</th><th>Libellé</th><th>Débit (sortie)</th><th>Crédit (entrée)</th><th>Pointé</th><th>Suggestion</th><th></th></tr></thead>'
+        + '<tbody id="rb-table-' + info.id + '"></tbody></table></div>'
+        + '<div style="margin-top:10px; font-size:12px; display:flex; flex-wrap:wrap; gap:18px;">'
+        + '<span>Total Débit relevé : <strong id="rb-tot-debit-releve-' + info.id + '">0</strong></span>'
+        + '<span>Total Crédit relevé : <strong id="rb-tot-credit-releve-' + info.id + '">0</strong></span>'
+        + '<span>Mouvement net relevé : <strong id="rb-mouvement-releve-' + info.id + '">0</strong></span>'
+        + '<span>Mouvement net compta (GL) : <strong id="rb-mouvement-compta-' + info.id + '">0</strong></span>'
+        + '<span>Écart : <strong id="rb-ecart-' + info.id + '">0</strong></span>'
+        + '</div>'
+        + '<div style="margin-top:4px; font-size:12px; color:#666;">'
+        + 'Lignes pointées : <strong id="rb-nb-pointe-' + info.id + '">0</strong> · '
+        + 'Non pointées : <strong id="rb-nb-non-pointe-' + info.id + '">0</strong> '
+        + '(montant net en suspens : <strong id="rb-montant-non-pointe-' + info.id + '">0</strong>)'
+        + '</div>'
+        + '<div class="card" style="background:#f6f8fa; margin-top:14px;">'
+        + '<h4 style="margin-top:0;">Écritures Grand Livre — compte(s) banque, ' + esc(info.nom.toLowerCase()) + '</h4>'
+        + '<div class="scroll-table"><table><thead><tr><th>Compte</th><th>Date</th><th>Libellé</th><th>Débit</th><th>Crédit</th></tr></thead>'
+        + '<tbody id="rb-table-gl-' + info.id + '"></tbody></table></div>'
+        + '<p style="font-size:11px; color:#999; margin:6px 0 0;">Total Débit GL : <span id="rb-tot-debit-gl-' + info.id + '">0</span> — '
+        + 'Total Crédit GL : <span id="rb-tot-credit-gl-' + info.id + '">0</span></p>'
+        + '</div>';
+}
+
+function rbInstaller(){
+    if(typeof TABS !== 'undefined' && !TABS.some(function(t){ return t.id === 'rapprochement-bancaire'; }))
+        TABS.push({ id:'rapprochement-bancaire', label:'🏦 Rapprochement Bancaire', phase:2 });
+
+    var hote = (document.querySelector('.tab-content') || {}).parentNode;
+    if(!hote) return;
+
+    if(!document.getElementById('rapprochement-bancaire')){
+        var d = document.createElement('div');
+        d.id = 'rapprochement-bancaire';
+        d.className = 'tab-content';
+        d.innerHTML =
+          '<div class="card" data-tab="rapprochement-bancaire">'
+        + '<h2>🏦 RAPPROCHEMENT BANCAIRE — Novembre / Décembre</h2>'
+        + '<div class="alert alert-info">Importez le relevé bancaire (CSV : Date, Libellé, Débit, Crédit — délimiteur '
+        + 'détecté automatiquement) de chaque mois, puis pointez chaque ligne déjà comptabilisée. Sur un relevé, '
+        + '<strong>Crédit</strong> = argent reçu (encaissement) et <strong>Débit</strong> = argent sorti (décaissement) — '
+        + 'c\'est l\'inverse des colonnes Débit/Crédit du compte banque en comptabilité, dont c\'est déjà tenu compte '
+        + 'dans le calcul de l\'écart ci-dessous. Le tableau Grand Livre affiché en regard reflète les écritures déjà '
+        + 'importées dans l\'onglet <strong>Grand Livre</strong> (j) — il n\'est pas ressaisi ici.</div>'
+        + '<div class="form-group" style="max-width:340px;"><label>Compte(s) banque (préfixes SYSCOHADA, séparés par une virgule)</label>'
+        + '<input type="text" id="rb-comptes-banque" value="52" onchange="rbRecalculerTout()"></div>'
+        + RB_MOIS.map(function(info){
+            return tfSection(info.nom, rbRendreMois(info), 'rb-sec-' + info.id);
+        }).join('')
+        + '</div>';
+        hote.appendChild(d);
+    }
+
+    var menu = document.getElementById('phase-dropdown-2');
+    if(menu && !menu.querySelector('[data-rb]')){
+        var b = document.createElement('button');
+        b.className = 'tab-btn phase2';
+        b.setAttribute('data-rb', '1');
+        b.setAttribute('onclick', "showTab('rapprochement-bancaire')");
+        b.textContent = '🏦 Rapprochement Bancaire';
+        var apres = menu.querySelector('[onclick*="\'gl-gestion\'"]');
+        if(apres && apres.nextSibling) menu.insertBefore(b, apres.nextSibling);
+        else if(apres) menu.appendChild(b);
+        else menu.appendChild(b);
+    }
+
+    RB_MOIS.forEach(function(m){ rbRecalculer(m.index); });
+}
+
+try{
+    if(typeof document !== 'undefined'){
+        if(document.readyState === 'loading')
+            document.addEventListener('DOMContentLoaded', rbInstaller);
+        else
+            rbInstaller();
+    }
+}catch(e){}
