@@ -19234,7 +19234,12 @@ function rbRecalculerTout(){
 
 /* ---------- Rendu d'un bloc mensuel ---------- */
 function rbRendreMois(info){
-    return '<div class="scroll-table">'
+    return '<div class="form-row" style="align-items:center; margin-bottom:10px;">'
+        + '<div class="form-group" style="margin:0;"><label>📥 Importer le relevé bancaire de ' + esc(info.nom) + ' (CSV)</label>'
+        + '<input type="file" accept=".csv" onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
+        + '<button type="button" class="btn btn-primary" style="margin-left:10px;" onclick="rbAjouterLigne(' + info.index + ', null); rbRecalculer(' + info.index + ')">+ Ajouter une ligne</button>'
+        + '</div>'
+        + '<div class="scroll-table">'
         + '<table><thead><tr><th>Date</th><th>Libellé</th><th>Débit (sortie)</th><th>Crédit (entrée)</th><th>Pointé</th><th>Suggestion</th><th></th></tr></thead>'
         + '<tbody id="rb-table-' + info.id + '"></tbody></table></div>'
         + '<div style="margin-top:10px; font-size:12px; display:flex; flex-wrap:wrap; gap:18px;">'
