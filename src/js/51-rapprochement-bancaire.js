@@ -268,12 +268,15 @@ function rbRecalculerTout(){
 }
 
 /* ---------- Rendu d'un bloc mensuel ---------- */
-function rbRendreMois(info){
-    return '<div class="form-row" style="align-items:center; margin-bottom:10px;">'
+function rbBlocImportHtml(info){
+    return '<div class="form-row rb-bloc-import" style="align-items:center; margin-bottom:10px;">'
         + '<div class="form-group" style="margin:0;"><label>📥 Importer le relevé bancaire de ' + esc(info.nom) + ' (CSV)</label>'
         + '<input type="file" accept=".csv" onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px;" onclick="rbAjouterLigne(' + info.index + ', null); rbRecalculer(' + info.index + ')">+ Ajouter une ligne</button>'
-        + '</div>'
+        + '</div>';
+}
+function rbRendreMois(info){
+    return rbBlocImportHtml(info)
         + '<div class="scroll-table">'
         + '<table><thead><tr><th>Date</th><th>Libellé</th><th>Débit (sortie)</th><th>Crédit (entrée)</th><th>Pointé</th><th>Suggestion</th><th></th></tr></thead>'
         + '<tbody id="rb-table-' + info.id + '"></tbody></table></div>'
@@ -341,6 +344,36 @@ function rbInstaller(){
     }
 
     RB_MOIS.forEach(function(m){ rbRecalculer(m.index); });
+    rbAssurerBoutonsImport();
+    rbObserverSync();
+}
+
+// Filet de sécurité — bug réel constaté (25/08) : un dossier qui a déjà été ouvert une
+// fois AVANT l'ajout du bouton d'import a sauvegardé, dans Firestore, un onglet sans ce
+// bouton (voir doSaveTab : c'est tout le innerHTML de l'onglet qui est sauvegardé, pas
+// seulement les valeurs saisies). Au chargement suivant, rbInstaller() construit d'abord
+// le panneau à jour, mais la synchronisation temps réel (applyRemoteTab, 10-config-
+// collaboration.js) écrase ensuite div#rapprochement-bancaire.innerHTML avec cette version
+// ancienne dès que le document Firestore de cet onglet arrive (quelques dizaines à
+// quelques centaines de ms après le chargement) — d'où le bouton qui « apparaît puis
+// disparaît ». Plutôt que de modifier ce mécanisme de synchronisation générique (partagé
+// par tous les onglets), on répare chirurgicalement : si une section n'a plus son bloc
+// d'import après un remplacement du DOM, on le réinjecte, sans toucher aux lignes déjà
+// importées ni au reste du contenu restauré.
+function rbAssurerBoutonsImport(){
+    RB_MOIS.forEach(function(info){
+        var contenu = document.getElementById('rb-sec-' + info.id);
+        if(!contenu || contenu.querySelector('.rb-bloc-import')) return;
+        var tmp = document.createElement('div');
+        tmp.innerHTML = rbBlocImportHtml(info);
+        contenu.insertBefore(tmp.firstChild, contenu.firstChild);
+    });
+}
+function rbObserverSync(){
+    var div = document.getElementById('rapprochement-bancaire');
+    if(!div || typeof MutationObserver === 'undefined') return;
+    var mo = new MutationObserver(function(){ rbAssurerBoutonsImport(); });
+    mo.observe(div, { childList:true });
 }
 
 try{
