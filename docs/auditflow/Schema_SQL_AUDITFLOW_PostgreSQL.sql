@@ -158,7 +158,7 @@ CREATE TABLE cabinet (
     numero_oec          VARCHAR(50), -- Numéro d'inscription OEC
     adresse             TEXT,
     ville               VARCHAR(100),
-    pays                VARCHAR(100) DEFAULT 'Côte d'Ivoire',
+    pays                VARCHAR(100) DEFAULT 'Côte d''Ivoire',
     telephone           VARCHAR(30),
     email               VARCHAR(100),
     site_web            VARCHAR(255),
@@ -215,7 +215,7 @@ CREATE TABLE client (
     secteur_activite VARCHAR(100),
     adresse         TEXT,
     ville           VARCHAR(100),
-    pays            VARCHAR(100) DEFAULT 'Côte d'Ivoire',
+    pays            VARCHAR(100) DEFAULT 'Côte d''Ivoire',
     telephone       VARCHAR(30),
     email           VARCHAR(100),
     contact_nom     VARCHAR(100),
@@ -849,10 +849,10 @@ CREATE TRIGGER trg_audit_rapport AFTER INSERT OR UPDATE OR DELETE ON rapport
 -- Types de mission
 INSERT INTO ref_type_mission (code, libelle, description) VALUES
 ('audit_annuel', 'Audit annuel des états financiers', 'Audit externe complet des états financiers annuels'),
-('audit_consolide', 'Audit des comptes consolidés', 'Audit des états financiers consolidés d'un groupe'),
+('audit_consolide', 'Audit des comptes consolidés', 'Audit des états financiers consolidés d''un groupe'),
 ('audit_limited', 'Audit à portée limitée', 'Audit portant sur des éléments spécifiques'),
 ('due_diligence', 'Due diligence financière', 'Examen approfondi pour une opération de fusion/acquisition'),
-('review', 'Révision limitée', 'Revue des états financiers (niveau d'assurance moindre)');
+('review', 'Révision limitée', 'Revue des états financiers (niveau d''assurance moindre)');
 
 -- Statuts de mission
 INSERT INTO ref_statut_mission (code, libelle, couleur, ordre) VALUES
@@ -883,12 +883,12 @@ INSERT INTO ref_assertion (code, libelle_fr, libelle_en, description) VALUES
 ('E/O', 'Existence / Obligations', 'Existence / Occurrence', 'Les actifs, passifs et transactions existent et sont réels'),
 ('C', 'Complétude', 'Completeness', 'Toutes les transactions, actifs et passifs sont comptabilisés'),
 ('V', 'Valuation', 'Valuation / Accuracy', 'Les montants sont correctement évalués et comptabilisés'),
-('R/O', 'Droits / Obligations', 'Rights / Obligations', 'L'entité détient les droits sur les actifs et les obligations liées aux passifs'),
+('R/O', 'Droits / Obligations', 'Rights / Obligations', 'L''entité détient les droits sur les actifs et les obligations liées aux passifs'),
 ('P', 'Présentation', 'Presentation / Disclosure', 'Les éléments sont correctement présentés et divulgués');
 
 -- Types de tests
 INSERT INTO ref_type_test (code, libelle, description) VALUES
-('test_controle', 'Test de contrôle', 'Vérification de l'efficacité des contrôles internes'),
+('test_controle', 'Test de contrôle', 'Vérification de l''efficacité des contrôles internes'),
 ('proc_substantielle', 'Procédure substantielle', 'Test direct sur les soldes ou les transactions'),
 ('analytique', 'Procédure analytique', 'Analyse de ratios, tendances et comparaisons'),
 ('circularisation', 'Circularisation', 'Demande de confirmation externe (banques, clients, fournisseurs)'),
@@ -918,13 +918,13 @@ INSERT INTO ref_type_document (code, libelle, extensions) VALUES
 ('balance', 'Balance générale', 'xlsx,csv'),
 ('releve_bancaire', 'Relevé bancaire', 'pdf'),
 ('facture', 'Facture', 'pdf'),
-('pv_inventaire', 'PV d'inventaire', 'pdf'),
+('pv_inventaire', 'PV d''inventaire', 'pdf'),
 ('contrat', 'Contrat', 'pdf,docx'),
 ('etat_financier', 'État financier', 'xlsx,pdf'),
 ('circularisation', 'Réponse circularisation', 'pdf'),
 ('note_calcul', 'Note de calcul', 'xlsx,pdf'),
 ('justificatif', 'Justificatif divers', 'pdf,jpg,png'),
-('rapport', 'Rapport d'audit', 'pdf');
+('rapport', 'Rapport d''audit', 'pdf');
 
 -- Statuts de document
 INSERT INTO ref_statut_document (code, libelle, couleur) VALUES
@@ -937,7 +937,7 @@ INSERT INTO ref_statut_document (code, libelle, couleur) VALUES
 
 -- Types de rapports
 INSERT INTO ref_type_rapport (code, libelle, isa_reference) VALUES
-('rapport_audit', 'Rapport d'audit des états financiers', 'ISA 700'),
+('rapport_audit', 'Rapport d''audit des états financiers', 'ISA 700'),
 ('rapport_limited', 'Rapport de révision limitée', 'ISA 2400'),
 ('rapport_special', 'Rapport sur des éléments spécifiques', 'ISA 805'),
 ('lettre_management', 'Lettre aux dirigeants', NULL),
@@ -948,8 +948,8 @@ INSERT INTO ref_type_opinion (code, libelle, isa_reference) VALUES
 ('sans_reserve', 'Opinion sans réserve', 'ISA 700'),
 ('avec_reserve', 'Opinion avec réserve', 'ISA 705'),
 ('defavorable', 'Opinion défavorable', 'ISA 705'),
-('abstention', 'Abstention d'opinion', 'ISA 705'),
-('sans_reserve_emphasis', 'Opinion sans réserve avec paragraphe d'insistance', 'ISA 706');
+('abstention', 'Abstention d''opinion', 'ISA 705'),
+('sans_reserve_emphasis', 'Opinion sans réserve avec paragraphe d''insistance', 'ISA 706');
 
 -- Rôles utilisateurs
 INSERT INTO ref_role_utilisateur (code, libelle, niveau, permissions) VALUES
@@ -973,9 +973,9 @@ INSERT INTO ref_type_activite (code, libelle, categorie) VALUES
 ('DOCUMENT_VALIDATE', 'Validation de document', 'DOCUMENT'),
 ('TEST_EXECUTE', 'Exécution de test', 'TEST'),
 ('TEST_REVIEW', 'Revue de test', 'TEST'),
-('ANOMALY_CREATE', 'Création d'anomalie', 'ANOMALIE'),
-('ANOMALY_UPDATE', 'Modification d'anomalie', 'ANOMALIE'),
-('ANOMALY_CLOSE', 'Clôture d'anomalie', 'ANOMALIE'),
+('ANOMALY_CREATE', 'Création d''anomalie', 'ANOMALIE'),
+('ANOMALY_UPDATE', 'Modification d''anomalie', 'ANOMALIE'),
+('ANOMALY_CLOSE', 'Clôture d''anomalie', 'ANOMALIE'),
 ('RAPPORT_GENERATE', 'Génération de rapport', 'RAPPORT'),
 ('RAPPORT_SIGN', 'Signature de rapport', 'RAPPORT'),
 ('GENERIC_CREATE', 'Création générique', 'GENERIC'),
@@ -988,10 +988,10 @@ INSERT INTO ref_type_activite (code, libelle, categorie) VALUES
 
 -- CASH — Tests de contrôle
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(1, 1, 1, 'TC-CASH-01', 'Vérifier la séparation des fonctions en trésorerie', 'Examiner l'organigramme, interviewer le responsable trésorerie, vérifier que l'approbation des paiements est distincte de l'exécution', 'E/O,C', 'ISA 315'),
+(1, 1, 1, 'TC-CASH-01', 'Vérifier la séparation des fonctions en trésorerie', 'Examiner l''organigramme, interviewer le responsable trésorerie, vérifier que l''approbation des paiements est distincte de l''exécution', 'E/O,C', 'ISA 315'),
 (1, 1, 2, 'TC-CASH-02', 'Vérifier le rapprochement bancaire mensuel', 'Sélectionner un échantillon de 12 mois, vérifier que chaque relevé bancaire est rapproché avec la comptabilité et signé par un responsable', 'C,V', 'ISA 330'),
 (1, 1, 3, 'TC-CASH-03', 'Vérifier la double signature pour les virements importants', 'Examiner la politique de signature, sélectionner un échantillon de 30 virements > seuil, vérifier la présence des deux signatures', 'E/O', 'ISA 330'),
-(1, 1, 4, 'TC-CASH-04', 'Vérifier la sécurité des accès aux comptes bancaires', 'Examiner la matrice des accès bancaires, vérifier les droits d'accès, contrôler les changements d'accès en N', 'E/O,C', 'ISA 315');
+(1, 1, 4, 'TC-CASH-04', 'Vérifier la sécurité des accès aux comptes bancaires', 'Examiner la matrice des accès bancaires, vérifier les droits d''accès, contrôler les changements d''accès en N', 'E/O,C', 'ISA 315');
 
 -- CASH — Procédures substantielles
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
@@ -1002,13 +1002,13 @@ INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, pr
 
 -- IMMOBILISATIONS — Tests de contrôle
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(2, 1, 1, 'TC-IMMO-01', 'Vérifier le processus d'approbation des acquisitions', 'Examiner la politique d'investissement, vérifier que chaque acquisition > seuil est approuvée par le CA ou le DG', 'E/O', 'ISA 315'),
+(2, 1, 1, 'TC-IMMO-01', 'Vérifier le processus d''approbation des acquisitions', 'Examiner la politique d''investissement, vérifier que chaque acquisition > seuil est approuvée par le CA ou le DG', 'E/O', 'ISA 315'),
 (2, 1, 2, 'TC-IMMO-02', 'Vérifier le suivi du registre des immobilisations', 'Examiner le registre, vérifier la mise à jour après chaque acquisition/cession, contrôler la réconciliation avec la comptabilité', 'C,V', 'ISA 330');
 
 -- IMMOBILISATIONS — Procédures substantielles
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(2, 2, 3, 'PS-IMMO-01', 'Vérification des acquisitions N', 'Sélectionner un échantillon de 25 factures d'acquisition, vérifier la présence du bon de commande, du PV de réception, de la facture', 'E/O,V', 'ISA 501'),
-(2, 2, 4, 'PS-IMMO-02', 'Recalcul des amortissements', 'Sélectionner un échantillon de 20 immobilisations, recalculer la dotation d'amortissement de l'exercice', 'V', 'ISA 501'),
+(2, 2, 3, 'PS-IMMO-01', 'Vérification des acquisitions N', 'Sélectionner un échantillon de 25 factures d''acquisition, vérifier la présence du bon de commande, du PV de réception, de la facture', 'E/O,V', 'ISA 501'),
+(2, 2, 4, 'PS-IMMO-02', 'Recalcul des amortissements', 'Sélectionner un échantillon de 20 immobilisations, recalculer la dotation d''amortissement de l''exercice', 'V', 'ISA 501'),
 (2, 2, 5, 'PS-IMMO-03', 'Vérification des cessions et sorties', 'Examiner le registre des cessions, vérifier les PV de sortie, recalculer les plus/moins-values', 'C,V', 'ISA 501'),
 (2, 5, 6, 'PS-IMMO-04', 'Inventaire physique des immobilisations', 'Sélectionner un échantillon de 15 immobilisations, vérifier leur existence physique et leur état', 'E/O', 'ISA 501');
 
@@ -1021,55 +1021,55 @@ INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, pr
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
 (4, 4, 3, 'PS-TIER-01', 'Circularisation des soldes clients', 'Sélectionner un échantillon de 20 clients (valeur + ancienneté), envoyer lettres de circularisation', 'E/O,V', 'ISA 505'),
 (4, 4, 4, 'PS-TIER-02', 'Circularisation des soldes fournisseurs', 'Sélectionner un échantillon de 15 fournisseurs majeurs, envoyer lettres de circularisation', 'E/O,V', 'ISA 505'),
-(4, 3, 5, 'PS-TIER-03', 'Analyse de l'ancienneté des créances clients', 'Préparer un tableau d'ancienneté, identifier les créances douteuses, vérifier les provisions', 'V', 'ISA 540'),
-(4, 2, 6, 'PS-TIER-04', 'Vérification des écritures de régularisation fin d'exercice', 'Examiner les écritures de régularisation (factures à recevoir/à établir), vérifier leur justification', 'C,V', 'ISA 501');
+(4, 3, 5, 'PS-TIER-03', 'Analyse de l''ancienneté des créances clients', 'Préparer un tableau d''ancienneté, identifier les créances douteuses, vérifier les provisions', 'V', 'ISA 540'),
+(4, 2, 6, 'PS-TIER-04', 'Vérification des écritures de régularisation fin d''exercice', 'Examiner les écritures de régularisation (factures à recevoir/à établir), vérifier leur justification', 'C,V', 'ISA 501');
 
 -- STOCKS — Tests de contrôle
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(3, 1, 1, 'TC-STOCK-01', 'Vérifier le processus d'inventaire physique', 'Examiner la procédure d'inventaire, vérifier la présence de compteurs indépendants, la méthode de comptage', 'E/O,C', 'ISA 315'),
+(3, 1, 1, 'TC-STOCK-01', 'Vérifier le processus d''inventaire physique', 'Examiner la procédure d''inventaire, vérifier la présence de compteurs indépendants, la méthode de comptage', 'E/O,C', 'ISA 315'),
 (3, 1, 2, 'TC-STOCK-02', 'Vérifier le suivi des entrées/sorties de stocks', 'Examiner les bons de livraison, les bons de sortie, vérifier leur enregistrement comptable', 'C', 'ISA 330');
 
 -- STOCKS — Procédures substantielles
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(3, 5, 3, 'PS-STOCK-01', 'Observation de l'inventaire physique', 'Assister à l'inventaire physique, observer les méthodes de comptage, effectuer des comptages de contrôle', 'E/O', 'ISA 501'),
-(3, 2, 4, 'PS-STOCK-02', 'Vérification de l'évaluation des stocks', 'Examiner la méthode d'évaluation (FIFO, CMUP), vérifier le calcul du coût d'acquisition, identifier les stocks obsolètes', 'V', 'ISA 540'),
+(3, 5, 3, 'PS-STOCK-01', 'Observation de l''inventaire physique', 'Assister à l''inventaire physique, observer les méthodes de comptage, effectuer des comptages de contrôle', 'E/O', 'ISA 501'),
+(3, 2, 4, 'PS-STOCK-02', 'Vérification de l''évaluation des stocks', 'Examiner la méthode d''évaluation (FIFO, CMUP), vérifier le calcul du coût d''acquisition, identifier les stocks obsolètes', 'V', 'ISA 540'),
 (3, 3, 5, 'PS-STOCK-03', 'Analyse des rotations de stocks', 'Calculer le ratio de rotation, identifier les stocks à faible rotation, vérifier les dépréciations', 'V', 'ISA 520');
 
 -- CHARGES — Tests de contrôle
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(7, 1, 1, 'TC-CHRG-01', 'Vérifier le processus de validation des achats', 'Examiner le circuit d'achat, vérifier la séparation des fonctions (demandeur, acheteur, réceptionnaire)', 'E/O,C', 'ISA 315'),
+(7, 1, 1, 'TC-CHRG-01', 'Vérifier le processus de validation des achats', 'Examiner le circuit d''achat, vérifier la séparation des fonctions (demandeur, acheteur, réceptionnaire)', 'E/O,C', 'ISA 315'),
 (7, 1, 2, 'TC-CHRG-02', 'Vérifier le contrôle des factures fournisseurs', 'Sélectionner un échantillon de 20 factures, vérifier la concordance bon de commande / bon de réception / facture', 'E/O,V', 'ISA 330');
 
 -- CHARGES — Procédures substantielles
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(7, 2, 3, 'PS-CHRG-01', 'Test de cut-off (charges)', 'Sélectionner un échantillon de 15 factures des 5 derniers jours de N et 5 premiers jours de N+1, vérifier le rattachement à l'exercice correct', 'C,V', 'ISA 501'),
+(7, 2, 3, 'PS-CHRG-01', 'Test de cut-off (charges)', 'Sélectionner un échantillon de 15 factures des 5 derniers jours de N et 5 premiers jours de N+1, vérifier le rattachement à l''exercice correct', 'C,V', 'ISA 501'),
 (7, 3, 4, 'PS-CHRG-02', 'Analyse analytique des charges', 'Comparer les charges par poste avec N-1, calculer les ratios (charges/CA, masse salariale/Effectif), identifier les écarts', 'V', 'ISA 520'),
-(7, 2, 5, 'PS-CHRG-03', 'Vérification des charges à payer et charges constatées d'avance', 'Examiner les écritures de régularisation, vérifier leur calcul et leur justification', 'C,V', 'ISA 501');
+(7, 2, 5, 'PS-CHRG-03', 'Vérification des charges à payer et charges constatées d''avance', 'Examiner les écritures de régularisation, vérifier leur calcul et leur justification', 'C,V', 'ISA 501');
 
 -- PRODUITS — Tests de contrôle
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
-(8, 1, 1, 'TC-PROD-01', 'Vérifier le processus de reconnaissance du chiffre d'affaires', 'Examiner la politique de reconnaissance, vérifier que les critères de transfert des risques sont respectés', 'E/O,C', 'ISA 315'),
+(8, 1, 1, 'TC-PROD-01', 'Vérifier le processus de reconnaissance du chiffre d''affaires', 'Examiner la politique de reconnaissance, vérifier que les critères de transfert des risques sont respectés', 'E/O,C', 'ISA 315'),
 (8, 1, 2, 'TC-PROD-02', 'Vérifier le suivi des livraisons', 'Examiner les bons de livraison, vérifier leur concordance avec les factures', 'C', 'ISA 330');
 
 -- PRODUITS — Procédures substantielles
 INSERT INTO programme_travail (cycle_id, type_test_id, ordre, code, objectif, procedure, assertions, isa_reference) VALUES
 (8, 2, 3, 'PS-PROD-01', 'Test de cut-off (produits)', 'Sélectionner un échantillon de 15 factures des 5 derniers jours de N et 5 premiers jours de N+1, vérifier le rattachement', 'C,V', 'ISA 501'),
-(8, 3, 4, 'PS-PROD-02', 'Analyse analytique du chiffre d'affaires', 'Comparer le CA avec N-1, analyser par segment/produit, calculer les ratios (prix moyen, quantité)', 'V', 'ISA 520'),
+(8, 3, 4, 'PS-PROD-02', 'Analyse analytique du chiffre d''affaires', 'Comparer le CA avec N-1, analyser par segment/produit, calculer les ratios (prix moyen, quantité)', 'V', 'ISA 520'),
 (8, 2, 5, 'PS-PROD-03', 'Vérification des produits à recevoir', 'Examiner les écritures de régularisation, vérifier les travaux non facturés à la clôture', 'C,V', 'ISA 501');
 
 -- ───────────────────────────────────────────────────────────────────────────────
 -- 16. COMMENTAIRES & DOCUMENTATION
 -- ───────────────────────────────────────────────────────────────────────────────
 
-COMMENT ON SCHEMA auditflow IS 'Schéma principal de l'application AUDITFLOW - SaaS d'audit externe zone OHADA';
-COMMENT ON TABLE cabinet IS 'Cabinets d'audit inscrits sur la plateforme (multi-tenant)';
-COMMENT ON TABLE mission IS 'Missions d'audit externes';
-COMMENT ON TABLE mission_cycle IS 'Cycles ISA exécutés au sein d'une mission';
+COMMENT ON SCHEMA auditflow IS 'Schéma principal de l''application AUDITFLOW - SaaS d''audit externe zone OHADA';
+COMMENT ON TABLE cabinet IS 'Cabinets d''audit inscrits sur la plateforme (multi-tenant)';
+COMMENT ON TABLE mission IS 'Missions d''audit externes';
+COMMENT ON TABLE mission_cycle IS 'Cycles ISA exécutés au sein d''une mission';
 COMMENT ON TABLE test_execution IS 'Tests de contrôle et procédures substantielles exécutés';
-COMMENT ON TABLE anomalie IS 'Anomalies et écarts identifiés durant l'audit';
-COMMENT ON TABLE document IS 'Pièces justificatives et documents de l'audit';
-COMMENT ON TABLE rapport IS 'Rapports d'audit générés';
-COMMENT ON TABLE audit_trail IS 'Journal d'audit complet pour traçabilité réglementaire';
+COMMENT ON TABLE anomalie IS 'Anomalies et écarts identifiés durant l''audit';
+COMMENT ON TABLE document IS 'Pièces justificatives et documents de l''audit';
+COMMENT ON TABLE rapport IS 'Rapports d''audit générés';
+COMMENT ON TABLE audit_trail IS 'Journal d''audit complet pour traçabilité réglementaire';
 COMMENT ON TABLE balance_importee IS 'Balances comptables SYSCOHADA importées';
 COMMENT ON TABLE balance_ligne IS 'Lignes détaillées des balances importées';
 
