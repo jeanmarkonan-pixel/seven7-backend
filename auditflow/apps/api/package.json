@@ -21,7 +21,13 @@
     "class-validator": "0.14.2",
     "helmet": "8.1.0",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "@nestjs/jwt": "11.0.2",
+    "@nestjs/passport": "11.0.5",
+    "passport": "0.7.0",
+    "passport-jwt": "4.0.1",
+    "bcryptjs": "3.0.2",
+    "@nestjs/throttler": "6.4.0"
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.10",
@@ -34,6 +40,8 @@
     "ts-jest": "29.4.4",
     "ts-loader": "9.5.4",
     "tsconfig-paths": "4.2.0",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@types/passport-jwt": "4.0.1",
+    "@types/bcryptjs": "2.4.6"
   }
 }

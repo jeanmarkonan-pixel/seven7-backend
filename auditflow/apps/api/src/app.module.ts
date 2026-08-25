@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 import { CabinetsModule } from './cabinets/cabinets.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -8,9 +13,21 @@ import { PrismaModule } from './prisma/prisma.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env', '.env'] }),
+    ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 60 }] }),
     PrismaModule,
+    AuthModule,
     HealthModule,
     CabinetsModule,
+  ],
+  providers: [
+    // Ordre important : le throttler d'abord (limite avant même de tenter
+    // l'auth), puis JwtAuthGuard (pose request.user), puis RolesGuard (lit
+    // request.user). Global pour que chaque nouveau contrôleur soit protégé
+    // par défaut — un handler public doit explicitement le déclarer avec
+    // @Public(), pas l'inverse.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

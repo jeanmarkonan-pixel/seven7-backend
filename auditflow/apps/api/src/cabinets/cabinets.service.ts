@@ -15,16 +15,20 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CabinetsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  /**
+   * Un utilisateur ne voit que son propre cabinet — seul super_admin (niveau
+   * 100, vérifié par le contrôleur) échappe à cette règle et voit tout.
+   */
+  findAllVisibleTo(cabinetId: string, isSuperAdmin: boolean) {
     return this.prisma.cabinet.findMany({
-      where: { deleted_at: null },
+      where: { deleted_at: null, ...(isSuperAdmin ? {} : { id: cabinetId }) },
       orderBy: { nom: 'asc' },
     });
   }
 
-  findOne(id: string) {
+  findOneIfVisibleTo(id: string, cabinetId: string, isSuperAdmin: boolean) {
     return this.prisma.cabinet.findFirst({
-      where: { id, deleted_at: null },
+      where: { id, deleted_at: null, ...(isSuperAdmin ? {} : { id: cabinetId }) },
     });
   }
 }

@@ -81,14 +81,52 @@ la prochaine introspection les écraserait.
   ressource rattachée doit vérifier l'appartenance au cabinet de l'utilisateur
   (plan de conformité §4.3, IDOR).
 
+## Authentification & RBAC
+
+JWT (8h, durée de session §5.3 du plan de conformité) + rôles hiérarchiques
+lus depuis `ref_role_utilisateur` (7 rôles, niveau 5 à 100 — client à
+super_admin). Deux guards globaux protègent l'API par défaut :
+
+- `JwtAuthGuard` — ferme tout par défaut ; une route publique se déclare
+  explicitement avec `@Public()` (voir `auth/login`, `health`).
+- `RolesGuard` — lit `@Roles('associe', ...)` ou `@MinNiveau(60)` posé sur
+  un handler. Préférer `@MinNiveau()` : ajouter un rôle intermédiaire dans
+  `ref_role_utilisateur` n'oblige pas à retoucher chaque contrôleur.
+
+```bash
+curl -X POST http://localhost:3001/api/auth/login   -H "Content-Type: application/json"   -d '{"email":"...","password":"..."}'
+# -> { access_token, user }
+
+curl http://localhost:3001/api/cabinets   -H "Authorization: Bearer <access_token>"
+```
+
+`JwtStrategy.validate()` revérifie le compte en base à **chaque requête**
+(`deleted_at`, `est_actif`) — désactiver un compte invalide immédiatement
+tous ses jetons déjà émis, sans attendre leur expiration. Vérifié : un token
+valide cesse de fonctionner (401) dès que `est_actif` passe à `false`.
+
+`/cabinets` illustre l'isolation multi-tenant : un utilisateur ne voit que
+son propre cabinet, `super_admin` seul voit tout. Tout futur contrôleur
+métier doit reprendre ce filtre `cabinet_id` — c'est la frontière IDOR du
+plan de conformité (§4.3).
+
+**Connu et non fait à ce stade** : MFA (le schéma a `mfa_actif`/`mfa_secret`
+mais aucun flux TOTP n'est branché), verrou par compte après 5 échecs
+(seul un throttle par IP à 5/5 min existe, `@Throttle` sur `/auth/login`),
+révocation de token à la demande (logout serveur — un JWT reste valide
+jusqu'à expiration une fois émis, sauf compte désactivé).
+
 ## État actuel
 
 Ce qui est en place et vérifié :
 
 - monorepo pnpm, build des trois paquets
-- API NestJS : `/api/health`, `/api/cabinets`, Swagger, validation globale, helmet, CORS
+- API NestJS : `/api/health`, `/api/auth/login`, `/api/auth/me`,
+  `/api/cabinets`, Swagger, validation globale, helmet, CORS
+- authentification JWT + RBAC hiérarchique, isolation multi-tenant sur
+  `/cabinets`
 - client Prisma généré depuis les 29 tables réelles
 - front Next.js affichant l'état des services
 
-Ce qui reste à construire : authentification et MFA, RBAC, portail client,
-workspace auditeur, génération des rapports ISA, mode offline.
+Ce qui reste à construire : MFA, portail client, workspace auditeur,
+génération des rapports ISA, mode offline.
