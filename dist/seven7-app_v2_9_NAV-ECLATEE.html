@@ -19161,9 +19161,9 @@ function rbImporterReleve(input, moisIndex){
     var file = input.files && input.files[0];
     if(!file){ return; }
     var nom = file.name || '';
-    var estExcel = /\.xlsx?$/i.test(nom);
+    var estExcel = /\.(xlsx|xlsm|xls)$/i.test(nom);
     if(!/\.csv$/i.test(nom) && !estExcel){
-        alert('Le fichier doit être un .csv ou un .xlsx / .xls.');
+        alert('Le fichier doit être un .csv, ou un classeur Excel (.xlsx, .xls, .xlsm).');
         input.value = '';
         return;
     }
@@ -19420,7 +19420,15 @@ function rbRecalculerTout(){
 function rbBlocImportHtml(info){
     return '<div class="form-row rb-bloc-import" style="align-items:center; margin-bottom:10px;">'
         + '<div class="form-group" style="margin:0;"><label>📥 Importer le relevé bancaire de ' + esc(info.nom) + ' (CSV ou Excel)</label>'
-        + '<input type="file" accept=".csv,.xlsx,.xls" onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
+        // accept : extensions ET types MIME. Les sélecteurs de fichiers Android
+        // filtrent par type MIME et ignorent les extensions — avec ".xlsx,.xls"
+        // seul, les classeurs Excel apparaissaient grisés, impossibles à choisir
+        // depuis un téléphone (constaté le 25/08). La validation réelle du format
+        // reste faite sur l'extension dans rbImporterReleve().
+        + '<input type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.ms-excel,'
+        + 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,'
+        + 'application/vnd.ms-excel.sheet.macroEnabled.12" '
+        + 'onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px;" onclick="rbAjouterLigne(' + info.index + ', null); rbRecalculer(' + info.index + ')">+ Ajouter une ligne</button>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px; background:#8e44ad;" onclick="rbPointageAuto(' + info.index + ')">🤖 Pointage automatique (±5 jours)</button>'
         + '</div>';
