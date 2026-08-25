@@ -196,6 +196,7 @@ footer { text-align:center; padding:40px 24px; color:var(--text-muted); font-siz
 .reveal-delay-1 { transition-delay:0.1s; }
 .reveal-delay-2 { transition-delay:0.2s; }
 .reveal-delay-3 { transition-delay:0.3s; }
+.reveal-delay-4 { transition-delay:0.4s; }
 
 
 /* ===== DARK/LIGHT TOGGLE ===== */
@@ -1194,7 +1195,19 @@ body.light-mode .player-volume-slider {
                 </div>
             </div>
         </div>
-        <div class="project-card reveal reveal-delay-1" onclick="window.open('https://github.com/jeanmarkonan-pixel/seven7-backend','_blank')">
+        <div class="project-card reveal reveal-delay-1" onclick="window.open('https://github.com/jeanmarkonan-pixel/seven7-backend/tree/main/docs/auditflow','_blank')">
+            <div class="project-thumb"><div class="project-icon">🌍</div></div>
+            <div class="project-info">
+                <div class="project-meta"><span class="project-tag">SaaS</span><span class="project-tag">PostgreSQL</span><span class="project-tag">OHADA</span><span class="project-tag">ISA</span></div>
+                <h3>AUDITFLOW</h3>
+                <p data-i18n="proj_4_desc">Suite d'audit externe pensée pour les cabinets de la zone OHADA : normes ISA, plan comptable SYSCOHADA et mode hors ligne. Portail client, workspace auditeur et génération des rapports normés. Schéma PostgreSQL de 29 tables avec piste d'audit immuable, business plan 5 ans et plan de conformité sécurité.</p>
+                <div class="project-footer">
+                    <a href="https://github.com/jeanmarkonan-pixel/seven7-backend/tree/main/docs/auditflow" target="_blank" class="project-link" data-i18n="proj_docs">Voir la documentation →</a>
+                    <div class="project-status dev"><div class="status-dot"></div><span data-i18n="proj_design">En conception</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="project-card reveal reveal-delay-2" onclick="window.open('https://github.com/jeanmarkonan-pixel/seven7-backend','_blank')">
             <div class="project-thumb"><div class="project-icon">⚙️</div></div>
             <div class="project-info">
                 <div class="project-meta"><span class="project-tag">Node.js</span><span class="project-tag">API</span><span class="project-tag">Backend</span></div>
@@ -1206,7 +1219,7 @@ body.light-mode .player-volume-slider {
                 </div>
             </div>
         </div>
-        <div class="project-card reveal reveal-delay-2">
+        <div class="project-card reveal reveal-delay-3">
             <div class="project-thumb"><div class="project-icon">🚀</div></div>
             <div class="project-info">
                 <div class="project-meta"><span class="project-tag">Portfolio</span><span class="project-tag">HTML/CSS/JS</span><span class="project-tag">Vibecoding</span></div>
@@ -1218,7 +1231,7 @@ body.light-mode .player-volume-slider {
                 </div>
             </div>
         </div>
-        <div class="project-card empty reveal reveal-delay-3">
+        <div class="project-card empty reveal reveal-delay-4">
             <div class="empty-content"><div class="plus">+</div><p data-i18n="proj_empty">Prochain projet bientôt...</p></div>
         </div>
     </div>
@@ -1821,7 +1834,10 @@ const translations = {
         proj_1_desc: "Outil d'audit externe automatisé. Programme détaillé conforme au référentiel de mission : suivi des cycles d'audit, procédures, documents requis et statuts en temps réel. Interface professionnelle pour cabinets d'audit.",
         proj_2_desc: "Architecture backend modulaire pour les applications SEVEN7. API REST, gestion d'authentification, base de données Firebase et structure scalable pour les futurs projets.",
         proj_3_desc: "Ce portfolio que vous consultez actuellement. Design audacieux, animations fluides, traduction FR/EN, mockup d'écran animé et système de contact intégré. 100% codé avec l'aide de l'IA.",
+        proj_4_desc: "Suite d'audit externe pensée pour les cabinets de la zone OHADA : normes ISA, plan comptable SYSCOHADA et mode hors ligne. Portail client, workspace auditeur et génération des rapports normés. Schéma PostgreSQL de 29 tables avec piste d'audit immuable, business plan 5 ans et plan de conformité sécurité.",
         proj_link: "Voir le site →",
+        proj_docs: "Voir la documentation →",
+        proj_design: "En conception",
         proj_github: "Voir sur GitHub →",
         proj_live: "En ligne",
         proj_dev: "En développement",
@@ -1957,7 +1973,10 @@ const translations = {
         proj_1_desc: "Automated external audit tool. Detailed program compliant with the mission framework: audit cycle tracking, procedures, required documents and real-time status. Professional interface for audit firms.",
         proj_2_desc: "Modular backend architecture for SEVEN7 applications. REST API, authentication management, Firebase database and scalable structure for future projects.",
         proj_3_desc: "This portfolio you are currently viewing. Bold design, smooth animations, FR/EN translation, animated screen mockup and integrated contact system. 100% coded with the help of AI.",
+        proj_4_desc: "External audit suite built for firms across the OHADA region: ISA standards, SYSCOHADA chart of accounts and offline mode. Client portal, auditor workspace and generation of standard-compliant reports. A 29-table PostgreSQL schema with an immutable audit trail, a 5-year business plan and a security compliance plan.",
         proj_link: "View site →",
+        proj_docs: "View documentation →",
+        proj_design: "In design",
         proj_github: "View on GitHub →",
         proj_live: "Live",
         proj_dev: "In development",
