@@ -388,15 +388,17 @@ function rbRecalculerTout(){
 function rbBlocImportHtml(info){
     return '<div class="form-row rb-bloc-import" style="align-items:center; margin-bottom:10px;">'
         + '<div class="form-group" style="margin:0;"><label>📥 Importer le relevé bancaire de ' + esc(info.nom) + ' (CSV ou Excel)</label>'
-        // accept : extensions ET types MIME. Les sélecteurs de fichiers Android
-        // filtrent par type MIME et ignorent les extensions — avec ".xlsx,.xls"
-        // seul, les classeurs Excel apparaissaient grisés, impossibles à choisir
-        // depuis un téléphone (constaté le 25/08). La validation réelle du format
-        // reste faite sur l'extension dans rbImporterReleve().
-        + '<input type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.ms-excel,'
-        + 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,'
-        + 'application/vnd.ms-excel.sheet.macroEnabled.12" '
-        + 'onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
+        // PAS d'attribut accept, délibérément : sur le téléphone du cabinet
+        // (Android), le sélecteur de fichiers grisait les classeurs Excel — et ce
+        // même après ajout des types MIME officiels en plus des extensions
+        // (constaté le 25/08 : y compris des .xlsx bien reconnus par le système
+        // comme « Feuille de calcul XLSX »). Le filtre rendait donc l'import
+        // impossible depuis un mobile, sans recours. Le format est de toute façon
+        // vérifié après la sélection par rbImporterReleve(), qui refuse clairement
+        // tout fichier qui n'est ni .csv ni un classeur Excel : mieux vaut un
+        // sélecteur qui montre tout et un message d'erreur explicite ensuite,
+        // qu'un filtre qui bloque le fichier légitime de l'utilisateur.
+        + '<input type="file" onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px;" onclick="rbAjouterLigne(' + info.index + ', null); rbRecalculer(' + info.index + ')">+ Ajouter une ligne</button>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px; background:#8e44ad;" onclick="rbPointageAuto(' + info.index + ')">🤖 Pointage automatique (±5 jours)</button>'
         + '</div>';
