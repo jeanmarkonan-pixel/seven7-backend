@@ -116,6 +116,33 @@ mais aucun flux TOTP n'est branché), verrou par compte après 5 échecs
 révocation de token à la demande (logout serveur — un JWT reste valide
 jusqu'à expiration une fois émis, sauf compte désactivé).
 
+## Gestion des utilisateurs (`/users`)
+
+CRUD complet, réservé à `admin_cabinet` et `super_admin` (`@MinNiveau(90)`
+sur le contrôleur). Trois règles de sécurité systématiques, au-delà de
+l'isolation par cabinet déjà vue sur `/cabinets` :
+
+- **Anti-escalade** — impossible de créer ou promouvoir un compte à un rôle
+  plus élevé que le sien. Un `admin_cabinet` (niveau 90) ne peut pas se
+  créer un accès `super_admin` (niveau 100).
+- **Anti-auto-verrouillage** — un administrateur ne peut pas se désactiver
+  ou se supprimer lui-même via cet endpoint ; ça doit passer par un autre
+  admin, pour qu'un cabinet à un seul administrateur ne se retrouve jamais
+  sans accès administrateur.
+- **404, jamais 403, sur un utilisateur d'un autre cabinet** — accéder par
+  id à un compte hors de son périmètre renvoie "introuvable", pas "accès
+  refusé", pour ne pas confirmer son existence à qui n'a pas à le savoir.
+
+Vérifié en conditions réelles avec deux cabinets et trois comptes : les dix
+cas (création réussie, anti-escalade, seuil de rôle, isolation multi-tenant
+sur liste et lecture directe, anti-auto-verrouillage sur désactivation et
+suppression, suppression logique effective) passent tous.
+
+**Bug trouvé et corrigé pendant cette vérification** : les quatre méthodes
+de `UsersService` renvoyaient `mot_de_passe_hash` dans leur réponse JSON —
+haché, mais un secret ne doit jamais transiter côté client. Un helper
+`sansHash()` l'exclut systématiquement avant toute réponse.
+
 ## État actuel
 
 Ce qui est en place et vérifié :

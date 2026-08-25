@@ -9,6 +9,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
 import { CabinetsModule } from './cabinets/cabinets.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     HealthModule,
     CabinetsModule,
+    UsersModule,
   ],
   providers: [
     // Ordre important : le throttler d'abord (limite avant même de tenter
