@@ -72,10 +72,26 @@ function rbDecouperLigne(ligne, delim){
 }
 // Accepte AAAA-MM-JJ (natif <input type=date>) ou JJ/MM/AAAA — sinon chaîne vide (ligne signalée en rouge).
 function rbNormaliserDate(s){
-    s = String(s || '').trim();
+    // Cellule Excel de type date : SheetJS rend un objet Date (cellDates), qu'on
+    // convertit sans passer par une chaîne localisée — donc sans ambiguïté jour/mois.
+    // getMonth() est 0-indexé, d'où le +1.
+    if(s instanceof Date && !isNaN(s.getTime())){
+        return s.getFullYear() + '-'
+             + String(s.getMonth() + 1).padStart(2, '0') + '-'
+             + String(s.getDate()).padStart(2, '0');
+    }
+    s = String(s === undefined || s === null ? '' : s).trim();
     if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if(m) return m[3] + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0');
+    // Format européen JJ/MM/AAAA (celui des relevés bancaires ivoiriens) : le
+    // premier groupe est le JOUR, le second le MOIS. Les inverser produisait des
+    // dates fausses (05/11 lu comme 11 mai), ce qui faussait le mois retenu et la
+    // fenêtre ±5 jours du pointage automatique.
+    var m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if(m){
+        var jour = parseInt(m[1], 10), mois = parseInt(m[2], 10);
+        if(jour >= 1 && jour <= 31 && mois >= 1 && mois <= 12)
+            return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+    }
     return '';
 }
 function rbEnteteEstDonnee(champs){
@@ -83,15 +99,39 @@ function rbEnteteEstDonnee(champs){
     // (parseNum() ne distingue pas "0" d'un libellé non numérique — un simple
     // test de présence de chiffre suffit ici, où l'enjeu est juste d'ignorer
     // une éventuelle ligne de titres).
-    return rbNormaliserDate(champs[0]) !== '' || /[0-9]/.test(champs[2] || '');
+    // champs peut venir d'un CSV (chaînes) ou d'Excel (nombres, objets Date) :
+    // on ramène la colonne montant en texte avant de chercher un chiffre.
+    var montant = champs[2];
+    montant = String(montant === undefined || montant === null ? '' : montant);
+    return rbNormaliserDate(champs[0]) !== '' || /[0-9]/.test(montant);
 }
 
-/* ---------- Import fichier ---------- */
+/* ---------- Import fichier (CSV ou Excel) ---------- */
+// Injecte dans la table les lignes déjà ramenées au format canonique
+// [date, libellé, débit, crédit], quelle que soit leur provenance (CSV ou Excel).
+function rbInjecterLignes(moisIndex, lignes){
+    var nb = 0;
+    lignes.forEach(function(c){
+        if(!c[0] && !c[1]) return;
+        rbAjouterLigne(moisIndex, {
+            date: rbNormaliserDate(c[0]),
+            libelle: String(c[1] === undefined || c[1] === null ? '' : c[1]).trim(),
+            debit: parseNum(c[2]),
+            credit: parseNum(c[3]),
+            pointe: false
+        });
+        nb++;
+    });
+    rbRecalculer(moisIndex);
+    alert('✅ Import réussi : ' + nb + ' ligne(s) ajoutée(s) au relevé de ' + rbInfoMois(moisIndex).nom + '.');
+}
 function rbImporterReleve(input, moisIndex){
     var file = input.files && input.files[0];
     if(!file){ return; }
-    if(!/\.csv$/i.test(file.name || '')){
-        alert('Le fichier doit avoir l’extension .csv.');
+    var nom = file.name || '';
+    var estExcel = /\.xlsx?$/i.test(nom);
+    if(!/\.csv$/i.test(nom) && !estExcel){
+        alert('Le fichier doit être un .csv ou un .xlsx / .xls.');
         input.value = '';
         return;
     }
@@ -100,34 +140,67 @@ function rbImporterReleve(input, moisIndex){
         input.value = '';
         return;
     }
+    if(estExcel) rbLireExcel(file, moisIndex);
+    else rbLireCSV(file, moisIndex);
+    input.value = '';
+}
+function rbLireCSV(file, moisIndex){
     var reader = new FileReader();
     reader.onload = function(){
         var texte = String(reader.result || '');
         reader = null;
-        var lignes = texte.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; });
+        var lignesTexte = texte.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; });
         texte = null;
-        if(!lignes.length){ alert('Fichier vide.'); return; }
-        var delim = rbDetecterDelimiteur(lignes[0]);
-        var depart = rbEnteteEstDonnee(rbDecouperLigne(lignes[0], delim)) ? 0 : 1;
-        var nb = 0;
-        for(var i = depart; i < lignes.length; i++){
-            var c = rbDecouperLigne(lignes[i], delim);
-            if(!c[0] && !c[1]) continue;
-            rbAjouterLigne(moisIndex, {
-                date: rbNormaliserDate(c[0]),
-                libelle: (c[1] || '').trim(),
-                debit: parseNum(c[2]),
-                credit: parseNum(c[3]),
-                pointe: false
-            });
-            nb++;
+        if(!lignesTexte.length){ alert('Fichier vide.'); return; }
+        var delim = rbDetecterDelimiteur(lignesTexte[0]);
+        var depart = rbEnteteEstDonnee(rbDecouperLigne(lignesTexte[0], delim)) ? 0 : 1;
+        var lignes = [];
+        for(var i = depart; i < lignesTexte.length; i++){
+            lignes.push(rbDecouperLigne(lignesTexte[i], delim));
         }
-        rbRecalculer(moisIndex);
-        alert('✅ Import réussi : ' + nb + ' ligne(s) ajoutée(s) au relevé de ' + rbInfoMois(moisIndex).nom + '.');
+        rbInjecterLignes(moisIndex, lignes);
     };
     reader.onerror = function(){ reader = null; alert('Lecture du fichier impossible.'); };
     reader.readAsText(file, 'UTF-8');
-    input.value = '';
+}
+// Excel : lecture via SheetJS (chargé en différé depuis le CDN, voir src/app.html).
+// La première feuille du classeur est lue, colonnes dans le même ordre que le CSV
+// (Date, Libellé, Débit, Crédit).
+// cellDates:true + raw:true : les cellules de type date reviennent en objets Date
+// natifs, que rbNormaliserDate convertit sans ambiguïté. Surtout PAS raw:false, qui
+// les rendrait en texte localisé (« 05/11/26 », voire au format américain selon le
+// classeur) — une source d'inversion jour/mois silencieuse sur un rapprochement dont
+// la fenêtre de pointage se compte en jours.
+function rbLireExcel(file, moisIndex){
+    if(typeof XLSX === 'undefined'){
+        alert('La lecture des fichiers Excel n’est pas disponible pour l’instant (elle a besoin d’une connexion Internet au chargement de l’application).\n\nSolution immédiate : dans Excel, « Enregistrer sous » puis choisir le format CSV, et importer ce fichier CSV.');
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(){
+        try{
+            var classeur = XLSX.read(new Uint8Array(reader.result), { type:'array', cellDates:true });
+            reader = null;
+            var feuille = classeur.Sheets[classeur.SheetNames[0]];
+            if(!feuille){ alert('Ce classeur Excel ne contient aucune feuille lisible.'); return; }
+            var matrice = XLSX.utils.sheet_to_json(feuille, { header:1, raw:true, defval:'' });
+            matrice = matrice.filter(function(l){
+                return l.some(function(c){ return String(c === undefined || c === null ? '' : c).trim() !== ''; });
+            });
+            if(!matrice.length){ alert('Fichier vide.'); return; }
+            // Ligne passée telle quelle (valeurs brutes, Date comprises) : la
+            // convertir en texte ici rendrait une date illisible pour
+            // rbNormaliserDate (« Wed Nov 05 2026 … »), et la 1re ligne de données
+            // serait prise pour un en-tête, donc silencieusement ignorée.
+            var depart = rbEnteteEstDonnee(matrice[0]) ? 0 : 1;
+            rbInjecterLignes(moisIndex, matrice.slice(depart));
+        }catch(e){
+            reader = null;
+            alert('Lecture du fichier Excel impossible : ' + e.message + '\n\nVous pouvez le réenregistrer au format CSV depuis Excel et réessayer.');
+        }
+    };
+    reader.onerror = function(){ reader = null; alert('Lecture du fichier impossible.'); };
+    reader.readAsArrayBuffer(file);
 }
 function rbInfoMois(moisIndex){
     return RB_MOIS.filter(function(m){ return m.index === moisIndex; })[0];
@@ -314,8 +387,8 @@ function rbRecalculerTout(){
 /* ---------- Rendu d'un bloc mensuel ---------- */
 function rbBlocImportHtml(info){
     return '<div class="form-row rb-bloc-import" style="align-items:center; margin-bottom:10px;">'
-        + '<div class="form-group" style="margin:0;"><label>📥 Importer le relevé bancaire de ' + esc(info.nom) + ' (CSV)</label>'
-        + '<input type="file" accept=".csv" onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
+        + '<div class="form-group" style="margin:0;"><label>📥 Importer le relevé bancaire de ' + esc(info.nom) + ' (CSV ou Excel)</label>'
+        + '<input type="file" accept=".csv,.xlsx,.xls" onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px;" onclick="rbAjouterLigne(' + info.index + ', null); rbRecalculer(' + info.index + ')">+ Ajouter une ligne</button>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px; background:#8e44ad;" onclick="rbPointageAuto(' + info.index + ')">🤖 Pointage automatique (±5 jours)</button>'
         + '</div>';
@@ -360,8 +433,9 @@ function rbInstaller(){
         d.innerHTML =
           '<div class="card" data-tab="rapprochement-bancaire">'
         + '<h2>🏦 RAPPROCHEMENT BANCAIRE — Novembre / Décembre</h2>'
-        + '<div class="alert alert-info">Importez le relevé bancaire (CSV : Date, Libellé, Débit, Crédit — délimiteur '
-        + 'détecté automatiquement) de chaque mois, puis pointez chaque ligne déjà comptabilisée. Sur un relevé, '
+        + '<div class="alert alert-info">Importez le relevé bancaire de chaque mois — fichier <strong>CSV</strong> '
+        + '(délimiteur détecté automatiquement) ou <strong>Excel</strong> (.xlsx/.xls, première feuille lue), '
+        + 'colonnes dans l\'ordre Date, Libellé, Débit, Crédit — puis pointez chaque ligne déjà comptabilisée. Sur un relevé, '
         + '<strong>Crédit</strong> = argent reçu (encaissement) et <strong>Débit</strong> = argent sorti (décaissement) — '
         + 'c\'est l\'inverse des colonnes Débit/Crédit du compte banque en comptabilité, dont c\'est déjà tenu compte '
         + 'dans le calcul de l\'écart ci-dessous. Le tableau Grand Livre affiché en regard reflète les écritures déjà '

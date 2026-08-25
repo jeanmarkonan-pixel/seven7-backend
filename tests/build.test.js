@@ -99,8 +99,11 @@ test('VERSION — l’application a bien où afficher l’estampille', () => {
 test('BUILD — le livrable garde ses quatre blocs de script inline', () => {
     const html = fs.readFileSync(cheminApplication(), 'utf8');
     assert.equal(blocsScript(html).length, 4);
-    // Le SDK Firebase et lz-string restent chargés par balise externe.
+    // Le SDK Firebase (3 balises), lz-string et SheetJS (lecture des relevés
+    // bancaires Excel, onglet Rapprochement Bancaire) restent chargés par
+    // balise externe.
     const externes = [...html.matchAll(/<script[^>]*\ssrc="([^"]+)"/g)].map(m => m[1]);
-    assert.equal(externes.length, 4);
+    assert.equal(externes.length, 5);
     assert.ok(externes.every(u => u.startsWith('https://')), 'script externe en clair');
+    assert.ok(externes.some(u => /xlsx/i.test(u)), 'SheetJS absent — l’import Excel des relevés ne fonctionnerait plus');
 });

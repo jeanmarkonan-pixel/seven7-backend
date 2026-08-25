@@ -4228,6 +4228,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<!-- SheetJS — lecture des relevés bancaires au format Excel (.xlsx/.xls) dans
+     l'onglet Rapprochement Bancaire. Même mode de chargement que lz-string
+     ci-dessus (CDN, script classique). Chargé en différé (defer) : aucun code
+     n'en dépend au démarrage, seulement au moment d'un import Excel, qui
+     vérifie sa présence et explique clairement s'il manque (hors ligne). -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 /* @@COLLAB@@ */
 </script>
