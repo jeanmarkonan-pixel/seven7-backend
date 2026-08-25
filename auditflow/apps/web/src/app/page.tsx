@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 type Health = { status: string; database: string; timestamp: string };
@@ -53,6 +55,10 @@ export default async function Home() {
         <StatusRow label="API NestJS" ok={apiUp} detail={API_URL} />
         <StatusRow label="PostgreSQL" ok={dbUp} detail="schéma auditflow" />
       </section>
+
+      <Link href="/login" className="btn btn-primary" style={{ marginTop: 32, display: 'inline-flex' }}>
+        Se connecter →
+      </Link>
     </main>
   );
 }

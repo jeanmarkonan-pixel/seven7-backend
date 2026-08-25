@@ -237,6 +237,62 @@ validation de longueur, isolation multi-tenant à trois niveaux
 d'imbrication (mission → cycle → test, 404 pour un cabinet tiers à
 chaque niveau).
 
+## Premiers écrans (front connecté à l'API)
+
+Jusqu'ici, tout ce qui existait côté web était la page de diagnostic santé
+du scaffold initial — aucun écran métier. Premier parcours vertical réel :
+`/login` → `/missions` → `/missions/[id]`, avec de vraies données servies
+par l'API, pas des maquettes statiques.
+
+- **`/login`** — formulaire, `POST /auth/login`, session stockée en
+  `localStorage` (token + profil). Compromis assumé, pas la pratique
+  recommandée : un cookie `httpOnly` posé par l'API résisterait à un XSS,
+  ce que `localStorage` ne fait pas. Report délibéré : ça exige que l'API
+  pose le cookie en cross-origin (`SameSite=None; Secure` + `credentials`
+  CORS des deux côtés), un chantier à part entière plutôt qu'une case à
+  cocher dans ce premier écran.
+- **`/missions`** — liste tenant-scopée (le RBAC déjà en place côté API
+  s'applique tel quel, rien à dupliquer côté front).
+- **`/missions/[id]`** — détail + cycles ISA ouverts sur la mission.
+- `lib/api.ts` — client fetch authentifié partagé, avec une distinction
+  volontaire : un 401 sur une requête qui portait un token purge la
+  session locale ("Session expirée") ; un 401 sur `/auth/login` (pas de
+  token envoyé, puisqu'il n'y a pas encore de session) relaie le message
+  réel de l'API ("Identifiants invalides") — voir le bug ci-dessous.
+
+**Bug trouvé et corrigé** : la première version traitait tout 401 comme
+une expiration de session, y compris un simple mauvais mot de passe au
+login — l'utilisateur voyait "Session expirée" alors qu'il n'avait encore
+aucune session. Corrigé en ne déclenchant la purge que si une requête
+portait effectivement un token.
+
+**Deux vrais pièges d'environnement rencontrés en testant, aucun des deux
+dans le code applicatif** :
+
+1. `NEXT_PUBLIC_API_URL` est figé **à la compilation** par Next.js en
+   production (`next build`), jamais relu au démarrage (`next start`).
+   Le définir seulement au lancement n'a aucun effet sur un build déjà
+   produit — à fixer avant `build`, pas avant `start`.
+2. Un processus `next start` laissé tournant depuis un test précédent
+   continue de servir son ancien manifeste de build en mémoire même après
+   un nouveau `pnpm build` réussi — `next start` ne recharge pas `.next`
+   à chaud. Un `pkill` au pattern mal formé (`\|` non interprété comme
+   alternance par `pkill`) l'a laissé survivre à plusieurs tentatives
+   d'arrêt, provoquant des `ChunkLoadError` en apparence aléatoires côté
+   navigateur. Toujours vérifier par PID (`ps aux`), pas seulement
+   supposer qu'un `pkill` a fonctionné.
+
+Vérifié avec un vrai navigateur (Playwright), pas seulement `curl` :
+connexion réussie → redirection → liste avec la mission réelle et son
+badge de statut coloré → clic → détail avec objectif et cycle ISA ouvert,
+toutes les données lues depuis PostgreSQL via l'API. Connexion échouée
+vérifiée séparément : le bon message s'affiche, pas de redirection.
+
+**Connu et non fait à ce stade** : aucun formulaire de création
+(mission, client, utilisateur) — uniquement de la lecture pour l'instant.
+Pas d'écrans pour tests/anomalies/documents/rapports. Token en
+`localStorage` plutôt qu'en cookie `httpOnly` (voir plus haut).
+
 ## État actuel
 
 Ce qui est en place et vérifié :
