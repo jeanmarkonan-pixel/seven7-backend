@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: auditflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: auditflow
+      POSTGRES_PASSWORD: auditflow_dev
+      POSTGRES_DB: auditflow
+      # Le schéma utilise des libellés accentués (Côte d'Ivoire, Révision limitée)
+      LANG: fr_FR.utf8
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U auditflow -d auditflow']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: auditflow-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:

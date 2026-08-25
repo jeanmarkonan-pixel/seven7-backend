@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Installer les dépendances",
+      "type": "shell",
+      "command": "pnpm install",
+      "problemMatcher": []
+    },
+    {
+      "label": "Démarrer PostgreSQL + Redis",
+      "type": "shell",
+      "command": "pnpm db:up",
+      "problemMatcher": []
+    },
+    {
+      "label": "Charger le schéma SQL",
+      "type": "shell",
+      "command": "pnpm db:load",
+      "dependsOn": "Démarrer PostgreSQL + Redis",
+      "problemMatcher": []
+    },
+    {
+      "label": "Introspecter la base (Prisma)",
+      "type": "shell",
+      "command": "pnpm db:pull && pnpm --filter @auditflow/db prisma:generate",
+      "dependsOn": "Charger le schéma SQL",
+      "problemMatcher": []
+    },
+    {
+      "label": "Vérifier les types",
+      "type": "shell",
+      "command": "pnpm typecheck",
+      "group": "test",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Build complet",
+      "type": "shell",
+      "command": "pnpm build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}

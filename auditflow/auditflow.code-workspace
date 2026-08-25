@@ -1,0 +1,11 @@
+{
+  "folders": [
+    { "name": "auditflow", "path": "." },
+    { "name": "api", "path": "apps/api" },
+    { "name": "web", "path": "apps/web" },
+    { "name": "db", "path": "packages/db" }
+  ],
+  "settings": {
+    "typescript.tsdk": "node_modules/typescript/lib"
+  }
+}
