@@ -181,3 +181,64 @@ function exportGLTable(kind){
     });
     downloadCsv(csv, filename);
 }
+
+/* ==================================================================
+   FILET DE SÉCURITÉ — bug réel constaté (25/08) : sur un dossier ancien,
+   après restauration du innerHTML sauvegardé (applyRemoteTab, 10-config-
+   collaboration.js — toute la carte GL Bilan/Gestion, boutons compris, est
+   resauvegardée telle quelle), deux symptômes ont été observés ensemble
+   sur un même dossier :
+   1) Colonnes calculées (Classe/Type/Montant) et compteurs restent à 0
+      malgré des lignes réelles avec montants — recomputeGLTable() n'a
+      jamais tourné depuis la dernière restauration (elle ne s'exécute
+      normalement qu'au changement d'une cellule, jamais au chargement).
+   2) Les 3 boutons d'action (Ajouter/Vider/Exporter) ne répondaient plus
+      du tout, alors que les boutons identiques du GL Gestion et le
+      bouton "Coller les écritures" du MÊME GL Bilan fonctionnaient —
+      signe d'une rangée de boutons dupliquée dans l'ancien HTML restauré
+      (une copie invisible superposée absorbe le clic).
+   glAssurerIntegrite() répare les deux : ne garde qu'une seule rangée de
+   boutons d'action par carte, et force un recalcul. Un MutationObserver
+   la relance à chaque restauration distante, sur le même principe que
+   51-rapprochement-bancaire.js (rbAssurerBoutonsImport/rbObserverSync).
+   ================================================================== */
+function glAssurerIntegrite(kind){
+    var cfg = GL_TABLES[kind];
+    var conteneur = document.getElementById(cfg.containerId);
+    if(!conteneur) return;
+    var rangees = Array.prototype.slice.call(
+        conteneur.querySelectorAll('.form-row button[onclick*="addGLRow(\'' + kind + '\')"]')
+    ).map(function(btn){ return btn.closest('.form-row'); });
+    // dédoublonne (une même rangée peut contenir les 3 boutons -> plusieurs
+    // matches pointant vers le même .form-row) puis retire les copies en trop.
+    var vues = [];
+    rangees.forEach(function(r){ if(r && vues.indexOf(r) === -1) vues.push(r); });
+    for(var i = 1; i < vues.length; i++){ vues[i].remove(); }
+    recomputeGLTable(kind);
+}
+function glObserverIntegrite(kind){
+    var cfg = GL_TABLES[kind];
+    var conteneur = document.getElementById(cfg.containerId);
+    // subtree:false délibérément : ne réagit qu'au remplacement complet du innerHTML de
+    // l'onglet (applyRemoteTab, restauration distante — une mutation childList sur le
+    // conteneur lui-même), jamais aux mutations internes (édition d'une cellule, recalcul
+    // des colonnes calculées) — sinon recomputeGLTable() (qui modifie des descendants)
+    // redéclencherait l'observateur en boucle continue.
+    if(!conteneur || typeof MutationObserver === 'undefined') return;
+    var mo = new MutationObserver(function(){ glAssurerIntegrite(kind); });
+    mo.observe(conteneur, { childList:true });
+}
+function glInitIntegrite(){
+    ['bilan','gestion'].forEach(function(kind){
+        glAssurerIntegrite(kind);
+        glObserverIntegrite(kind);
+    });
+}
+try{
+    if(typeof document !== 'undefined'){
+        if(document.readyState === 'loading')
+            document.addEventListener('DOMContentLoaded', glInitIntegrite);
+        else
+            glInitIntegrite();
+    }
+}catch(e){}
