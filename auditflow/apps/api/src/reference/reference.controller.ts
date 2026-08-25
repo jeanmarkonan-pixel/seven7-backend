@@ -46,4 +46,10 @@ export class ReferenceController {
   statutsTest() {
     return this.prisma.ref_statut_test.findMany({ orderBy: { id: 'asc' } });
   }
+
+  @Get('statuts-anomalie')
+  @ApiOperation({ summary: 'Statuts d’anomalie (ref_statut_anomalie) : ouverte, en_discussion, ajustement_propose, ajustement_accepte, close, rejetee' })
+  statutsAnomalie() {
+    return this.prisma.ref_statut_anomalie.findMany({ orderBy: { id: 'asc' } });
+  }
 }

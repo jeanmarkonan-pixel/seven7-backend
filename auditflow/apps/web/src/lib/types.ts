@@ -80,3 +80,46 @@ export const TEST_WRITE_ROLES = [...MISSION_WRITE_ROLES, 'junior'];
 
 /** Revue d'un test (tests.controller.ts, REVIEW_ROLES) — vérifiée en profondeur côté API (niveau + séparation des tâches). */
 export const TEST_REVIEW_ROLES = ['super_admin', 'admin_cabinet', 'associe', 'manager', 'senior'];
+
+export interface Anomalie {
+  id: string;
+  reference: string;
+  titre: string;
+  description: string;
+  assertion_concernee: string | null;
+  montant_impact: string | null;
+  pourcentage_impact: string | null;
+  impact_significatif: boolean;
+  ouverte_par: string;
+  date_ouverture: string;
+  assignee_a: string | null;
+  close_par: string | null;
+  date_cloture: string | null;
+  conclusion: string | null;
+  ref_statut_anomalie: { code: string; libelle: string; couleur: string };
+  mission_id?: string;
+}
+
+export interface AnomalieHistoriqueEntry {
+  id: string;
+  commentaire: string | null;
+  modifie_par: string;
+  date_modification: string;
+  ref_statut_anomalie_anomalie_historique_statut_precedentToref_statut_anomalie: { libelle: string } | null;
+  ref_statut_anomalie_anomalie_historique_statut_nouveauToref_statut_anomalie: { libelle: string };
+}
+
+export interface StatutAnomalie {
+  id: number;
+  code: string;
+  libelle: string;
+  couleur: string;
+}
+
+/**
+ * anomalies.controller.ts, WRITE_ROLES — associe a CRUD ici (contrairement
+ * à son "Lecture" sur missions/tests/documents), junior n'a que Lecture
+ * (contrairement à son CRUD complet sur tests) : pattern inverse de
+ * TEST_WRITE_ROLES, pas une variante.
+ */
+export const ANOMALIE_WRITE_ROLES = ['super_admin', 'admin_cabinet', 'associe', 'manager', 'senior'];

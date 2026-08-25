@@ -353,6 +353,47 @@ auto-revue tentée et refusée avec le message exact de
 `TestsService.review()` → revue croisée par le senior acceptée,
 "✓ Revu le [date]" affiché, bouton disparu.
 
+## Anomalies (interface)
+
+Un nouvel endpoint de référence, même principe : `GET /statuts-anomalie`.
+Le reste réutilise le module `anomalie` construit côté API pendant la
+phase précédente (traçabilité transactionnelle dans
+`anomalie_historique` déjà en place, voir § « Anomalies et documents »
+plus bas).
+
+- **`/missions/[id]` (section Anomalies)** — liste des anomalies de la
+  mission, bouton « + Ouvrir une anomalie » visible seulement si le rôle
+  fait partie de `ANOMALIE_WRITE_ROLES`.
+- **`/missions/[id]/anomalies/new`** — formulaire de création. **Aucun
+  champ `reference` envoyé** : `trg_anomalie_reference` (trigger SQL
+  BEFORE INSERT) le génère et écraserait de toute façon toute valeur
+  fournie, comme documenté dans le module backend — le formulaire ne
+  fait qu'exposer ce que l'API accepte réellement.
+- **`/anomalies/[id]`** — détail (description, montant d'impact, badges
+  statut + « Impact significatif »), formulaire « Changer le statut »
+  (avec commentaire consigné dans l'historique, et champ conclusion
+  affiché seulement quand le nouveau statut est `close`), et tableau
+  Historique listant chaque transition (ancien statut → nouveau statut,
+  date, commentaire).
+
+RBAC vérifié à l'écran, pas seulement en théorie : avec l'utilisateur
+`associe`, le bouton de création est visible et la clôture d'une
+anomalie (statut `close` + conclusion) s'enregistre et se réaffiche
+correctement au rechargement. Avec l'utilisateur `junior`, la liste des
+anomalies reste visible (lecture ouverte à `STAFF_ROLES`) mais ni le
+bouton « + Ouvrir un cycle » ni « + Ouvrir une anomalie » ne
+s'affichent ; une navigation directe vers `/missions/[id]/anomalies/new`
+affiche un message de refus au lieu du formulaire — la vraie barrière
+reste côté API (`@Roles(...WRITE_ROLES)` sur `AnomaliesController`, qui
+exclut `junior`), le front n'est qu'une présélection.
+
+Vérifié en conditions réelles (Playwright, navigateur réel) : création
+d'une anomalie par un `associe` → référence affichée `A-2026-001`
+(générée par le trigger, pas celle éventuellement tapée) → passage à
+« En discussion avec le client » avec commentaire → clôture avec
+commentaire et conclusion → tableau Historique affichant les deux
+transitions dans l'ordre avec leurs commentaires respectifs.
+
 ## État actuel
 
 Ce qui est en place et vérifié :

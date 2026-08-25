@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 
 import { TopBar } from '@/components/TopBar';
 import { ApiError, apiFetch } from '@/lib/api';
-import type { Mission, MissionCycle } from '@/lib/types';
-import { CYCLE_WRITE_ROLES } from '@/lib/types';
+import type { Anomalie, Mission, MissionCycle } from '@/lib/types';
+import { ANOMALIE_WRITE_ROLES, CYCLE_WRITE_ROLES } from '@/lib/types';
 import { useRequireAuth } from '@/lib/use-require-auth';
 
 export default function MissionDetailPage() {
@@ -16,6 +16,7 @@ export default function MissionDetailPage() {
 
   const [mission, setMission] = useState<Mission | null>(null);
   const [cycles, setCycles] = useState<MissionCycle[] | null>(null);
+  const [anomalies, setAnomalies] = useState<Anomalie[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,10 +24,12 @@ export default function MissionDetailPage() {
     Promise.all([
       apiFetch<Mission>(`/missions/${params.id}`),
       apiFetch<MissionCycle[]>(`/missions/${params.id}/cycles`),
+      apiFetch<Anomalie[]>(`/missions/${params.id}/anomalies`),
     ])
-      .then(([m, c]) => {
+      .then(([m, c, a]) => {
         setMission(m);
         setCycles(c);
+        setAnomalies(a);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Une erreur est survenue'));
   }, [ready, params.id]);
@@ -113,6 +116,67 @@ export default function MissionDetailPage() {
                           <td>{c.statut}</td>
                           <td>{c.risque_global ?? '—'}</td>
                           <td>{c.materielite ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+                marginTop: 40,
+              }}
+            >
+              <h2 style={{ fontSize: 16, fontWeight: 700 }}>Anomalies</h2>
+              {user && ANOMALIE_WRITE_ROLES.includes(user.roleCode) && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => router.push(`/missions/${params.id}/anomalies/new`)}
+                >
+                  + Ouvrir une anomalie
+                </button>
+              )}
+            </div>
+
+            {anomalies && anomalies.length === 0 && (
+              <div className="card empty-state">Aucune anomalie ouverte sur cette mission.</div>
+            )}
+
+            {anomalies && anomalies.length > 0 && (
+              <div className="card" style={{ padding: 0 }}>
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Référence</th>
+                        <th>Titre</th>
+                        <th>Impact significatif</th>
+                        <th>Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {anomalies.map((a) => (
+                        <tr key={a.id} className="clickable" onClick={() => router.push(`/anomalies/${a.id}`)}>
+                          <td>{a.reference}</td>
+                          <td>{a.titre}</td>
+                          <td>{a.impact_significatif ? 'Oui' : 'Non'}</td>
+                          <td>
+                            <span
+                              className="badge"
+                              style={{
+                                background: `${a.ref_statut_anomalie.couleur}22`,
+                                color: a.ref_statut_anomalie.couleur,
+                              }}
+                            >
+                              {a.ref_statut_anomalie.libelle}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
