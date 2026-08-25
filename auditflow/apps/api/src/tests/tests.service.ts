@@ -28,7 +28,7 @@ export class TestsService {
       if (!programme) {
         throw new BadRequestException(`Programme de travail introuvable : ${dto.programmeId}`);
       }
-      return this.prisma.test_execution.create({
+      return this.prisma.withActor(actor, (tx) => tx.test_execution.create({
         data: {
           mission_cycle_id: missionCycleId,
           programme_id: programme.id,
@@ -41,7 +41,7 @@ export class TestsService {
           echantillon_taille: dto.echantillonTaille ?? programme.echantillon_min,
         },
         include: { ref_type_test: true, ref_statut_test: true, programme_travail: true },
-      });
+      }));
     }
 
     // Test libre : typeTestCode/objectif/procedure sont requis par le DTO
@@ -51,7 +51,7 @@ export class TestsService {
       throw new BadRequestException(`Type de test inconnu : ${dto.typeTestCode}`);
     }
 
-    return this.prisma.test_execution.create({
+    return this.prisma.withActor(actor, (tx) => tx.test_execution.create({
       data: {
         mission_cycle_id: missionCycleId,
         type_test_id: type.id,
@@ -62,7 +62,7 @@ export class TestsService {
         echantillon_taille: dto.echantillonTaille,
       },
       include: { ref_type_test: true, ref_statut_test: true },
-    });
+    }));
   }
 
   async findAll(missionCycleId: string, actor: AuthenticatedUser) {
@@ -98,7 +98,7 @@ export class TestsService {
     const test = await this.findOne(id, actor);
     const statut = await this.resolveStatut(dto.statutCode);
 
-    return this.prisma.test_execution.update({
+    return this.prisma.withActor(actor, (tx) => tx.test_execution.update({
       where: { id: test.id },
       data: {
         statut_id: statut.id,
@@ -111,7 +111,7 @@ export class TestsService {
         updated_at: new Date(),
       },
       include: { ref_type_test: true, ref_statut_test: true },
-    });
+    }));
   }
 
   /**
@@ -136,10 +136,12 @@ export class TestsService {
       throw new BadRequestException('Ce test n’a pas encore été exécuté — rien à revoir');
     }
 
-    return this.prisma.test_execution.update({
-      where: { id: test.id },
-      data: { revu_par: actor.id, date_revue: new Date(), updated_at: new Date() },
-      include: { ref_type_test: true, ref_statut_test: true },
-    });
+    return this.prisma.withActor(actor, (tx) =>
+      tx.test_execution.update({
+        where: { id: test.id },
+        data: { revu_par: actor.id, date_revue: new Date(), updated_at: new Date() },
+        include: { ref_type_test: true, ref_statut_test: true },
+      }),
+    );
   }
 }

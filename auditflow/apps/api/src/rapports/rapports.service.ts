@@ -30,16 +30,18 @@ export class RapportsService {
     await this.missions.findOne(missionId, actor);
     const type = await this.resolveType(dto.typeRapportCode);
 
-    return this.prisma.rapport.create({
-      data: {
-        mission_id: missionId,
-        type_rapport_id: type.id,
-        reference: dto.reference,
-        titre: dto.titre,
-        contenu: dto.contenu,
-      },
-      include: { ref_type_rapport: true, ref_type_opinion: true },
-    });
+    return this.prisma.withActor(actor, (tx) =>
+      tx.rapport.create({
+        data: {
+          mission_id: missionId,
+          type_rapport_id: type.id,
+          reference: dto.reference,
+          titre: dto.titre,
+          contenu: dto.contenu,
+        },
+        include: { ref_type_rapport: true, ref_type_opinion: true },
+      }),
+    );
   }
 
   async findAll(missionId: string, actor: AuthenticatedUser) {
@@ -82,18 +84,20 @@ export class RapportsService {
 
     const type = dto.typeRapportCode ? await this.resolveType(dto.typeRapportCode) : undefined;
 
-    return this.prisma.rapport.update({
-      where: { id },
-      data: {
-        ...(type && { type_rapport_id: type.id }),
-        ...(dto.reference && { reference: dto.reference }),
-        ...(dto.titre && { titre: dto.titre }),
-        ...(dto.contenu !== undefined && { contenu: dto.contenu }),
-        ...(dto.statut && { statut: dto.statut }),
-        updated_at: new Date(),
-      },
-      include: { ref_type_rapport: true, ref_type_opinion: true },
-    });
+    return this.prisma.withActor(actor, (tx) =>
+      tx.rapport.update({
+        where: { id },
+        data: {
+          ...(type && { type_rapport_id: type.id }),
+          ...(dto.reference && { reference: dto.reference }),
+          ...(dto.titre && { titre: dto.titre }),
+          ...(dto.contenu !== undefined && { contenu: dto.contenu }),
+          ...(dto.statut && { statut: dto.statut }),
+          updated_at: new Date(),
+        },
+        include: { ref_type_rapport: true, ref_type_opinion: true },
+      }),
+    );
   }
 
   /**
@@ -114,15 +118,17 @@ export class RapportsService {
 
     const opinion = await this.resolveOpinion(dto.typeOpinionCode);
 
-    return this.prisma.rapport.update({
-      where: { id },
-      data: {
-        type_opinion_id: opinion.id,
-        signe_par: actor.id,
-        date_signature: new Date(),
-        statut: 'signe',
-      },
-      include: { ref_type_rapport: true, ref_type_opinion: true },
-    });
+    return this.prisma.withActor(actor, (tx) =>
+      tx.rapport.update({
+        where: { id },
+        data: {
+          type_opinion_id: opinion.id,
+          signe_par: actor.id,
+          date_signature: new Date(),
+          statut: 'signe',
+        },
+        include: { ref_type_rapport: true, ref_type_opinion: true },
+      }),
+    );
   }
 }

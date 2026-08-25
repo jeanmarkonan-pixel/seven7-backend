@@ -48,7 +48,7 @@ export class AnomaliesService {
       await this.assertUserDansCabinet(dto.assigneeA, mission.cabinet_id, 'assigneeA');
     }
 
-    return this.prisma.anomalie.create({
+    return this.prisma.withActor(actor, (tx) => tx.anomalie.create({
       data: {
         mission_id: missionId,
         mission_cycle_id: dto.missionCycleId,
@@ -71,7 +71,7 @@ export class AnomaliesService {
         ouverte_par: actor.id,
       },
       include: { ref_statut_anomalie: true },
-    });
+    }));
   }
 
   async findAll(missionId: string, actor: AuthenticatedUser) {
@@ -123,6 +123,12 @@ export class AnomaliesService {
     const cloture = nouveauStatut?.code === 'close';
 
     return this.prisma.$transaction(async (tx) => {
+      // set_config ici plutôt que withActor() : cette méthode gère déjà sa
+      // propre transaction (anomalie + anomalie_historique) — l'imbriquer
+      // dans une seconde n'apporterait rien, seulement une couche de plus.
+      await tx.$executeRaw`SELECT set_config('audit.utilisateur_id', ${actor.id}, true)`;
+      await tx.$executeRaw`SELECT set_config('audit.cabinet_id', ${anomalie.mission.cabinet_id}, true)`;
+
       const updated = await tx.anomalie.update({
         where: { id },
         data: {

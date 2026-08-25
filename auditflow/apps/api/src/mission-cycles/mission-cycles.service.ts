@@ -44,7 +44,7 @@ export class MissionCyclesService {
     }
 
     try {
-      return await this.prisma.mission_cycle.create({
+      return await this.prisma.withActor(actor, (tx) => tx.mission_cycle.create({
         data: {
           mission_id: missionId,
           cycle_id: cycle.id,
@@ -57,7 +57,7 @@ export class MissionCyclesService {
           approche: dto.approche,
         },
         include: { ref_cycle_isa: true },
-      });
+      }));
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         throw new ConflictException(`Le cycle "${dto.cycleCode}" est déjà ouvert sur cette mission`);
@@ -119,7 +119,7 @@ export class MissionCyclesService {
       await this.assertResponsableDansCabinet(dto.responsableId, mission.cabinet_id);
     }
 
-    return this.prisma.mission_cycle.update({
+    return this.prisma.withActor(actor, (tx) => tx.mission_cycle.update({
       where: { id },
       data: {
         ...(cycle && { cycle_id: cycle.id }),
@@ -134,22 +134,24 @@ export class MissionCyclesService {
         updated_at: new Date(),
       },
       include: { ref_cycle_isa: true },
-    });
+    }));
   }
 
   async conclude(missionId: string, id: string, actor: AuthenticatedUser, dto: ConcludeMissionCycleDto) {
     await this.assertMissionVisible(missionId, actor);
     await this.findOne(missionId, id, actor);
 
-    return this.prisma.mission_cycle.update({
-      where: { id },
-      data: {
-        conclusion: dto.conclusion,
-        conclusion_par: actor.id,
-        conclusion_date: new Date(),
-        statut: 'termine',
-      },
-      include: { ref_cycle_isa: true },
-    });
+    return this.prisma.withActor(actor, (tx) =>
+      tx.mission_cycle.update({
+        where: { id },
+        data: {
+          conclusion: dto.conclusion,
+          conclusion_par: actor.id,
+          conclusion_date: new Date(),
+          statut: 'termine',
+        },
+        include: { ref_cycle_isa: true },
+      }),
+    );
   }
 }

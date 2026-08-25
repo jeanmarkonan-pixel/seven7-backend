@@ -100,7 +100,7 @@ export class MissionsService {
     }
 
     try {
-      return await this.prisma.mission.create({
+      return await this.prisma.withActor(actor, (tx) => tx.mission.create({
         data: {
           cabinet_id: cabinetId,
           client_id: dto.clientId,
@@ -124,7 +124,7 @@ export class MissionsService {
           ref_type_mission: true,
           ref_statut_mission: true,
         },
-      });
+      }));
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         throw new ConflictException(`La référence "${dto.reference}" est déjà utilisée dans ce cabinet`);
@@ -196,7 +196,7 @@ export class MissionsService {
       if (userId) await this.assertTeamMember(userId, mission.cabinet_id, poste);
     }
 
-    return this.prisma.mission.update({
+    return this.prisma.withActor(actor, (tx) => tx.mission.update({
       where: { id },
       data: {
         ...(dto.clientId && { client_id: dto.clientId }),
@@ -228,7 +228,7 @@ export class MissionsService {
         updated_at: new Date(),
       },
       include: { client: true, ref_type_mission: true, ref_statut_mission: true, ref_type_opinion: true },
-    });
+    }));
   }
 
   async remove(id: string, actor: AuthenticatedUser): Promise<void> {
@@ -237,9 +237,11 @@ export class MissionsService {
       throw new NotFoundException(`Mission ${id} introuvable`);
     }
     // Suppression logique uniquement — archivage OHADA 10 ans (duree_conservation_ans).
-    await this.prisma.mission.update({
-      where: { id },
-      data: { deleted_at: new Date() },
-    });
+    await this.prisma.withActor(actor, (tx) =>
+      tx.mission.update({
+        where: { id },
+        data: { deleted_at: new Date() },
+      }),
+    );
   }
 }

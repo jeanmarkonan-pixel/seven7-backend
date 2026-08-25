@@ -80,7 +80,7 @@ export class DocumentsService {
     const cheminComplet = join(dossierCabinet, nomStockage);
     await writeFile(cheminComplet, file.buffer);
 
-    return this.prisma.document.create({
+    return this.prisma.withActor(actor, (tx) => tx.document.create({
       data: {
         mission_id: missionId,
         mission_cycle_id: dto.missionCycleId,
@@ -102,7 +102,7 @@ export class DocumentsService {
         client_upload: false, // portail client non implémenté (voir README)
       },
       include: { ref_type_document: true, ref_statut_document: true },
-    });
+    }));
   }
 
   async findAll(missionId: string, actor: AuthenticatedUser) {
@@ -151,7 +151,7 @@ export class DocumentsService {
     const statut = dto.statutCode ? await this.resolveStatut(dto.statutCode) : undefined;
     const validation = statut?.code === 'valide';
 
-    return this.prisma.document.update({
+    return this.prisma.withActor(actor, (tx) => tx.document.update({
       where: { id: doc.id },
       data: {
         ...(statut && { statut_id: statut.id }),
@@ -163,6 +163,6 @@ export class DocumentsService {
         updated_at: new Date(),
       },
       include: { ref_type_document: true, ref_statut_document: true },
-    });
+    }));
   }
 }

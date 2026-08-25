@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AnomaliesModule } from './anomalies/anomalies.module';
+import { AuditTrailModule } from './audit-trail/audit-trail.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -38,6 +39,7 @@ import { UsersModule } from './users/users.module';
     DocumentsModule,
     RapportsModule,
     RevuesQualiteModule,
+    AuditTrailModule,
   ],
   providers: [
     // Ordre important : le throttler d'abord (limite avant même de tenter

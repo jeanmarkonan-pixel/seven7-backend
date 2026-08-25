@@ -772,6 +772,10 @@ DECLARE
     v_action VARCHAR(20);
     v_donnees_avant JSONB;
     v_donnees_apres JSONB;
+    v_ligne JSONB;
+    v_cabinet_id UUID;
+    v_mission_id UUID;
+    v_utilisateur_id UUID;
 BEGIN
     -- Déterminer l'action
     IF TG_OP = 'INSERT' THEN
@@ -787,6 +791,7 @@ BEGIN
         v_donnees_avant := to_jsonb(OLD);
         v_donnees_apres := NULL;
     END IF;
+    v_ligne := COALESCE(v_donnees_apres, v_donnees_avant);
 
     -- Récupérer le type d'activité générique
     SELECT id INTO v_type_activite_id
@@ -797,15 +802,48 @@ BEGIN
         v_type_activite_id := 1; -- fallback
     END IF;
 
+    -- cabinet_id et utilisateur_id ne sont jamais déductibles de la ligne
+    -- elle-même (la plupart des tables auditées n'ont pas de colonne
+    -- cabinet_id directe, et aucune trace SQL native de "qui" écrit) :
+    -- l'application les pose via set_config() dans la même transaction,
+    -- avant chaque écriture. Absents (écriture hors application, ex. un
+    -- script de seed) -> NULL, sans erreur (current_setting(..., true)).
+    v_cabinet_id := NULLIF(current_setting('audit.cabinet_id', true), '')::UUID;
+    v_utilisateur_id := NULLIF(current_setting('audit.utilisateur_id', true), '')::UUID;
+
+    -- mission_id : déductible directement de la ligne pour la plupart des
+    -- tables auditées (mission_cycle, anomalie, document, rapport ont
+    -- toutes une colonne mission_id) ; sur la table mission elle-même,
+    -- l'id de la ligne EST le mission_id ; test_execution est le seul cas
+    -- qui exige une jointure (elle ne référence qu'un mission_cycle_id).
+    IF TG_TABLE_NAME = 'mission' THEN
+        -- Pas en cas de DELETE : la ligne mission a déjà disparu quand ce
+        -- trigger AFTER DELETE s'exécute, et audit_trail.mission_id porte
+        -- une FK vers mission(id) sans ON DELETE SET NULL — y référencer
+        -- une mission qui vient d'être supprimée physiquement violerait
+        -- cette contrainte. Situation qui ne se produit qu'en cas de
+        -- suppression SQL directe : l'application ne fait que de la
+        -- suppression logique (deleted_at) sur mission, jamais un DELETE.
+        IF TG_OP != 'DELETE' THEN
+            v_mission_id := (v_ligne->>'id')::UUID;
+        END IF;
+    ELSIF TG_TABLE_NAME = 'test_execution' THEN
+        SELECT mission_id INTO v_mission_id
+        FROM mission_cycle
+        WHERE id = (v_ligne->>'mission_cycle_id')::UUID;
+    ELSE
+        v_mission_id := NULLIF(v_ligne->>'mission_id', '')::UUID;
+    END IF;
+
     INSERT INTO audit_trail (
         type_activite_id, cabinet_id, mission_id, utilisateur_id,
         table_concernee, enregistrement_id, action,
         donnees_avant, donnees_apres, description, created_at
     ) VALUES (
         v_type_activite_id,
-        NULL, -- cabinet_id sera NULL ici, à enrichir selon le contexte
-        NULL,
-        NULL, -- utilisateur_id à récupérer via current_setting si dispo
+        v_cabinet_id,
+        v_mission_id,
+        v_utilisateur_id,
         TG_TABLE_NAME,
         CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END,
         v_action,

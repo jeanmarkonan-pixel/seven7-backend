@@ -367,5 +367,62 @@ acceptée pour l'associé avec opinion/date/signataire renseignés,
 modification et re-signature toutes deux refusées après signature,
 isolation multi-tenant confirmée (404 pour un cabinet tiers).
 
+## La piste d'audit (`audit_trail`)
+
+Dernière pièce, et la plus profonde de la session : le schéma avait déjà
+`audit_trail` et ses 6 triggers (`mission`, `mission_cycle`,
+`test_execution`, `anomalie`, `document`, `rapport`) — mais la fonction
+`audit_trigger_function()` posait explicitement `cabinet_id = NULL` et
+`utilisateur_id = NULL`, avec ces commentaires laissés par les auteurs du
+schéma : `-- cabinet_id sera NULL ici, à enrichir selon le contexte` et
+`-- utilisateur_id à récupérer via current_setting si dispo`. Un TODO
+explicite, jamais complété.
+
+**Complété, pas inventé** : la fonction lit maintenant deux variables de
+session Postgres (`audit.utilisateur_id`, `audit.cabinet_id`) via
+`current_setting()`, et `PrismaService.withActor(actor, fn)` les pose via
+`set_config(..., true)` (portée `LOCAL` — jamais visible en dehors de la
+transaction, jamais fuité sur une connexion réutilisée du pool) avant
+chaque écriture sur les 6 tables auditées. Les 6 services concernés
+(missions, mission-cycles, tests, anomalies, documents, rapports) passent
+tous par ce helper pour leurs create/update — `anomalies.service.ts` fait
+exception : il gère déjà sa propre transaction pour `anomalie_historique`,
+le `set_config` y est posé directement dedans plutôt que d'imbriquer une
+seconde transaction.
+
+`mission_id` se déduit directement de la ligne écrite pour la plupart des
+tables (elles ont toutes une colonne `mission_id`, sauf `mission`
+elle-même où c'est son propre `id`, et `test_execution` qui n'a qu'un
+`mission_cycle_id` — la fonction fait la jointure).
+
+**Bug latent trouvé en testant le trigger corrigé, avant même de toucher
+au code TypeScript** : peupler `mission_id` pour la table `mission`
+elle-même expose une violation de contrainte de clé étrangère sur un
+`DELETE` physique — le trigger `AFTER DELETE` tente d'insérer une ligne
+`audit_trail` référençant une mission qui vient de disparaître de la
+table. Ce chemin était invisible avant ma correction (l'ancien `NULL` en
+dur le masquait). Mon application ne fait jamais de suppression physique
+sur `mission` (toujours `deleted_at`), donc ce chemin n'est jamais
+emprunté en pratique — corrigé quand même dans le fichier SQL canonique
+(`mission_id` reste `NULL` spécifiquement pour ce cas), pour ne pas
+laisser une mine explicite dans le schéma.
+
+**`GET /audit-trail`** — lecture seule, filtrable (mission, table,
+action), paginée. RBAC : la matrice §5.1 n'a pas de colonne "Audit Trail"
+— rattaché à la colonne "Admin" (`admin_cabinet`, `super_admin`
+uniquement), pas même `associe`/`manager` qui touchent pourtant aux
+rapports. Choix explicite documenté, pas une lecture littérale d'une
+colonne qui n'existe pas.
+
+Vérifié en conditions réelles, à travers de vraies requêtes HTTP
+authentifiées (pas du SQL brut) : une mission créée puis modifiée via
+l'API produit deux lignes `audit_trail` (CREATE puis UPDATE) avec
+`cabinet_id`, `mission_id`, `utilisateur_id` et `donnees_apres`
+correctement renseignés — visibles et correctement attribués via
+`GET /audit-trail`. Confirmé qu'un senior (aucun droit sur cette colonne)
+reçoit 403, et qu'un admin d'un autre cabinet voit `total: 0` — isolation
+tenant qui n'aurait littéralement pas pu être vérifiée avant cette
+correction, puisque `cabinet_id` valait toujours `NULL`.
+
 Ce qui reste à construire : MFA, portail client, workspace auditeur,
 génération des rapports ISA, mode offline.
