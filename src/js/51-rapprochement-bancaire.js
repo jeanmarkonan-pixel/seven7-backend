@@ -258,6 +258,50 @@ function rbRecalculer(moisIndex){
             : '<tr><td colspan="5" style="text-align:center; color:#999;">Aucune écriture Grand Livre sur ce(s) compte(s) pour ' + info.nom.toLowerCase() + '.</td></tr>';
     }
 }
+// Pointage automatique : pour chaque ligne du relevé pas encore pointée, cherche une
+// écriture GL du même compte/mois, montant identique (à l'inversion de sens près — voir
+// note d'en-tête) et datée à ±5 jours au maximum, la plus proche en date. Une écriture GL
+// n'est utilisée qu'une seule fois (retirée de la course dès qu'elle sert), pour ne pas
+// pointer deux lignes de relevé sur une même écriture comptable. Ne fait QUE cocher la
+// case Pointé — jamais de suppression ni de modification des montants : l'auditeur garde
+// la main pour décocher une correspondance qu'il juge fausse avant de conclure.
+function rbPointageAuto(moisIndex){
+    var info = rbInfoMois(moisIndex);
+    var table = document.getElementById('rb-table-' + info.id);
+    if(!table) return;
+    var prefixes = rbComptesConfigures();
+    var ecrituresGL = rbEcrituresGL(moisIndex, prefixes);
+    var utilisees = [];
+    var nb = 0;
+    Array.prototype.slice.call(table.querySelectorAll('tr')).forEach(function(tr){
+        var caseAPointer = tr.querySelector('.rb-pointe');
+        if(caseAPointer.checked) return;
+        var debit = parseNum(tr.querySelector('.rb-debit').value);
+        var credit = parseNum(tr.querySelector('.rb-credit').value);
+        var dateStr = tr.querySelector('.rb-date').value;
+        var cible = credit > 0 ? credit : debit;
+        var sensGL = credit > 0 ? 'debit' : 'credit'; // crédit relevé ↔ débit compta, et inversement
+        if(cible <= 0 || !dateStr) return;
+        var dateBq = new Date(dateStr).getTime();
+        if(isNaN(dateBq)) return;
+        var meilleur = -1, meilleurEcart = Infinity;
+        ecrituresGL.forEach(function(r, idx){
+            if(utilisees.indexOf(idx) !== -1) return;
+            if(Math.abs(parseNum(r[sensGL]) - cible) >= 0.5) return;
+            var dateGL = new Date(r.date).getTime();
+            if(isNaN(dateGL)) return;
+            var ecartJours = Math.abs(dateBq - dateGL) / 86400000;
+            if(ecartJours <= 5 && ecartJours < meilleurEcart){ meilleur = idx; meilleurEcart = ecartJours; }
+        });
+        if(meilleur !== -1){
+            utilisees.push(meilleur);
+            caseAPointer.checked = true;
+            nb++;
+        }
+    });
+    rbRecalculer(moisIndex);
+    alert('🤖 Pointage automatique — ' + info.nom + ' : ' + nb + ' ligne(s) pointée(s) (montant identique, ±5 jours). Vérifiez chaque correspondance avant de conclure.');
+}
 function setText2(id, val){
     var el = document.getElementById(id);
     if(el) el.textContent = val;
@@ -273,6 +317,7 @@ function rbBlocImportHtml(info){
         + '<div class="form-group" style="margin:0;"><label>📥 Importer le relevé bancaire de ' + esc(info.nom) + ' (CSV)</label>'
         + '<input type="file" accept=".csv" onchange="rbImporterReleve(this, ' + info.index + ')"></div>'
         + '<button type="button" class="btn btn-primary" style="margin-left:10px;" onclick="rbAjouterLigne(' + info.index + ', null); rbRecalculer(' + info.index + ')">+ Ajouter une ligne</button>'
+        + '<button type="button" class="btn btn-primary" style="margin-left:10px; background:#8e44ad;" onclick="rbPointageAuto(' + info.index + ')">🤖 Pointage automatique (±5 jours)</button>'
         + '</div>';
 }
 function rbRendreMois(info){
