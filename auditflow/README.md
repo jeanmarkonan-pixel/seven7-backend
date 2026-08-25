@@ -322,5 +322,50 @@ sur les deux modules, associe CRUD sur l'un et lecture seule sur
 l'autre), isolation multi-tenant confirmée (404 pour un cabinet tiers
 sur anomalie comme sur document).
 
+## Rapports et revues qualité
+
+`/rapports` complète le dernier pilier de la matrice RBAC §5.1 — et le plus
+restrictif : `senior` et `junior` ont **"—"** sur cette colonne, littéralement
+aucun accès, pas même en lecture. Vérifié explicitement : un senior avec
+CRUD complet sur missions/documents/tests/anomalies reçoit 403 sur un simple
+`GET /rapports/:id`.
+
+Trois actions distinctes, trois autorisations différentes :
+
+- **Créer/modifier** le dossier (brouillon, contenu, métadonnées) :
+  `admin_cabinet` et `super_admin` seulement — lecture littérale du mot
+  "CRUD" de la table.
+- **Signer** (émettre l'opinion d'audit, ISA 700) : `associe` et
+  `super_admin` uniquement — **pas** `admin_cabinet`, malgré son "CRUD".
+  Choix de conception explicite, pas une lecture forcée du document : CRUD
+  couvre la gestion administrative du dossier, pas l'acte professionnel
+  d'engager sa responsabilité sur une opinion, qui revient par nature à
+  l'associé responsable. Vérifié : `admin_cabinet` reçoit 403 en tentative
+  de signature.
+- **Revoir** (`revue_qualite`, l'action "Relecture" du manager) : le
+  relecteur ne peut enregistrer une revue qu'en son propre nom, sauf
+  `admin_cabinet`/`super_admin` qui peuvent l'assigner à un tiers — un
+  manager ne peut pas faire porter sa revue par quelqu'un d'autre, ni
+  modifier la revue de quelqu'un d'autre. Vérifié dans les deux sens.
+
+**Immutabilité après signature**, posée explicitement (le schéma ne
+l'impose pas au niveau SQL) : une fois `signe_par` renseigné, `PATCH
+/rapports/:id` et un second appel à `/signer` renvoient tous deux 403.
+Cohérent avec l'intégrité d'une opinion d'audit émise (ISA 700) — un
+rapport signé n'est plus un brouillon.
+
+Pas de trigger d'auto-génération sur `rapport.reference` (à la différence
+d'`anomalie` — vérifié avant d'écrire le service, pas supposé par analogie
+cette fois) ; `reference` reste un champ client légitime.
+
+Vérifié en conditions réelles avec un cabinet à 4 profils (admin, associé,
+manager, senior) et deux cabinets distincts : création par admin_cabinet,
+accès refusé à senior (403, aucun droit), revue créée par un manager sur
+lui-même, assignation à un tiers refusée pour un manager mais acceptée pour
+un admin_cabinet, signature refusée à manager et à admin_cabinet, signature
+acceptée pour l'associé avec opinion/date/signataire renseignés,
+modification et re-signature toutes deux refusées après signature,
+isolation multi-tenant confirmée (404 pour un cabinet tiers).
+
 Ce qui reste à construire : MFA, portail client, workspace auditeur,
 génération des rapports ISA, mode offline.

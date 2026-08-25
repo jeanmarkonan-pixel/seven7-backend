@@ -12,6 +12,8 @@ import { ClientsModule } from './clients/clients.module';
 import { DocumentsModule } from './documents/documents.module';
 import { MissionCyclesModule } from './mission-cycles/mission-cycles.module';
 import { MissionsModule } from './missions/missions.module';
+import { RapportsModule } from './rapports/rapports.module';
+import { RevuesQualiteModule } from './revues-qualite/revues-qualite.module';
 import { ReferenceModule } from './reference/reference.module';
 import { TestsModule } from './tests/tests.module';
 import { HealthModule } from './health/health.module';
@@ -34,6 +36,8 @@ import { UsersModule } from './users/users.module';
     TestsModule,
     AnomaliesModule,
     DocumentsModule,
+    RapportsModule,
+    RevuesQualiteModule,
   ],
   providers: [
     // Ordre important : le throttler d'abord (limite avant même de tenter
