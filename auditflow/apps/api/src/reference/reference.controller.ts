@@ -34,4 +34,10 @@ export class ReferenceController {
       orderBy: [{ cycle_id: 'asc' }, { ordre: 'asc' }],
     });
   }
+
+  @Get('types-mission')
+  @ApiOperation({ summary: 'Types de mission (ref_type_mission) : audit_annuel, audit_consolide, audit_limited, due_diligence, review' })
+  typesMission() {
+    return this.prisma.ref_type_mission.findMany({ orderBy: { id: 'asc' } });
+  }
 }

@@ -293,6 +293,33 @@ vérifiée séparément : le bon message s'affiche, pas de redirection.
 Pas d'écrans pour tests/anomalies/documents/rapports. Token en
 `localStorage` plutôt qu'en cookie `httpOnly` (voir plus haut).
 
+## Formulaire de création (`/missions/new`)
+
+Premier écran qui écrit, pas seulement lit. `GET /clients` et le nouvel
+endpoint `GET /types-mission` (ajouté à `ReferenceController`, sur le même
+principe que `/cycles-isa` et `/programmes-travail` : catalogue global,
+lecture ouverte) peuplent les deux listes déroulantes — plutôt que de
+coder en dur côté front des valeurs qui pourraient diverger de la base.
+
+Le bouton "+ Nouvelle mission" ne s'affiche que pour les rôles autorisés
+à écrire côté API (`super_admin`, `admin_cabinet`, `manager`, `senior`) ;
+un accès direct à `/missions/new` avec un autre rôle affiche un message
+plutôt que le formulaire. Ce n'est qu'une courtoisie d'interface — la
+vraie barrière reste `@Roles(...)` côté API, qui refuserait la requête de
+toute façon.
+
+Les erreurs 409 (référence déjà utilisée dans le cabinet) et 400 (dates
+incohérentes) remontent avec le message exact de l'API, sans
+reformulation côté front — pour ne jamais afficher un texte qui
+désynchronise de la règle réellement appliquée par `MissionsService`.
+
+Vérifié avec un vrai navigateur : formulaire rempli avec des données
+réelles (client et type de mission chargés depuis l'API) → soumission →
+redirection vers la fiche de la mission tout juste créée, avec le bon
+statut par défaut ("Prospect"). Testé séparément : une référence
+dupliquée affiche le message d'erreur exact, sans redirection, formulaire
+conservé.
+
 ## État actuel
 
 Ce qui est en place et vérifié :

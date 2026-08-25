@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { TopBar } from '@/components/TopBar';
 import { ApiError, apiFetch } from '@/lib/api';
 import type { Mission } from '@/lib/types';
+import { MISSION_WRITE_ROLES } from '@/lib/types';
 import { useRequireAuth } from '@/lib/use-require-auth';
 
 export default function MissionsPage() {
@@ -29,6 +30,11 @@ export default function MissionsPage() {
       <main style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700 }}>Missions</h1>
+          {user && MISSION_WRITE_ROLES.includes(user.roleCode) && (
+            <button className="btn btn-primary" onClick={() => router.push('/missions/new')}>
+              + Nouvelle mission
+            </button>
+          )}
         </div>
 
         {error && <div className="alert-danger">{error}</div>}
