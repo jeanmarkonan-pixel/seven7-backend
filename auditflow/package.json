@@ -1,0 +1,36 @@
+{
+  "name": "auditflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AUDITFLOW — suite d'audit externe pour la zone OHADA (ISA + SYSCOHADA)",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:load": "docker compose exec -T postgres psql -U auditflow -d auditflow -f - < ../docs/auditflow/Schema_SQL_AUDITFLOW_PostgreSQL.sql",
+    "db:pull": "pnpm --filter @auditflow/db prisma:pull",
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:api": "pnpm --filter @auditflow/api dev",
+    "dev:web": "pnpm --filter @auditflow/web dev",
+    "build": "pnpm --filter @auditflow/db build && pnpm --filter \"./apps/*\" build",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
+  }
+}

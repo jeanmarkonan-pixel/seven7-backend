@@ -1,0 +1,696 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["auditflow"]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model anomalie {
+  id                                            String                @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  mission_id                                    String                @db.Uuid
+  mission_cycle_id                              String?               @db.Uuid
+  test_execution_id                             String?               @db.Uuid
+  statut_id                                     Int
+  reference                                     String                @db.VarChar(50)
+  titre                                         String                @db.VarChar(255)
+  description                                   String
+  assertion_concernee                           String?               @db.VarChar(50)
+  montant_impact                                Decimal?              @db.Decimal(15, 2)
+  pourcentage_impact                            Decimal?              @db.Decimal(5, 2)
+  impact_significatif                           Boolean?              @default(false)
+  ajustement_propose                            String?
+  ajustement_montant                            Decimal?              @db.Decimal(15, 2)
+  ajustement_accepte                            Boolean?
+  ouverte_par                                   String                @db.Uuid
+  date_ouverture                                DateTime?             @default(now()) @db.Timestamptz(6)
+  assignee_a                                    String?               @db.Uuid
+  date_cloture                                  DateTime?             @db.Timestamptz(6)
+  close_par                                     String?               @db.Uuid
+  conclusion                                    String?
+  documents_lies                                Json?                 @default("[]")
+  created_at                                    DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at                                    DateTime?             @default(now()) @db.Timestamptz(6)
+  utilisateur_anomalie_assignee_aToutilisateur  utilisateur?          @relation("anomalie_assignee_aToutilisateur", fields: [assignee_a], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  utilisateur_anomalie_close_parToutilisateur   utilisateur?          @relation("anomalie_close_parToutilisateur", fields: [close_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mission_cycle                                 mission_cycle?        @relation(fields: [mission_cycle_id], references: [id], onUpdate: NoAction)
+  mission                                       mission               @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  utilisateur_anomalie_ouverte_parToutilisateur utilisateur           @relation("anomalie_ouverte_parToutilisateur", fields: [ouverte_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_statut_anomalie                           ref_statut_anomalie   @relation(fields: [statut_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_execution                                test_execution?       @relation(fields: [test_execution_id], references: [id], onUpdate: NoAction)
+  anomalie_historique                           anomalie_historique[]
+  notification                                  notification[]
+
+  @@index([mission_cycle_id], map: "idx_anomalie_cycle")
+  @@index([mission_id], map: "idx_anomalie_mission")
+  @@index([ouverte_par], map: "idx_anomalie_ouverte_par")
+  @@index([reference], map: "idx_anomalie_reference")
+  @@index([statut_id], map: "idx_anomalie_statut")
+  @@schema("auditflow")
+}
+
+model anomalie_historique {
+  id                                                                            String               @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  anomalie_id                                                                   String               @db.Uuid
+  statut_precedent                                                              Int?
+  statut_nouveau                                                                Int
+  commentaire                                                                   String?
+  modifie_par                                                                   String               @db.Uuid
+  date_modification                                                             DateTime?            @default(now()) @db.Timestamptz(6)
+  anomalie                                                                      anomalie             @relation(fields: [anomalie_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  utilisateur                                                                   utilisateur          @relation(fields: [modifie_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_statut_anomalie_anomalie_historique_statut_nouveauToref_statut_anomalie   ref_statut_anomalie  @relation("anomalie_historique_statut_nouveauToref_statut_anomalie", fields: [statut_nouveau], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_statut_anomalie_anomalie_historique_statut_precedentToref_statut_anomalie ref_statut_anomalie? @relation("anomalie_historique_statut_precedentToref_statut_anomalie", fields: [statut_precedent], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([anomalie_id], map: "idx_anomalie_hist_anomalie")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model audit_trail {
+  id                String            @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  type_activite_id  Int
+  cabinet_id        String?           @db.Uuid
+  mission_id        String?           @db.Uuid
+  utilisateur_id    String?           @db.Uuid
+  table_concernee   String?           @db.VarChar(50)
+  enregistrement_id String?           @db.Uuid
+  action            String            @db.VarChar(20)
+  donnees_avant     Json?
+  donnees_apres     Json?
+  description       String?
+  adresse_ip        String?           @db.Inet
+  user_agent        String?
+  session_id        String?           @db.VarChar(255)
+  created_at        DateTime?         @default(now()) @db.Timestamptz(6)
+  cabinet           cabinet?          @relation(fields: [cabinet_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mission           mission?          @relation(fields: [mission_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_activite ref_type_activite @relation(fields: [type_activite_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  utilisateur       utilisateur?      @relation(fields: [utilisateur_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([action], map: "idx_audit_action")
+  @@index([cabinet_id], map: "idx_audit_cabinet")
+  @@index([created_at], map: "idx_audit_created")
+  @@index([mission_id], map: "idx_audit_mission")
+  @@index([table_concernee, enregistrement_id], map: "idx_audit_table")
+  @@index([type_activite_id], map: "idx_audit_type")
+  @@index([utilisateur_id], map: "idx_audit_utilisateur")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model balance_importee {
+  id              String          @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  mission_id      String          @db.Uuid
+  nom_fichier     String          @db.VarChar(255)
+  chemin_stockage String          @db.VarChar(500)
+  exercice        String          @db.VarChar(10)
+  date_import     DateTime?       @default(now()) @db.Timestamptz(6)
+  importe_par     String?         @db.Uuid
+  statut          String?         @default("importee") @db.VarChar(20)
+  total_actif     Decimal?        @db.Decimal(15, 2)
+  total_passif    Decimal?        @db.Decimal(15, 2)
+  ecart           Decimal?        @db.Decimal(15, 2)
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  utilisateur     utilisateur?    @relation(fields: [importe_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mission         mission         @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  balance_ligne   balance_ligne[]
+
+  @@index([mission_id], map: "idx_balance_mission")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model balance_ligne {
+  id                String           @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  balance_id        String           @db.Uuid
+  numero_compte     String           @db.VarChar(10)
+  libelle_compte    String           @db.VarChar(255)
+  classe            Int
+  solde_debit_n     Decimal?         @default(0) @db.Decimal(15, 2)
+  solde_credit_n    Decimal?         @default(0) @db.Decimal(15, 2)
+  solde_debit_n1    Decimal?         @default(0) @db.Decimal(15, 2)
+  solde_credit_n1   Decimal?         @default(0) @db.Decimal(15, 2)
+  variation_abs     Decimal?         @default(0) @db.Decimal(15, 2)
+  variation_pct     Decimal?         @default(0) @db.Decimal(5, 2)
+  anomalie_detectee Boolean?         @default(false)
+  type_anomalie     String?          @db.VarChar(50)
+  created_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  balance_importee  balance_importee @relation(fields: [balance_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([anomalie_detectee], map: "idx_balance_ligne_anomalie")
+  @@index([balance_id], map: "idx_balance_ligne_balance")
+  @@index([classe], map: "idx_balance_ligne_classe")
+  @@index([numero_compte], map: "idx_balance_ligne_compte")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model cabinet {
+  id               String        @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  nom              String        @db.VarChar(200)
+  raison_sociale   String?       @db.VarChar(200)
+  siret            String?       @db.VarChar(50)
+  rccm             String?       @db.VarChar(50)
+  numero_oec       String?       @db.VarChar(50)
+  adresse          String?
+  ville            String?       @db.VarChar(100)
+  pays             String?       @default("Côte d'Ivoire") @db.VarChar(100)
+  telephone        String?       @db.VarChar(30)
+  email            String?       @db.VarChar(100)
+  site_web         String?       @db.VarChar(255)
+  logo_url         String?       @db.VarChar(500)
+  couleur_primaire String?       @default("#1E40AF") @db.VarChar(7)
+  parametrage      Json?         @default("{}")
+  date_activation  DateTime?     @db.Date
+  date_expiration  DateTime?     @db.Date
+  statut           String?       @default("actif") @db.VarChar(20)
+  created_at       DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?     @default(now()) @db.Timestamptz(6)
+  deleted_at       DateTime?     @db.Timestamptz(6)
+  audit_trail      audit_trail[]
+  client           client[]
+  mission          mission[]
+  utilisateur      utilisateur[]
+
+  @@index([pays], map: "idx_cabinet_pays")
+  @@index([statut], map: "idx_cabinet_statut")
+  @@schema("auditflow")
+}
+
+model client {
+  id                  String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  cabinet_id          String    @db.Uuid
+  raison_sociale      String    @db.VarChar(200)
+  forme_juridique     String?   @db.VarChar(50)
+  rccm                String?   @db.VarChar(50)
+  ifu                 String?   @db.VarChar(50)
+  secteur_activite    String?   @db.VarChar(100)
+  adresse             String?
+  ville               String?   @db.VarChar(100)
+  pays                String?   @default("Côte d'Ivoire") @db.VarChar(100)
+  telephone           String?   @db.VarChar(30)
+  email               String?   @db.VarChar(100)
+  contact_nom         String?   @db.VarChar(100)
+  contact_fonction    String?   @db.VarChar(100)
+  contact_telephone   String?   @db.VarChar(30)
+  contact_email       String?   @db.VarChar(100)
+  date_debut_relation DateTime? @db.Date
+  statut              String?   @default("actif") @db.VarChar(20)
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime? @default(now()) @db.Timestamptz(6)
+  deleted_at          DateTime? @db.Timestamptz(6)
+  cabinet             cabinet   @relation(fields: [cabinet_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mission             mission[]
+
+  @@index([cabinet_id], map: "idx_client_cabinet")
+  @@index([statut], map: "idx_client_statut")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model document {
+  id                                           String              @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  mission_id                                   String              @db.Uuid
+  mission_cycle_id                             String?             @db.Uuid
+  type_document_id                             Int
+  statut_id                                    Int
+  nom_original                                 String              @db.VarChar(255)
+  nom_stockage                                 String              @db.VarChar(255)
+  chemin_stockage                              String              @db.VarChar(500)
+  taille_octets                                BigInt?
+  mime_type                                    String?             @db.VarChar(100)
+  extension                                    String?             @db.VarChar(10)
+  checksum_sha256                              String?             @db.VarChar(64)
+  ocr_texte                                    String?
+  ocr_confiance                                Decimal?            @db.Decimal(3, 2)
+  montant                                      Decimal?            @db.Decimal(15, 2)
+  date_document                                DateTime?           @db.Date
+  numero_piece                                 String?             @db.VarChar(100)
+  depose_par                                   String?             @db.Uuid
+  client_upload                                Boolean?            @default(false)
+  valide_par                                   String?             @db.Uuid
+  date_validation                              DateTime?           @db.Timestamptz(6)
+  commentaire                                  String?
+  created_at                                   DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at                                   DateTime?           @default(now()) @db.Timestamptz(6)
+  utilisateur_document_depose_parToutilisateur utilisateur?        @relation("document_depose_parToutilisateur", fields: [depose_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mission_cycle                                mission_cycle?      @relation(fields: [mission_cycle_id], references: [id], onUpdate: NoAction)
+  mission                                      mission             @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ref_statut_document                          ref_statut_document @relation(fields: [statut_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_document                            ref_type_document   @relation(fields: [type_document_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  utilisateur_document_valide_parToutilisateur utilisateur?        @relation("document_valide_parToutilisateur", fields: [valide_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  notification                                 notification[]
+
+  @@index([checksum_sha256], map: "idx_document_checksum")
+  @@index([mission_cycle_id], map: "idx_document_cycle")
+  @@index([mission_id], map: "idx_document_mission")
+  @@index([statut_id], map: "idx_document_statut")
+  @@index([type_document_id], map: "idx_document_type")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model mission {
+  id                                          String             @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  cabinet_id                                  String             @db.Uuid
+  client_id                                   String             @db.Uuid
+  type_mission_id                             Int
+  statut_id                                   Int
+  reference                                   String             @db.VarChar(50)
+  exercice_debut                              DateTime           @db.Date
+  exercice_fin                                DateTime           @db.Date
+  date_debut_mission                          DateTime?          @db.Date
+  date_fin_prevue                             DateTime?          @db.Date
+  date_fin_reelle                             DateTime?          @db.Date
+  montant_honoraires                          Decimal?           @db.Decimal(15, 2)
+  devise                                      String?            @default("XOF") @db.VarChar(3)
+  objectif                                    String?
+  lettre_mission_url                          String?            @db.VarChar(500)
+  contrat_url                                 String?            @db.VarChar(500)
+  associe_id                                  String?            @db.Uuid
+  manager_id                                  String?            @db.Uuid
+  senior_id                                   String?            @db.Uuid
+  junior_id                                   String?            @db.Uuid
+  independence_verifiee                       Boolean?           @default(false)
+  date_verif_independence                     DateTime?          @db.Date
+  type_opinion_id                             Int?
+  date_signature_rapport                      DateTime?          @db.Date
+  archive_url                                 String?            @db.VarChar(500)
+  date_archivage                              DateTime?          @db.Timestamptz(6)
+  duree_conservation_ans                      Int?               @default(10)
+  created_at                                  DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at                                  DateTime?          @default(now()) @db.Timestamptz(6)
+  deleted_at                                  DateTime?          @db.Timestamptz(6)
+  anomalie                                    anomalie[]
+  audit_trail                                 audit_trail[]
+  balance_importee                            balance_importee[]
+  document                                    document[]
+  utilisateur_mission_associe_idToutilisateur utilisateur?       @relation("mission_associe_idToutilisateur", fields: [associe_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cabinet                                     cabinet            @relation(fields: [cabinet_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  client                                      client             @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  utilisateur_mission_junior_idToutilisateur  utilisateur?       @relation("mission_junior_idToutilisateur", fields: [junior_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  utilisateur_mission_manager_idToutilisateur utilisateur?       @relation("mission_manager_idToutilisateur", fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  utilisateur_mission_senior_idToutilisateur  utilisateur?       @relation("mission_senior_idToutilisateur", fields: [senior_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_statut_mission                          ref_statut_mission @relation(fields: [statut_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_mission                            ref_type_mission   @relation(fields: [type_mission_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_opinion                            ref_type_opinion?  @relation(fields: [type_opinion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mission_cycle                               mission_cycle[]
+  notification                                notification[]
+  rapport                                     rapport[]
+  revue_qualite                               revue_qualite[]
+
+  @@unique([cabinet_id, reference])
+  @@index([cabinet_id], map: "idx_mission_cabinet")
+  @@index([client_id], map: "idx_mission_client")
+  @@index([associe_id, manager_id, senior_id, junior_id], map: "idx_mission_equipe")
+  @@index([exercice_fin], map: "idx_mission_exercice")
+  @@index([statut_id], map: "idx_mission_statut")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model mission_cycle {
+  id                                                    String           @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  mission_id                                            String           @db.Uuid
+  cycle_id                                              Int
+  risque_inherent                                       String?          @db.VarChar(20)
+  risque_controle                                       String?          @db.VarChar(20)
+  risque_detection                                      String?          @db.VarChar(20)
+  risque_global                                         String?          @db.VarChar(20)
+  assertions                                            String?          @db.VarChar(50)
+  approche                                              String?          @db.VarChar(50)
+  materielite                                           Decimal?         @db.Decimal(15, 2)
+  statut                                                String?          @default("non_commence") @db.VarChar(20)
+  date_debut                                            DateTime?        @db.Date
+  date_fin                                              DateTime?        @db.Date
+  responsable_id                                        String?          @db.Uuid
+  conclusion                                            String?
+  conclusion_date                                       DateTime?        @db.Timestamptz(6)
+  conclusion_par                                        String?          @db.Uuid
+  created_at                                            DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at                                            DateTime?        @default(now()) @db.Timestamptz(6)
+  anomalie                                              anomalie[]
+  document                                              document[]
+  utilisateur_mission_cycle_conclusion_parToutilisateur utilisateur?     @relation("mission_cycle_conclusion_parToutilisateur", fields: [conclusion_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_cycle_isa                                         ref_cycle_isa    @relation(fields: [cycle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mission                                               mission          @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  utilisateur_mission_cycle_responsable_idToutilisateur utilisateur?     @relation("mission_cycle_responsable_idToutilisateur", fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_execution                                        test_execution[]
+
+  @@unique([mission_id, cycle_id])
+  @@index([cycle_id], map: "idx_mission_cycle_cycle")
+  @@index([mission_id], map: "idx_mission_cycle_mission")
+  @@index([statut], map: "idx_mission_cycle_statut")
+  @@schema("auditflow")
+}
+
+model notification {
+  id              String      @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  destinataire_id String      @db.Uuid
+  type            String      @db.VarChar(50)
+  titre           String      @db.VarChar(255)
+  message         String?
+  mission_id      String?     @db.Uuid
+  anomalie_id     String?     @db.Uuid
+  document_id     String?     @db.Uuid
+  canal_email     Boolean?    @default(false)
+  canal_whatsapp  Boolean?    @default(false)
+  canal_inapp     Boolean?    @default(true)
+  lu              Boolean?    @default(false)
+  date_lecture    DateTime?   @db.Timestamptz(6)
+  date_envoi      DateTime?   @db.Timestamptz(6)
+  created_at      DateTime?   @default(now()) @db.Timestamptz(6)
+  anomalie        anomalie?   @relation(fields: [anomalie_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  utilisateur     utilisateur @relation(fields: [destinataire_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  document        document?   @relation(fields: [document_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mission         mission?    @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([destinataire_id], map: "idx_notif_destinataire")
+  @@index([lu], map: "idx_notif_lu")
+  @@index([mission_id], map: "idx_notif_mission")
+  @@schema("auditflow")
+}
+
+model programme_travail {
+  id              String           @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  cycle_id        Int
+  type_test_id    Int
+  ordre           Int              @default(0)
+  code            String           @db.VarChar(20)
+  objectif        String
+  procedure       String
+  assertions      String?          @db.VarChar(50)
+  echantillon_min Int?
+  scoring_actif   Boolean?         @default(false)
+  score_max       Int?             @default(100)
+  isa_reference   String?          @db.VarChar(50)
+  created_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  ref_cycle_isa   ref_cycle_isa    @relation(fields: [cycle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_test   ref_type_test    @relation(fields: [type_test_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_execution  test_execution[]
+
+  @@index([cycle_id], map: "idx_programme_cycle")
+  @@index([type_test_id], map: "idx_programme_type")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model rapport {
+  id                    String            @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  mission_id            String            @db.Uuid
+  type_rapport_id       Int
+  type_opinion_id       Int?
+  reference             String            @db.VarChar(50)
+  version               Int               @default(1)
+  titre                 String            @db.VarChar(255)
+  contenu               String?
+  statut                String?           @default("brouillon") @db.VarChar(20)
+  signe_par             String?           @db.Uuid
+  date_signature        DateTime?         @db.Timestamptz(6)
+  fichier_brouillon_url String?           @db.VarChar(500)
+  fichier_final_url     String?           @db.VarChar(500)
+  created_at            DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?         @default(now()) @db.Timestamptz(6)
+  mission               mission           @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  utilisateur           utilisateur?      @relation(fields: [signe_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_opinion      ref_type_opinion? @relation(fields: [type_opinion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_rapport      ref_type_rapport  @relation(fields: [type_rapport_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  revue_qualite         revue_qualite[]
+
+  @@index([mission_id], map: "idx_rapport_mission")
+  @@index([statut], map: "idx_rapport_statut")
+  @@index([type_rapport_id], map: "idx_rapport_type")
+  @@schema("auditflow")
+}
+
+model ref_assertion {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique @db.VarChar(10)
+  libelle_fr  String    @db.VarChar(100)
+  libelle_en  String?   @db.VarChar(100)
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("auditflow")
+}
+
+model ref_cycle_isa {
+  id                Int                 @id @default(autoincrement())
+  code              String              @unique @db.VarChar(20)
+  libelle           String              @db.VarChar(100)
+  description       String?
+  classe_syscohada  String?             @db.VarChar(50)
+  ordre             Int                 @default(0)
+  actif             Boolean?            @default(true)
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  mission_cycle     mission_cycle[]
+  programme_travail programme_travail[]
+
+  @@schema("auditflow")
+}
+
+model ref_role_utilisateur {
+  id          Int           @id @default(autoincrement())
+  code        String        @unique @db.VarChar(30)
+  libelle     String        @db.VarChar(100)
+  niveau      Int           @default(0)
+  permissions Json?         @default("{}")
+  created_at  DateTime?     @default(now()) @db.Timestamptz(6)
+  utilisateur utilisateur[]
+
+  @@schema("auditflow")
+}
+
+model ref_statut_anomalie {
+  id                                                                            Int                   @id @default(autoincrement())
+  code                                                                          String                @unique @db.VarChar(30)
+  libelle                                                                       String                @db.VarChar(100)
+  couleur                                                                       String?               @default("#6B7280") @db.VarChar(7)
+  ordre                                                                         Int                   @default(0)
+  created_at                                                                    DateTime?             @default(now()) @db.Timestamptz(6)
+  anomalie                                                                      anomalie[]
+  anomalie_historique_anomalie_historique_statut_nouveauToref_statut_anomalie   anomalie_historique[] @relation("anomalie_historique_statut_nouveauToref_statut_anomalie")
+  anomalie_historique_anomalie_historique_statut_precedentToref_statut_anomalie anomalie_historique[] @relation("anomalie_historique_statut_precedentToref_statut_anomalie")
+
+  @@schema("auditflow")
+}
+
+model ref_statut_document {
+  id         Int        @id @default(autoincrement())
+  code       String     @unique @db.VarChar(30)
+  libelle    String     @db.VarChar(100)
+  couleur    String?    @default("#6B7280") @db.VarChar(7)
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  document   document[]
+
+  @@schema("auditflow")
+}
+
+model ref_statut_mission {
+  id         Int       @id @default(autoincrement())
+  code       String    @unique @db.VarChar(30)
+  libelle    String    @db.VarChar(100)
+  couleur    String?   @default("#6B7280") @db.VarChar(7)
+  ordre      Int       @default(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  mission    mission[]
+
+  @@schema("auditflow")
+}
+
+model ref_statut_test {
+  id             Int              @id @default(autoincrement())
+  code           String           @unique @db.VarChar(30)
+  libelle        String           @db.VarChar(100)
+  couleur        String?          @default("#6B7280") @db.VarChar(7)
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  test_execution test_execution[]
+
+  @@schema("auditflow")
+}
+
+model ref_type_activite {
+  id          Int           @id @default(autoincrement())
+  code        String        @unique @db.VarChar(50)
+  libelle     String        @db.VarChar(100)
+  categorie   String        @db.VarChar(50)
+  created_at  DateTime?     @default(now()) @db.Timestamptz(6)
+  audit_trail audit_trail[]
+
+  @@schema("auditflow")
+}
+
+model ref_type_document {
+  id         Int        @id @default(autoincrement())
+  code       String     @unique @db.VarChar(30)
+  libelle    String     @db.VarChar(100)
+  extensions String?    @db.VarChar(100)
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  document   document[]
+
+  @@schema("auditflow")
+}
+
+model ref_type_mission {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique @db.VarChar(20)
+  libelle     String    @db.VarChar(100)
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  mission     mission[]
+
+  @@schema("auditflow")
+}
+
+model ref_type_opinion {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique @db.VarChar(30)
+  libelle       String    @db.VarChar(200)
+  description   String?
+  isa_reference String?   @db.VarChar(50)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  mission       mission[]
+  rapport       rapport[]
+
+  @@schema("auditflow")
+}
+
+model ref_type_rapport {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique @db.VarChar(30)
+  libelle       String    @db.VarChar(100)
+  template_path String?   @db.VarChar(255)
+  isa_reference String?   @db.VarChar(50)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  rapport       rapport[]
+
+  @@schema("auditflow")
+}
+
+model ref_type_test {
+  id                Int                 @id @default(autoincrement())
+  code              String              @unique @db.VarChar(30)
+  libelle           String              @db.VarChar(100)
+  description       String?
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  programme_travail programme_travail[]
+  test_execution    test_execution[]
+
+  @@schema("auditflow")
+}
+
+model revue_qualite {
+  id               String      @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  rapport_id       String      @db.Uuid
+  mission_id       String      @db.Uuid
+  niveau           String      @db.VarChar(20)
+  relecteur_id     String      @db.Uuid
+  statut           String?     @default("en_attente") @db.VarChar(20)
+  commentaires     String?
+  points_attention Json?       @default("[]")
+  date_attribution DateTime?   @default(now()) @db.Timestamptz(6)
+  date_debut       DateTime?   @db.Timestamptz(6)
+  date_fin         DateTime?   @db.Timestamptz(6)
+  created_at       DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?   @default(now()) @db.Timestamptz(6)
+  mission          mission     @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rapport          rapport     @relation(fields: [rapport_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  utilisateur      utilisateur @relation(fields: [relecteur_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([mission_id], map: "idx_revue_mission")
+  @@index([rapport_id], map: "idx_revue_rapport")
+  @@index([relecteur_id], map: "idx_revue_relecteur")
+  @@index([statut], map: "idx_revue_statut")
+  @@schema("auditflow")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model test_execution {
+  id                                                  String             @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  mission_cycle_id                                    String             @db.Uuid
+  programme_id                                        String?            @db.Uuid
+  type_test_id                                        Int
+  statut_id                                           Int
+  reference                                           String             @db.VarChar(50)
+  ordre                                               Int                @default(0)
+  objectif                                            String
+  procedure                                           String
+  assertions                                          String?            @db.VarChar(50)
+  echantillon_taille                                  Int?
+  echantillon_defaut                                  Int?
+  resultat                                            String?
+  score                                               Int?
+  conclusion                                          String?
+  execute_par                                         String?            @db.Uuid
+  date_execution                                      DateTime?          @db.Timestamptz(6)
+  revu_par                                            String?            @db.Uuid
+  date_revue                                          DateTime?          @db.Timestamptz(6)
+  documents_preuves                                   Json?              @default("[]")
+  created_at                                          DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at                                          DateTime?          @default(now()) @db.Timestamptz(6)
+  anomalie                                            anomalie[]
+  utilisateur_test_execution_execute_parToutilisateur utilisateur?       @relation("test_execution_execute_parToutilisateur", fields: [execute_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mission_cycle                                       mission_cycle      @relation(fields: [mission_cycle_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  programme_travail                                   programme_travail? @relation(fields: [programme_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  utilisateur_test_execution_revu_parToutilisateur    utilisateur?       @relation("test_execution_revu_parToutilisateur", fields: [revu_par], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_statut_test                                     ref_statut_test    @relation(fields: [statut_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ref_type_test                                       ref_type_test      @relation(fields: [type_test_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([execute_par], map: "idx_test_execute_par")
+  @@index([mission_cycle_id], map: "idx_test_mission_cycle")
+  @@index([programme_id], map: "idx_test_programme")
+  @@index([statut_id], map: "idx_test_statut")
+  @@schema("auditflow")
+}
+
+model utilisateur {
+  id                                                      String                @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  cabinet_id                                              String                @db.Uuid
+  role_id                                                 Int
+  email                                                   String                @db.VarChar(100)
+  mot_de_passe_hash                                       String                @db.VarChar(255)
+  nom                                                     String                @db.VarChar(100)
+  prenom                                                  String                @db.VarChar(100)
+  telephone                                               String?               @db.VarChar(30)
+  fonction                                                String?               @db.VarChar(100)
+  signature_url                                           String?               @db.VarChar(500)
+  est_actif                                               Boolean?              @default(true)
+  derniere_connexion                                      DateTime?             @db.Timestamptz(6)
+  mfa_actif                                               Boolean?              @default(false)
+  mfa_secret                                              String?               @db.VarChar(255)
+  created_at                                              DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at                                              DateTime?             @default(now()) @db.Timestamptz(6)
+  deleted_at                                              DateTime?             @db.Timestamptz(6)
+  anomalie_anomalie_assignee_aToutilisateur               anomalie[]            @relation("anomalie_assignee_aToutilisateur")
+  anomalie_anomalie_close_parToutilisateur                anomalie[]            @relation("anomalie_close_parToutilisateur")
+  anomalie_anomalie_ouverte_parToutilisateur              anomalie[]            @relation("anomalie_ouverte_parToutilisateur")
+  anomalie_historique                                     anomalie_historique[]
+  audit_trail                                             audit_trail[]
+  balance_importee                                        balance_importee[]
+  document_document_depose_parToutilisateur               document[]            @relation("document_depose_parToutilisateur")
+  document_document_valide_parToutilisateur               document[]            @relation("document_valide_parToutilisateur")
+  mission_mission_associe_idToutilisateur                 mission[]             @relation("mission_associe_idToutilisateur")
+  mission_mission_junior_idToutilisateur                  mission[]             @relation("mission_junior_idToutilisateur")
+  mission_mission_manager_idToutilisateur                 mission[]             @relation("mission_manager_idToutilisateur")
+  mission_mission_senior_idToutilisateur                  mission[]             @relation("mission_senior_idToutilisateur")
+  mission_cycle_mission_cycle_conclusion_parToutilisateur mission_cycle[]       @relation("mission_cycle_conclusion_parToutilisateur")
+  mission_cycle_mission_cycle_responsable_idToutilisateur mission_cycle[]       @relation("mission_cycle_responsable_idToutilisateur")
+  notification                                            notification[]
+  rapport                                                 rapport[]
+  revue_qualite                                           revue_qualite[]
+  test_execution_test_execution_execute_parToutilisateur  test_execution[]      @relation("test_execution_execute_parToutilisateur")
+  test_execution_test_execution_revu_parToutilisateur     test_execution[]      @relation("test_execution_revu_parToutilisateur")
+  cabinet                                                 cabinet               @relation(fields: [cabinet_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ref_role_utilisateur                                    ref_role_utilisateur  @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([cabinet_id, email])
+  @@index([est_actif], map: "idx_utilisateur_actif")
+  @@index([cabinet_id], map: "idx_utilisateur_cabinet")
+  @@index([email], map: "idx_utilisateur_email")
+  @@schema("auditflow")
+}
