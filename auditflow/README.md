@@ -320,6 +320,39 @@ statut par défaut ("Prospect"). Testé séparément : une référence
 dupliquée affiche le message d'erreur exact, sans redirection, formulaire
 conservé.
 
+## Cycles et tests (le parcours devient exécutable)
+
+Deux nouveaux endpoints de référence, même principe que les précédents
+(catalogue global, lecture ouverte) : `GET /statuts-test`. Le reste est du
+pur front — le backend supportait déjà tout ça depuis la session
+précédente.
+
+- **`/missions/[id]/cycles/new`** — ouvrir un cycle ISA, avec risque
+  global et matérialité facultatifs.
+- **`/missions/[id]/cycles/[cycleId]`** — détail du cycle + ses tests.
+- **`/missions/[id]/cycles/[cycleId]/tests/new`** — créer un test. Un
+  menu "Modèle" charge `GET /programmes-travail?cycleId=<id numérique>`
+  (le `ref_cycle_isa.id`, pas l'UUID du `mission_cycle` — les deux se
+  ressemblent, seul le premier filtre le catalogue) ; choisir "Test
+  libre" fait apparaître les champs objectif/procédure/type à la main.
+- **`/tests/[id]`** — détail, formulaire d'exécution (statut, constat,
+  score, conclusion), et action "Marquer comme revu".
+
+Le bouton de revue s'affiche pour tout rôle de `TEST_REVIEW_ROLES`, sans
+savoir côté front qui a exécuté le test — le front ne fait qu'une
+présélection par rôle, **la vraie règle (niveau ≥ senior ET jamais son
+propre test) reste appliquée côté API**, qui répond 403 avec un message
+explicite si on clique quand même sur son propre test. Vérifié
+délibérément dans ce sens : cliquer produit bien l'erreur, pas un
+comportement silencieux.
+
+Vérifié en conditions réelles avec deux profils (admin_cabinet, senior) :
+ouverture de cycle → test créé depuis le catalogue avec objectif/procédure
+repris mot pour mot → exécution enregistrée (statut, score, date) →
+auto-revue tentée et refusée avec le message exact de
+`TestsService.review()` → revue croisée par le senior acceptée,
+"✓ Revu le [date]" affiché, bouton disparu.
+
 ## État actuel
 
 Ce qui est en place et vérifié :

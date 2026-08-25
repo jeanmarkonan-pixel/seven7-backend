@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { TopBar } from '@/components/TopBar';
 import { ApiError, apiFetch } from '@/lib/api';
 import type { Mission, MissionCycle } from '@/lib/types';
+import { CYCLE_WRITE_ROLES } from '@/lib/types';
 import { useRequireAuth } from '@/lib/use-require-auth';
 
 export default function MissionDetailPage() {
@@ -73,7 +74,17 @@ export default function MissionDetailPage() {
               </div>
             )}
 
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Cycles ISA</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700 }}>Cycles ISA</h2>
+              {user && CYCLE_WRITE_ROLES.includes(user.roleCode) && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => router.push(`/missions/${params.id}/cycles/new`)}
+                >
+                  + Ouvrir un cycle
+                </button>
+              )}
+            </div>
 
             {cycles && cycles.length === 0 && (
               <div className="card empty-state">Aucun cycle ouvert sur cette mission.</div>
@@ -93,7 +104,11 @@ export default function MissionDetailPage() {
                     </thead>
                     <tbody>
                       {cycles.map((c) => (
-                        <tr key={c.id}>
+                        <tr
+                          key={c.id}
+                          className="clickable"
+                          onClick={() => router.push(`/missions/${params.id}/cycles/${c.id}`)}
+                        >
                           <td>{c.ref_cycle_isa.libelle}</td>
                           <td>{c.statut}</td>
                           <td>{c.risque_global ?? '—'}</td>

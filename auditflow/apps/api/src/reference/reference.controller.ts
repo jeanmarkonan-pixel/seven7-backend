@@ -40,4 +40,10 @@ export class ReferenceController {
   typesMission() {
     return this.prisma.ref_type_mission.findMany({ orderBy: { id: 'asc' } });
   }
+
+  @Get('statuts-test')
+  @ApiOperation({ summary: 'Statuts de test (ref_statut_test) : non_commence, en_cours, conforme, ecart, na, a_creuser' })
+  statutsTest() {
+    return this.prisma.ref_statut_test.findMany({ orderBy: { id: 'asc' } });
+  }
 }
