@@ -143,6 +143,51 @@ de `UsersService` renvoyaient `mot_de_passe_hash` dans leur réponse JSON —
 haché, mais un secret ne doit jamais transiter côté client. Un helper
 `sansHash()` l'exclut systématiquement avant toute réponse.
 
+## Clients (`/clients`) et missions (`/missions`)
+
+CRUD tenant-scopé pour les deux tables au cœur du modèle métier. Écriture
+réservée à `admin_cabinet`, `manager`, `senior` et `super_admin` — **pas**
+`associe` ni `junior`. C'est une lecture attentive de la matrice RBAC du
+plan de conformité §5.1, pas un seuil de niveau : `associe` (niveau 80) n'a
+que "Lecture" sur les missions, alors que `manager` (60) et `senior` (40),
+hiérarchiquement inférieurs, ont "CRUD". Un `@MinNiveau()` aurait laissé
+passer l'associé à tort — `/missions` et `/clients` utilisent donc des
+listes de rôles explicites (`@Roles(...)`), pas un seuil.
+
+`MissionsService` valide, au-delà des contraintes FK basiques :
+
+- **`client_id` appartient au cabinet de l'appelant** — sinon une mission
+  pourrait être rattachée au client d'un autre cabinet.
+- **Chaque poste d'équipe (`associeId`/`managerId`/`seniorId`/`juniorId`)
+  tient le niveau hiérarchique attendu** — un junior ne peut pas être
+  déclaré associé responsable, même si la colonne SQL accepte n'importe
+  quel UUID d'utilisateur. Vérification au-delà de ce que le schéma impose
+  lui-même (une simple FK n'a pas de notion de rôle).
+- **`exercice_fin` postérieur à `exercice_debut`.**
+- **`reference` unique par cabinet** (409 sur doublon).
+
+Vérifié en conditions réelles avec un cabinet à 5 profils (admin, associé,
+manager, senior, junior) : création avec équipe valide, rejet d'un junior
+comme associé (400), rejet de dates incohérentes (400), rejet de référence
+dupliquée (409), et surtout — l'associé peut lire une mission (200) mais
+pas en créer une (403), malgré son niveau hiérarchique supérieur au senior
+qui, lui, le peut.
+
+**Bug trouvé et corrigé pendant cette vérification** : `exercice_debut` et
+les autres champs date recevaient la chaîne ISO courte du DTO
+(`"2026-01-01"`) telle quelle — Prisma exige un objet `Date` JS complet
+pour un champ `DateTime`, pas une chaîne de date nue, et renvoyait une 500
+("premature end of input"). Corrigé par conversion explicite `new Date(...)`
+sur tous les champs date, création et modification.
+
+**Connu et non fait à ce stade** : CRUD `client` limité (pas de fusion de
+doublons, pas d'historique de relation) ; pas de machine à états sur
+`ref_statut_mission` (le statut peut être changé vers n'importe quelle
+valeur, l'enchaînement prospect → accepté → ... → archivé n'est pas
+imposé) ; portail client (rôle `client`, "Lecture propre" sur sa mission)
+non implémenté — nécessite de relier un compte utilisateur à un client
+précis, absent du schéma actuel.
+
 ## État actuel
 
 Ce qui est en place et vérifié :

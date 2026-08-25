@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { CabinetsModule } from './cabinets/cabinets.module';
+import { ClientsModule } from './clients/clients.module';
+import { MissionsModule } from './missions/missions.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -20,6 +22,8 @@ import { UsersModule } from './users/users.module';
     HealthModule,
     CabinetsModule,
     UsersModule,
+    ClientsModule,
+    MissionsModule,
   ],
   providers: [
     // Ordre important : le throttler d'abord (limite avant même de tenter
