@@ -3,11 +3,13 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { AnomaliesModule } from './anomalies/anomalies.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { CabinetsModule } from './cabinets/cabinets.module';
 import { ClientsModule } from './clients/clients.module';
+import { DocumentsModule } from './documents/documents.module';
 import { MissionCyclesModule } from './mission-cycles/mission-cycles.module';
 import { MissionsModule } from './missions/missions.module';
 import { ReferenceModule } from './reference/reference.module';
@@ -30,6 +32,8 @@ import { UsersModule } from './users/users.module';
     MissionCyclesModule,
     ReferenceModule,
     TestsModule,
+    AnomaliesModule,
+    DocumentsModule,
   ],
   providers: [
     // Ordre important : le throttler d'abord (limite avant même de tenter

@@ -249,5 +249,78 @@ Ce qui est en place et vérifié :
 - client Prisma généré depuis les 29 tables réelles
 - front Next.js affichant l'état des services
 
+## Anomalies et documents
+
+Deux modules construits sur des observations directes du schéma, pas
+seulement sur la matrice RBAC.
+
+**`/anomalies`** — `anomalie_historique` est une table dédiée à la
+traçabilité des changements de statut, distincte de `audit_trail`, et le
+plan de conformité en fait une obligation explicite (§7.1 : "Modification
+d'anomalie" figure parmi les événements à journaliser, 10 ans, immuable).
+`AnomaliesService.update()` alimente donc systématiquement cette table
+dans **la même transaction Prisma** que la mise à jour du statut — sans
+ça, une panne entre les deux écritures laisserait un changement de statut
+sans trace de qui l'a fait ni pourquoi, exactement ce que la table existe
+pour empêcher.
+
+RBAC troisième pattern distinct de ce module (après Missions et Tests) :
+`associe` a **CRUD complet** sur les anomalies (à la différence de son
+"Lecture" sur Missions/Tests/Documents), `junior` n'a que **Lecture** (à
+la différence de son CRUD complet sur Tests). Un même utilisateur associé
+peut donc créer une anomalie mais pas un document — vérifié dans les deux
+sens.
+
+**Bug trouvé et corrigé pendant cette vérification** : un trigger SQL du
+schéma, `trg_anomalie_reference` (BEFORE INSERT ON anomalie), génère
+inconditionnellement la référence et écrase toute valeur envoyée par le
+client — invisible depuis l'introspection Prisma, qui ne voit pas les
+triggers. Mon premier DTO exposait un champ `reference` que l'API
+n'honorait jamais silencieusement ; il n'y a de plus aucune contrainte
+unique sur cette colonne (un index seulement), rendant mort le code de
+gestion de conflit 409 que j'avais écrit par analogie avec `mission`.
+Corrigé : le champ n'est plus exposé côté API, et le service documente
+pourquoi une valeur jetable suffit côté Prisma.
+
+**`/documents`** — dépôt de pièces avec **détection du type réel par
+octets magiques** (fonction écrite à la main, sans dépendance, plutôt que
+de faire confiance au `Content-Type` déclaré par le client — falsifiable
+par construction) et somme de contrôle SHA-256. Un fichier texte renommé
+`.pdf` est rejeté (400) ; un vrai PDF envoyé avec un `Content-Type`
+mensonger (`image/gif`) est accepté avec le **type réel détecté**, pas
+celui déclaré.
+
+Stockage sur disque local (`DOCUMENTS_STORAGE_DIR`, `storage/` par
+défaut, ignoré par git) — **pas** MinIO/S3 chiffré comme le prévoit le
+plan de conformité §8.1 : ni Docker ni MinIO ne sont disponibles dans cet
+environnement de développement. `chemin_stockage` en base est déjà écrit
+sous la forme d'une clé d'objet (`<cabinetId>/<uuid>.<ext>`), pour que la
+bascule vers S3 ne change que l'implémentation du stockage, pas le
+schéma de données.
+
+Pas de `DELETE /documents/:id` : le modèle `document` n'a **pas** de
+colonne `deleted_at`, à la différence de toutes les autres tables
+métier du schéma — lu comme une décision délibérée (intégrité de la
+preuve d'audit, ISA 500 : un document déposé comme pièce justificative
+ne doit jamais pouvoir disparaître), pas un oubli à combler.
+
+Scan antivirus (ClamAV, mentionné §4.3) non implémenté : exige un démon
+externe absent de cet environnement.
+
+RBAC quatrième pattern : sur Documents, `associe` **et** `junior` n'ont
+que Lecture — vérifié explicitement que le même associé qui a CRUD sur
+Anomalies est bloqué (403) en tentative de validation d'un document.
+
+Vérifié en conditions réelles avec un cabinet à 4 profils et deux
+cabinets distincts : anomalie créée avec référence auto-générée par le
+trigger, historique alimenté à chaque changement de statut (2 entrées
+après ouverture puis clôture), clôture avec close_par/date_cloture/
+conclusion renseignés, upload PDF/PNG réels acceptés avec type détecté
+correct, fichier falsifié rejeté, téléchargement bit-à-bit identique à
+l'original, validation de document, RBAC croisé (junior lecture seule
+sur les deux modules, associe CRUD sur l'un et lecture seule sur
+l'autre), isolation multi-tenant confirmée (404 pour un cabinet tiers
+sur anomalie comme sur document).
+
 Ce qui reste à construire : MFA, portail client, workspace auditeur,
 génération des rapports ISA, mode offline.

@@ -5,6 +5,15 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 
+// document.taille_octets est un BigInt (fichiers volumineux) — JSON.stringify
+// ne sait pas le sérialiser nativement et lève une TypeError, pas une valeur
+// tronquée. Converti en chaîne (jamais en Number : un fichier pourrait
+// dépasser Number.MAX_SAFE_INTEGER) plutôt que de le refaire dans chaque
+// réponse qui touche à un document.
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function (this: bigint) {
+  return this.toString();
+};
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
