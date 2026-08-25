@@ -14,6 +14,8 @@ export interface AuthenticatedUser {
   prenom: string;
   roleCode: string;
   roleNiveau: number;
+  /** Voir la mise en garde dans JwtPayload sur la forme non uniforme de ce champ. */
+  permissions: Record<string, unknown>;
 }
 
 @Injectable()
@@ -57,6 +59,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       prenom: user.prenom,
       roleCode: user.ref_role_utilisateur.code,
       roleNiveau: user.ref_role_utilisateur.niveau,
+      // Relu depuis la base à chaque requête, pas depuis le JWT : si les
+      // permissions d'un rôle changent, l'effet est immédiat pour tous ses
+      // porteurs, sans attendre l'expiration de leurs tokens.
+      permissions: (user.ref_role_utilisateur.permissions as Record<string, unknown>) ?? {},
     };
   }
 }

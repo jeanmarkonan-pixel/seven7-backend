@@ -57,6 +57,7 @@ export class AuthService {
       cabinetId: user.cabinet_id,
       roleCode: user.ref_role_utilisateur.code,
       roleNiveau: user.ref_role_utilisateur.niveau,
+      permissions: (user.ref_role_utilisateur.permissions as Record<string, unknown>) ?? {},
     };
 
     return {
