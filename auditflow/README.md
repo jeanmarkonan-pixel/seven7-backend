@@ -188,6 +188,55 @@ imposé) ; portail client (rôle `client`, "Lecture propre" sur sa mission)
 non implémenté — nécessite de relier un compte utilisateur à un client
 précis, absent du schéma actuel.
 
+## Cycles ISA et tests d'audit
+
+Trois niveaux imbriqués : `GET /cycles-isa` et `GET /programmes-travail`
+(catalogue global, sans cabinet_id, lecture ouverte à tout authentifié) →
+`/missions/:missionId/cycles` (ouvrir un cycle ISA sur une mission,
+paramétrer risques/matérialité) → `/mission-cycles/:cycleId/tests`
+(créer un test, depuis le catalogue ou libre, l'exécuter, le faire revoir).
+
+**RBAC à trois régimes différents dans un seul module**, tous tirés
+littéralement du plan de conformité §5.1 plutôt que déduits d'un principe
+général :
+
+- Cycles : mêmes rôles que Missions (`admin_cabinet`, `manager`, `senior`,
+  `super_admin`) — ouvrir un cycle est un acte de planification.
+- Tests : `junior` a **CRUD complet**, sans la réserve "(limité)" qui
+  s'applique à Missions — c'est lui qui exécute les tests au quotidien,
+  le document est explicite sur ce point précis.
+- Revue : ni dans la table RBAC ni dans le champ `permissions` JSON
+  (qui contient `"revue": "senior"` etc. — un nom de rôle, pas une règle
+  de délégation exploitable, voir la mise en garde dans `JwtPayload`).
+  Règle propre, documentée comme un choix de conception explicite :
+  niveau ≥ 40 (senior et au-dessus) **et** interdiction de revoir un
+  test qu'on a soi-même exécuté (séparation des tâches, ISA 220).
+
+Un test peut être créé depuis `programme_travail` (le catalogue préseedé
+de 35 tests standards à travers 6 cycles, avec `objectif`/`procedure`/
+`assertions` repris tels quels) ou "libre" (objectif/procédure saisis à la
+main) — le DTO rend `typeTestCode`/`objectif`/`procedure` obligatoires
+seulement dans ce second cas, pour qu'un test libre ne puisse pas être
+créé à moitié rempli.
+
+**Bug trouvé et corrigé pendant cette vérification** : le throttle anti-
+brute-force sur `/auth/login` (5 tentatives/5 min par IP, §5.4) a fini par
+bloquer mes propres tests répétés — pas un bug, la protection fonctionnait
+exactement comme prévu. Redémarrer le processus API a suffi (compteur en
+mémoire), et j'ai ensuite réutilisé les tokens plutôt que de me
+reconnecter à chaque assertion.
+
+Vérifié en conditions réelles avec un cabinet à 4 profils et deux
+cabinets distincts : catalogue complet (9 cycles, 8 programmes sur le
+cycle cash), ouverture de cycle, contrainte d'unicité mission+cycle
+(409), création de test depuis le catalogue avec objectif/procédure
+repris mot pour mot, exécution par un junior, **auto-revue refusée pour
+le junior (niveau) et pour le senior (séparation des tâches, même à
+niveau suffisant)**, revue croisée acceptée, conclusion de cycle avec
+validation de longueur, isolation multi-tenant à trois niveaux
+d'imbrication (mission → cycle → test, 404 pour un cabinet tiers à
+chaque niveau).
+
 ## État actuel
 
 Ce qui est en place et vérifié :

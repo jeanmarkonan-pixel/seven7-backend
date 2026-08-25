@@ -8,5 +8,6 @@ import { MissionsService } from './missions.service';
   imports: [ClientsModule], // MissionsService valide client_id via ClientsService
   controllers: [MissionsController],
   providers: [MissionsService],
+  exports: [MissionsService], // MissionCyclesService valide missionId via cette classe
 })
 export class MissionsModule {}
