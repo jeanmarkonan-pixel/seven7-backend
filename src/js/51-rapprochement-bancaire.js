@@ -6,32 +6,51 @@
    dans TABS, jamais dupliqué, bouton inséré dans le menu Phase 2 juste
    après GL Gestion).
 
-   PRINCIPE (revu le 25/08, à la demande du cabinet) : cet onglet
-   n'importe RIEN. Il n'y a volontairement ni import CSV, ni import Excel,
-   ni saisie de relevé — la tentative précédente (import du relevé
-   bancaire) a été retirée : le sélecteur de fichiers d'Android rendait
-   l'opération impraticable sur le terrain, et surtout le cabinet travaille
-   avec le relevé PAPIER sous les yeux.
+   HISTORIQUE (à comprendre avant de retoucher ce fichier) : le 25/08,
+   l'import du relevé (CSV/Excel) avait été entièrement retiré à la
+   demande du cabinet — le sélecteur de fichiers Android le rendait
+   impraticable sur le terrain, et le cabinet travaillait avec le relevé
+   PAPIER sous les yeux. L'onglet ne faisait plus qu'extraire le Grand
+   Livre et laisser cocher « Pointé » à la main.
 
-   Ce que fait l'onglet : il extrait automatiquement du Grand Livre déjà
-   saisi (04-grand-livre.js) toutes les opérations du/des compte(s) banque,
-   mois par mois, et les affiche en tableau avec une colonne « Pointé » à
-   cocher. L'auditeur coche au fur et à mesure qu'il retrouve chaque
-   opération sur son relevé papier ; les totaux pointés / non pointés et le
-   solde des opérations en suspens se recalculent à chaque clic.
+   Le 26/08, nouvelle demande explicite : rapprochement automatique
+   complet (import CSV/Excel ou collage, moteur de correspondance
+   montant/date/référence, détection des doublons ambigus, génération
+   des écritures manquantes). Pour ne pas reproduire le problème du
+   25/08, l'import se fait par DEUX voies parallèles : fichier (utile au
+   bureau) ET collage de texte (contourne totalement le sélecteur de
+   fichiers Android — copier le relevé depuis l'appli bancaire ou Excel
+   et le coller directement). Le pointage manuel papier reste intact et
+   pleinement fonctionnel en parallèle : rien n'oblige à importer quoi
+   que ce soit, c'est un mode additionnel, pas un remplacement.
+
+   PRINCIPE DE SÉCURITÉ (« zéro erreur silencieuse », demande explicite
+   du cabinet) : le moteur ne coche automatiquement une correspondance
+   QUE si elle est mutuellement unique — une ligne de relevé avec
+   exactement un candidat Grand Livre compatible (compte, sens, montant,
+   ±N jours), et ce candidat n'est réclamé par aucune autre ligne de
+   relevé. Tout le reste (0 ou 2+ candidats, des deux côtés) part dans
+   des listes séparées qui exigent une décision explicite de l'auditeur
+   — jamais de correspondance choisie seule par le moteur en cas de
+   doute. Toute ligne de fichier illisible (date/montant non compris)
+   est listée telle quelle, jamais silencieusement ignorée.
+
+   ARCHITECTURE : le relevé importé (lignes brutes + rejets) est
+   sérialisé en JSON dans un <textarea id="rb-releve-json" hidden> à
+   l'intérieur de l'onglet — comme tout onglet de l'app, la sauvegarde
+   Firestore capture le innerHTML entier du div (doSaveTab,
+   10-config-collaboration.js), et freezeDynamicValues() copie déjà
+   .value vers le contenu du textarea avant capture (même mécanisme que
+   pour toute zone de collage existante) : ça survit donc au rechargement
+   sans mécanisme de persistance dédié. Chaque ligne de relevé porte un
+   id stable (rbNouvelId) et un indicateur .traite, mis à jour au fil des
+   rapprochements/résolutions — c'est la seule vraie source de vérité
+   sur ce qui reste à traiter (le Grand Livre affiché, lui, reste
+   régénéré à chaque fois depuis grandLivreData comme avant).
 
    Portée limitée aux deux derniers mois de l'exercice (novembre,
    décembre) — demande explicite du cabinet, pas une limite technique :
    RB_MOIS peut recevoir d'autres mois sans reprendre la structure.
-
-   Persistance : comme tout onglet de l'app, la sauvegarde Firestore
-   capture le innerHTML entier du div (doSaveTab, 10-config-collaboration.js).
-   Les lignes générées et les cases cochées sont donc de vraies lignes de
-   tableau, pas des variables JS — elles survivent au rechargement. C'est
-   aussi pourquoi la régénération depuis le Grand Livre REPORTE les cases
-   déjà cochées (rbClefLigne) au lieu de repartir de zéro : actualiser
-   après un ajout d'écritures ne doit jamais effacer le travail de pointage
-   déjà fait.
    ================================================================== */
 
 var RB_MOIS = [
@@ -48,6 +67,16 @@ function rbComptesConfigures(){
 function rbInfoMois(moisIndex){
     return RB_MOIS.filter(function(m){ return m.index === moisIndex; })[0];
 }
+function rbMoisDeDate(dateStr){
+    var mois = parseInt(String(dateStr || '').slice(5, 7), 10) - 1;
+    return isNaN(mois) ? null : mois;
+}
+function rbToleranceJours(){
+    var el = document.getElementById('rb-tolerance-jours');
+    var v = el ? parseInt(el.value, 10) : NaN;
+    return (isNaN(v) || v < 0) ? 5 : v;
+}
+function rbPad2(n){ n = String(n); return n.length < 2 ? '0' + n : n; }
 
 // Écritures du Grand Livre pour ces comptes et ce mois — même logique de
 // préfixe que tfMouvementMensuel (48-tableaux-fiscaux.js). grandLivreData
@@ -62,12 +91,26 @@ function rbEcrituresGL(moisIndex, prefixes){
         var compte = String(r.compte || '').trim();
         var correspond = prefixes.some(function(p){ return compte.indexOf(p) === 0; });
         if(!correspond) continue;
-        var mois = parseInt(String(r.date || '').slice(5, 7), 10) - 1;
-        if(mois !== moisIndex) continue;
+        if(rbMoisDeDate(r.date) !== moisIndex) continue;
         out.push(r);
     }
     out.sort(function(a, b){ return String(a.date || '').localeCompare(String(b.date || '')); });
     return out;
+}
+// Même chose, mais uniquement les écritures dont la case Pointé n'est PAS
+// déjà cochée dans le tableau affiché — c'est le vivier réel de candidats
+// pour le moteur de rapprochement (une écriture déjà pointée, peu importe
+// comment, ne doit plus jamais être proposée comme correspondance).
+function rbEcrituresGLNonPointees(moisIndex, prefixes){
+    var ecritures = rbEcrituresGL(moisIndex, prefixes);
+    var info = rbInfoMois(moisIndex);
+    var corps = document.getElementById('rb-table-' + info.id);
+    if(!corps) return ecritures;
+    return ecritures.filter(function(r){
+        var tr = rbTrPourClef(corps, rbClefLigne(r));
+        var cb = tr ? tr.querySelector('.rb-pointe') : null;
+        return !(cb && cb.checked);
+    });
 }
 
 // Identifie une opération indépendamment de sa position dans la liste :
@@ -77,6 +120,477 @@ function rbClefLigne(r){
     return [String(r.compte || '').trim(), String(r.date || '').trim(), String(r.ref || '').trim(),
             String(r.libelle || '').trim(), parseNum(r.debit), parseNum(r.credit)].join('|');
 }
+function rbTrPourClef(corps, clef){
+    var trs = corps.querySelectorAll('tr[data-rb-clef]');
+    for(var i = 0; i < trs.length; i++){
+        if(trs[i].getAttribute('data-rb-clef') === clef) return trs[i];
+    }
+    return null;
+}
+
+/* ==================================================================
+   PARSING DU RELEVÉ IMPORTÉ (CSV, Excel ou texte collé)
+   Le fichier/texte est déjà réduit en tableau de lignes de cellules par
+   45-securite-import.js (secLireReleveFichier, ou secDecouperLigneCSV
+   pour le collage) — cette section ne connaît plus la source, juste des
+   cellules brutes, et fait le mapping d'en-tête + la validation.
+   ================================================================== */
+function rbParserDate(v){
+    if(v === undefined || v === null) return null;
+    var s = String(v).trim();
+    if(s === '') return null;
+    var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+    if(m) return m[1] + '-' + rbPad2(m[2]) + '-' + rbPad2(m[3]);
+    m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/.exec(s);
+    if(m){
+        var an = m[3];
+        if(an.length === 2) an = (parseInt(an, 10) > 70 ? '19' : '20') + an;
+        return an + '-' + rbPad2(m[2]) + '-' + rbPad2(m[1]);
+    }
+    // Numéro de série Excel (jours depuis 1899-12-30), au cas où une cellule
+    // arrive déjà convertie en nombre plutôt qu'en texte formaté.
+    if(/^\d+(\.\d+)?$/.test(s)){
+        var n = parseNum(s);
+        if(n > 20000 && n < 60000){
+            var ms = Math.round((n - 25569) * 86400 * 1000);
+            var d = new Date(ms);
+            if(!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+        }
+    }
+    return null;
+}
+// lignesCellules : array de array-de-chaînes (une ligne d'en-tête + lignes de
+// données). Retourne { lignes, rejets, erreurEntete }. erreurEntete=true si
+// aucune colonne Date n'est reconnue, ou ni Débit/Crédit ni Montant — on
+// refuse alors tout net plutôt que de deviner un mauvais ordre de colonnes
+// (une correspondance sur de mauvaises colonnes serait une erreur silencieuse).
+function rbParserLignesCellules(lignesCellules){
+    if(!lignesCellules || !lignesCellules.length) return { lignes:[], rejets:[], erreurEntete:false };
+    var entetes = (lignesCellules[0] || []).map(function(c){ return String(c === undefined || c === null ? '' : c); });
+    var mappe = secMapperEntetes(SEC_CHAMPS_RELEVE, entetes);
+    var aDebitCredit = mappe.debit !== undefined && mappe.credit !== undefined;
+    var aMontant = mappe.montant !== undefined;
+    if(mappe.date === undefined || !(aDebitCredit || aMontant)){
+        return { lignes:[], rejets:[], erreurEntete:true };
+    }
+    var lignes = [], rejets = [];
+    for(var i = 1; i < lignesCellules.length; i++){
+        var c = lignesCellules[i] || [];
+        var vide = c.every(function(x){ return String(x === undefined || x === null ? '' : x).trim() === ''; });
+        if(vide) continue;
+        var dateStr = rbParserDate(c[mappe.date]);
+        var libelle = mappe.libelle !== undefined ? String(c[mappe.libelle] || '').trim() : '';
+        var ref = mappe.ref !== undefined ? String(c[mappe.ref] || '').trim() : '';
+        var debit = 0, credit = 0;
+        if(aDebitCredit){
+            debit = parseNum(c[mappe.debit]);
+            credit = parseNum(c[mappe.credit]);
+        } else {
+            var mt = parseNum(c[mappe.montant]);
+            if(mt >= 0) credit = mt; else debit = -mt;
+        }
+        if(!dateStr || (debit === 0 && credit === 0)){
+            rejets.push({ ligne: i + 1, brut: c.join(' | ') });
+            continue;
+        }
+        lignes.push({ date: dateStr, libelle: libelle, ref: ref, debit: debit, credit: credit });
+    }
+    return { lignes: lignes, rejets: rejets, erreurEntete:false };
+}
+
+/* ==================================================================
+   MOTEUR DE RAPPROCHEMENT AUTOMATIQUE (fonctions pures — testées
+   directement, sans DOM, comme le reste du moteur de calcul)
+   ================================================================== */
+// Candidats Grand Livre pour UNE ligne de relevé : même compte (implicite,
+// ecrituresGL est déjà filtré par compte/mois), montant identique (à
+// l'inversion de sens près) et daté à ±toleranceJours au maximum. Triés du
+// plus proche au plus éloigné en date.
+// Sens : sur le RELEVÉ, un crédit est un encaissement et un débit un
+// décaissement (convention bancaire usuelle). En COMPTABILITÉ, le compte
+// banque est un compte d'actif : un encaissement l'augmente donc à son
+// DÉBIT, un décaissement le diminue à son CRÉDIT — l'inverse du relevé.
+function rbCandidatsGL(ligneReleve, ecrituresGL, toleranceJours){
+    var cible = ligneReleve.credit > 0 ? ligneReleve.credit : ligneReleve.debit;
+    var sensGL = ligneReleve.credit > 0 ? 'debit' : 'credit';
+    if(cible <= 0) return [];
+    var dateReleve = new Date(ligneReleve.date).getTime();
+    if(isNaN(dateReleve)) return [];
+    var candidats = [];
+    ecrituresGL.forEach(function(r){
+        if(Math.abs(parseNum(r[sensGL]) - cible) >= 0.5) return;
+        var dateGL = new Date(r.date).getTime();
+        if(isNaN(dateGL)) return;
+        var ecartJours = Math.abs(dateReleve - dateGL) / 86400000;
+        if(ecartJours <= toleranceJours) candidats.push({ ecritureGL: r, ecartJours: ecartJours });
+    });
+    candidats.sort(function(a, b){ return a.ecartJours - b.ecartJours; });
+    return candidats;
+}
+// Rapproche un lot de lignes de relevé contre un lot d'écritures GL.
+// Règle de sécurité (« zéro erreur silencieuse ») : une correspondance n'est
+// retenue automatiquement QUE si elle est mutuellement unique — la ligne de
+// relevé n'a qu'un seul candidat GL dans la tolérance, ET ce candidat GL
+// n'est candidat pour aucune autre ligne de relevé du lot. Dans tous les
+// autres cas (0, ou 2+ candidats d'un côté ou de l'autre), rien n'est coché
+// tout seul : direction « ambigus » (2+ candidats) ou « sans correspondance »
+// (0 candidat), pour décision explicite de l'auditeur.
+function rbRapprocher(releveLignes, ecrituresGL, toleranceJours){
+    toleranceJours = toleranceJours || 5;
+    var candidatsParLigne = releveLignes.map(function(lr){ return rbCandidatsGL(lr, ecrituresGL, toleranceJours); });
+    var revendicationsGL = {};
+    candidatsParLigne.forEach(function(cands){
+        cands.forEach(function(c){
+            var clef = rbClefLigne(c.ecritureGL);
+            revendicationsGL[clef] = (revendicationsGL[clef] || 0) + 1;
+        });
+    });
+
+    var auto = [], ambigus = [], sansCorrespondance = [];
+    releveLignes.forEach(function(lr, i){
+        var cands = candidatsParLigne[i];
+        if(cands.length === 0){ sansCorrespondance.push(lr); return; }
+        var clefUnique = rbClefLigne(cands[0].ecritureGL);
+        if(cands.length === 1 && revendicationsGL[clefUnique] === 1){
+            auto.push({ ligneReleve: lr, ecritureGL: cands[0].ecritureGL });
+        } else {
+            ambigus.push({ ligneReleve: lr, candidats: cands });
+        }
+    });
+    return { auto: auto, ambigus: ambigus, sansCorrespondance: sansCorrespondance };
+}
+
+/* ---------- Écritures manquantes : catégorisation et proposition ---------- */
+function rbCategoriserLigne(ligneReleve){
+    var texte = ((ligneReleve.libelle || '') + ' ' + (ligneReleve.ref || '')).toUpperCase();
+    if(/AGIO|INTERET.*DEBIT|INTERET.*DECOUVERT|DECOUVERT/.test(texte)) return 'agios';
+    if(/FRAIS|COMMISSION|COTIS.*CARTE|TENUE DE COMPTE|ABONNEMENT|PRELEVEMENT.*SERVICE|SMS BANKING/.test(texte)) return 'frais';
+    return 'inconnu';
+}
+// comptesBanque : préfixes configurés (rbComptesConfigures()) ; comptesDefaut :
+// { frais, agios, inconnu } (rbComptesDefautContrepartie()). Renvoie une
+// PROPOSITION éditable — jamais un fait accompli, voir rbRendreSansCorrespondance.
+function rbProposerEcriture(ligneReleve, comptesBanque, comptesDefaut){
+    var categorie = rbCategoriserLigne(ligneReleve);
+    var libelleParDefaut = categorie === 'agios' ? 'Agios bancaires'
+        : categorie === 'frais' ? 'Frais bancaires'
+        : (ligneReleve.libelle || 'Mouvement bancaire non identifié');
+    return {
+        categorie: categorie,
+        compteBanque: (comptesBanque && comptesBanque[0]) || '52',
+        compteContrepartie: comptesDefaut[categorie],
+        libelle: libelleParDefaut,
+        montant: ligneReleve.debit > 0 ? ligneReleve.debit : ligneReleve.credit
+    };
+}
+function rbComptesDefautContrepartie(){
+    return {
+        frais:   ((document.getElementById('rb-compte-frais') || {}).value || '631').trim() || '631',
+        agios:   ((document.getElementById('rb-compte-agios') || {}).value || '674').trim() || '674',
+        inconnu: ((document.getElementById('rb-compte-inconnu') || {}).value || '471').trim() || '471'
+    };
+}
+
+/* ==================================================================
+   PERSISTANCE DE L'ÉTAT DU RELEVÉ IMPORTÉ (textarea caché, voir note
+   d'architecture en tête de fichier)
+   ================================================================== */
+var RB_ID_COMPTEUR = 0;
+function rbNouvelId(){ RB_ID_COMPTEUR++; return 'rl' + Date.now() + '_' + RB_ID_COMPTEUR; }
+function rbChargerEtatReleve(){
+    var el = document.getElementById('rb-releve-json');
+    if(!el || !el.value) return null;
+    try{ var e = JSON.parse(el.value); return (e && e.lignes) ? e : null; }
+    catch(erreur){ return null; }
+}
+function rbSauverEtatReleve(etat){
+    var el = document.getElementById('rb-releve-json');
+    if(el) el.value = JSON.stringify(etat);
+}
+
+/* ==================================================================
+   IMPORT (fichier ou collage) → parsing → état → rapprochement
+   ================================================================== */
+function rbImporterFichier(input){
+    var file = input.files && input.files[0];
+    var validation = secValiderFichierReleve(file);
+    if(!validation.ok){ alert('⚠ ' + validation.erreur); input.value = ''; return; }
+    var nomFichier = file.name;
+    secLireReleveFichier(file, function(lignesCellules){
+        rbTraiterLignesImportees(lignesCellules, nomFichier);
+        input.value = '';
+    }, function(msg){ alert('⚠ ' + msg); input.value = ''; });
+}
+function rbImporterColle(){
+    var ta = document.getElementById('rb-colle-texte');
+    if(!ta || !ta.value.trim()){ alert('Collez d’abord le texte du relevé dans le champ prévu.'); return; }
+    var brut = ta.value.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; });
+    if(!brut.length){ alert('Rien à analyser.'); return; }
+    var delim = secDetecterDelimiteur(brut[0]);
+    var lignesCellules = brut.map(function(l){ return secDecouperLigneCSV(l, delim); });
+    rbTraiterLignesImportees(lignesCellules, 'Collage manuel');
+    ta.value = '';
+}
+function rbTraiterLignesImportees(lignesCellules, sourceNom){
+    var resultat = rbParserLignesCellules(lignesCellules);
+    if(resultat.erreurEntete){
+        alert('⚠ Colonnes non reconnues. La première ligne du relevé doit contenir une colonne « Date », et soit '
+            + '« Débit »/« Crédit » séparés, soit une colonne « Montant » unique. Vérifiez l’en-tête du fichier.');
+        return;
+    }
+    var horsPeriode = 0;
+    var lignesRetenues = [];
+    resultat.lignes.forEach(function(l){
+        var mois = rbMoisDeDate(l.date);
+        if(mois === null || RB_MOIS.every(function(m){ return m.index !== mois; })){ horsPeriode++; return; }
+        l.id = rbNouvelId();
+        l.traite = false;
+        lignesRetenues.push(l);
+    });
+
+    var etatPrecedent = rbChargerEtatReleve() || { lignes: [], rejets: [] };
+    var etat = {
+        lignes: etatPrecedent.lignes.concat(lignesRetenues),
+        rejets: resultat.rejets,
+        importeLe: new Date().toISOString(),
+        sourceNom: sourceNom
+    };
+    rbSauverEtatReleve(etat);
+    rbRendreDiagnosticImport(etat, lignesRetenues.length, horsPeriode);
+    rbLancerRapprochement(true);
+}
+function rbViderReleve(){
+    if(!confirm('Effacer le relevé importé de la mémoire de cet onglet ? Les cases déjà pointées dans les tableaux ne seront PAS décochées.')) return;
+    rbSauverEtatReleve({ lignes:[], rejets:[], importeLe:null, sourceNom:'' });
+    rbRendreDiagnosticImport({ lignes:[], rejets:[] }, 0, 0);
+    rbRendreAmbigus({});
+    rbRendreSansCorrespondance([]);
+}
+function rbRendreDiagnosticImport(etat, nbRetenues, horsPeriode){
+    var el = document.getElementById('rb-import-diagnostic');
+    if(!el) return;
+    if(!etat.importeLe && !etat.lignes.length){ el.innerHTML = ''; return; }
+    var rejets = etat.rejets || [];
+    var html = '<div class="alert ' + (rejets.length ? 'alert-warning' : 'alert-success') + '" style="margin-top:10px; font-size:12px;">'
+        + '📄 Dernier import (' + esc(etat.sourceNom || '—') + ') : <strong>' + nbRetenues + '</strong> ligne(s) retenue(s) (nov/déc)'
+        + (horsPeriode ? ', <strong>' + horsPeriode + '</strong> ligne(s) hors période ignorée(s)' : '')
+        + '. <strong>' + etat.lignes.length + '</strong> ligne(s) au total en mémoire pour cet onglet.';
+    if(rejets.length){
+        html += '<br>⚠ <strong>' + rejets.length + '</strong> ligne(s) du fichier NON comprises (date ou montant illisible) — '
+            + 'elles ne font PAS partie du rapprochement, vérifiez-les manuellement :'
+            + '<ul style="margin:4px 0 0 18px; padding:0;">'
+            + rejets.slice(0, 20).map(function(r){ return '<li>Ligne ' + r.ligne + ' : ' + esc(r.brut) + '</li>'; }).join('')
+            + (rejets.length > 20 ? '<li>… et ' + (rejets.length - 20) + ' autre(s).</li>' : '')
+            + '</ul>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+/* ==================================================================
+   LANCEMENT DU RAPPROCHEMENT + APPLICATION DES RÉSULTATS
+   ================================================================== */
+function rbLancerRapprochement(silencieux){
+    var etat = rbChargerEtatReleve();
+    if(!etat || !etat.lignes || !etat.lignes.length){
+        if(!silencieux) alert('Importez ou collez d’abord un relevé bancaire avant de lancer le rapprochement automatique.');
+        rbRendreAmbigus({});
+        rbRendreSansCorrespondance([]);
+        return;
+    }
+    var prefixes = rbComptesConfigures();
+    var tolerance = rbToleranceJours();
+    var totalAuto = 0;
+    var ambigusParMois = {};
+    var sansCorrespondanceTotal = [];
+
+    RB_MOIS.forEach(function(m){
+        var lignesDuMois = etat.lignes.filter(function(l){ return !l.traite && rbMoisDeDate(l.date) === m.index; });
+        var ecrituresGL = rbEcrituresGLNonPointees(m.index, prefixes);
+        var resultat = rbRapprocher(lignesDuMois, ecrituresGL, tolerance);
+        totalAuto += rbAppliquerAuto(m.index, resultat.auto);
+        // Une fois pointée sans ambiguïté, la ligne est traitée : voir la note
+        // d'architecture en tête de fichier sur la limite assumée (si l'auditeur
+        // décoche ensuite à la main, il choisit lui-même une autre correspondance
+        // plutôt que d'attendre une nouvelle proposition automatique).
+        resultat.auto.forEach(function(a){ a.ligneReleve.traite = true; });
+        ambigusParMois[m.id] = resultat.ambigus;
+        sansCorrespondanceTotal = sansCorrespondanceTotal.concat(resultat.sansCorrespondance);
+    });
+
+    rbSauverEtatReleve(etat);
+    rbRendreAmbigus(ambigusParMois);
+    rbRendreSansCorrespondance(sansCorrespondanceTotal);
+    rbRecalculerTout();
+
+    if(!silencieux){
+        var totalAmbigus = 0;
+        RB_MOIS.forEach(function(m){ totalAmbigus += ambigusParMois[m.id].length; });
+        alert('🤖 Rapprochement automatique — ' + totalAuto + ' ligne(s) pointée(s) sans ambiguïté, '
+            + totalAmbigus + ' cas ambigu(s) à trancher ci-dessous, '
+            + sansCorrespondanceTotal.length + ' ligne(s) du relevé sans écriture correspondante (proposées ci-dessous).');
+    }
+}
+function rbAppliquerAuto(moisIndex, auto){
+    var info = rbInfoMois(moisIndex);
+    var corps = document.getElementById('rb-table-' + info.id);
+    if(!corps) return 0;
+    var n = 0;
+    auto.forEach(function(m){
+        var tr = rbTrPourClef(corps, rbClefLigne(m.ecritureGL));
+        if(!tr) return;
+        var cb = tr.querySelector('.rb-pointe');
+        if(!cb || cb.checked) return; // déjà pointée (ne touche jamais une case déjà cochée)
+        cb.checked = true;
+        cb.setAttribute('data-origine', 'auto');
+        n++;
+    });
+    if(n) rbRecalculer(moisIndex);
+    return n;
+}
+function rbCandidatsPourLigne(ligne, moisIndex){
+    var ecritures = rbEcrituresGLNonPointees(moisIndex, rbComptesConfigures());
+    return rbCandidatsGL(ligne, ecritures, rbToleranceJours());
+}
+
+/* ---------- Doublons ambigus : résolution manuelle ---------- */
+function rbRendreAmbigus(ambigusParMois){
+    var corps = document.getElementById('rb-ambigus-corps');
+    var section = document.getElementById('rb-ambigus-section');
+    if(!corps || !section) return;
+    var total = 0;
+    var lignesHtml = [];
+    RB_MOIS.forEach(function(m){
+        (ambigusParMois[m.id] || []).forEach(function(a){
+            total++;
+            var lr = a.ligneReleve;
+            var cible = lr.credit > 0 ? lr.credit : lr.debit;
+            var selectId = 'rb-amb-sel-' + lr.id;
+            lignesHtml.push('<tr>'
+                + '<td>' + esc(m.nom) + '</td>'
+                + '<td>' + esc(lr.date) + '</td>'
+                + '<td>' + esc(lr.libelle) + (lr.ref ? ' (' + esc(lr.ref) + ')' : '') + '</td>'
+                + '<td class="number">' + fmt(cible) + '</td>'
+                + '<td><select id="' + selectId + '"><option value="">— Choisir —</option>'
+                + a.candidats.map(function(c){
+                    var montantGL = parseNum(c.ecritureGL.debit) || parseNum(c.ecritureGL.credit);
+                    // La valeur de l'option est la clef stable de l'écriture (pas sa position dans
+                    // la liste) : si une autre ambiguïté est résolue entre le rendu et le clic sur
+                    // « Valider », la sélection reste correcte — rbConfirmerAmbigu réidentifie
+                    // l'écriture par cette même clef plutôt que par un indice qui pourrait glisser.
+                    return '<option value="' + esc(rbClefLigne(c.ecritureGL)) + '">' + esc(c.ecritureGL.date) + ' · '
+                        + esc(c.ecritureGL.libelle || c.ecritureGL.ref || '(sans libellé)') + ' · '
+                        + fmt(montantGL) + ' · écart ' + c.ecartJours.toFixed(1) + ' j</option>';
+                }).join('')
+                + '<option value="aucune">Aucune de ces écritures</option></select></td>'
+                + '<td><button type="button" class="btn btn-primary" onclick="rbConfirmerAmbigu(' + m.index + ', \'' + lr.id + '\', \'' + selectId + '\')">✔ Valider</button></td>'
+                + '</tr>');
+        });
+    });
+    section.style.display = total ? '' : 'none';
+    corps.innerHTML = lignesHtml.join('') || '<tr><td colspan="6" style="text-align:center; color:#999;">Aucun cas ambigu.</td></tr>';
+}
+function rbConfirmerAmbigu(moisIndex, ligneId, selectId){
+    var select = document.getElementById(selectId);
+    if(!select || select.value === ''){ alert('Choisissez une correspondance ou « Aucune de ces écritures » avant de valider.'); return; }
+    var etat = rbChargerEtatReleve();
+    if(!etat){ alert('Le relevé importé est introuvable — relancez le rapprochement.'); return; }
+    var ligne = etat.lignes.filter(function(l){ return l.id === ligneId; })[0];
+    if(!ligne){ alert('Cette ligne a disparu — relancez le rapprochement.'); return; }
+    if(select.value !== 'aucune'){
+        var candidats = rbCandidatsPourLigne(ligne, moisIndex);
+        var choisi = candidats.filter(function(c){ return rbClefLigne(c.ecritureGL) === select.value; })[0];
+        if(!choisi){ alert('Cette écriture n’est plus disponible (déjà pointée par une autre résolution entre-temps) — relancez le rapprochement.'); return; }
+        var info = rbInfoMois(moisIndex);
+        var corps = document.getElementById('rb-table-' + info.id);
+        var tr = corps ? rbTrPourClef(corps, rbClefLigne(choisi.ecritureGL)) : null;
+        if(tr){
+            var cb = tr.querySelector('.rb-pointe');
+            if(cb && !cb.checked){ cb.checked = true; cb.setAttribute('data-origine', 'manuel'); }
+        }
+        rbRecalculer(moisIndex);
+    }
+    ligne.traite = true;
+    rbSauverEtatReleve(etat);
+    rbLancerRapprochement(true);
+}
+
+/* ---------- Écritures relevé sans correspondance : proposition + report ---------- */
+function rbRendreSansCorrespondance(sansCorrespondance){
+    var corps = document.getElementById('rb-manquantes-corps');
+    var section = document.getElementById('rb-manquantes-section');
+    if(!corps || !section) return;
+    section.style.display = sansCorrespondance.length ? '' : 'none';
+    var comptesBanque = rbComptesConfigures();
+    var comptesDefaut = rbComptesDefautContrepartie();
+    var labelCategorie = { agios:'Agios', frais:'Frais bancaires', inconnu:'Non identifié' };
+    var couleurCategorie = { agios:'#eaf2f8', frais:'#eafaf1', inconnu:'#fdebd0' };
+    corps.innerHTML = sansCorrespondance.map(function(l){
+        var prop = rbProposerEcriture(l, comptesBanque, comptesDefaut);
+        return '<tr data-rb-manq-id="' + esc(l.id) + '">'
+            + '<td style="text-align:center;"><input type="checkbox" class="rb-manq-inclure" checked></td>'
+            + '<td>' + esc(l.date) + '</td>'
+            + '<td>' + esc(l.libelle) + (l.ref ? ' (' + esc(l.ref) + ')' : '') + '</td>'
+            + '<td class="number">' + fmt(prop.montant) + '</td>'
+            + '<td><span style="font-size:11px; padding:2px 6px; border-radius:4px; background:' + couleurCategorie[prop.categorie] + ';">'
+                + labelCategorie[prop.categorie] + '</span></td>'
+            + '<td><input type="text" class="rb-manq-banque" value="' + esc(prop.compteBanque) + '" style="width:75px;"></td>'
+            + '<td><input type="text" class="rb-manq-compte" value="' + esc(prop.compteContrepartie) + '" style="width:75px;"></td>'
+            + '<td><input type="text" class="rb-manq-libelle" value="' + esc(prop.libelle) + '" style="width:180px;"></td>'
+            + '</tr>';
+    }).join('');
+}
+function rbLigneGLTexte(compte, intitule, date, ref, libelle, debit, credit){
+    return [compte, intitule, date, ref, libelle, debit || '', credit || ''].join('\t');
+}
+// Reporte les lignes cochées dans le Grand Livre Bilan, en partie double
+// (compte de contrepartie + compte banque), via le circuit d'import existant
+// (paste-gl-bilan + pasteGLTable) — jamais d'écriture directe dans
+// grandLivreBilanData/grandLivreGestionData depuis ce module : ce sont des
+// données lues par une quinzaine d'autres onglets, la seule voie sûre pour
+// les modifier est celle déjà testée du Grand Livre lui-même. C'est aussi
+// pourquoi c'est un clic EXPLICITE (jamais automatique) : les comptes
+// proposés sont des suggestions, pas une vérité — l'auditeur les valide (et
+// peut les corriger) avant qu'ils n'entrent dans la comptabilité.
+function rbReporterEcrituresManquantes(){
+    var corps = document.getElementById('rb-manquantes-corps');
+    if(!corps) return;
+    var etat = rbChargerEtatReleve();
+    if(!etat){ alert('Aucun relevé importé.'); return; }
+    var lignesGL = [];
+    var nbReportees = 0;
+    Array.prototype.slice.call(corps.querySelectorAll('tr[data-rb-manq-id]')).forEach(function(tr){
+        var inclure = tr.querySelector('.rb-manq-inclure');
+        if(!inclure || !inclure.checked) return;
+        var id = tr.getAttribute('data-rb-manq-id');
+        var ligne = etat.lignes.filter(function(l){ return l.id === id; })[0];
+        if(!ligne || ligne.traite) return;
+        var compteBanqueLigne = tr.querySelector('.rb-manq-banque').value.trim();
+        var compteContrepartie = tr.querySelector('.rb-manq-compte').value.trim();
+        var libelle = tr.querySelector('.rb-manq-libelle').value.trim();
+        var montant = ligne.debit > 0 ? ligne.debit : ligne.credit;
+        if(!compteBanqueLigne || !compteContrepartie || !montant) return;
+        var estDecaissement = ligne.debit > 0;
+        if(estDecaissement){
+            lignesGL.push(rbLigneGLTexte(compteContrepartie, '', ligne.date, ligne.ref, libelle, montant, 0));
+            lignesGL.push(rbLigneGLTexte(compteBanqueLigne, '', ligne.date, ligne.ref, libelle, 0, montant));
+        } else {
+            lignesGL.push(rbLigneGLTexte(compteBanqueLigne, '', ligne.date, ligne.ref, libelle, montant, 0));
+            lignesGL.push(rbLigneGLTexte(compteContrepartie, '', ligne.date, ligne.ref, libelle, 0, montant));
+        }
+        ligne.traite = true;
+        nbReportees++;
+    });
+    if(!nbReportees){ alert('Aucune ligne cochée à reporter (ou compte banque/contrepartie manquant sur les lignes cochées).'); return; }
+    var zone = document.getElementById('paste-gl-bilan');
+    if(!zone){ alert('Le champ de collage du Grand Livre Bilan est introuvable — impossible de reporter automatiquement.'); return; }
+    zone.value = lignesGL.join('\n');
+    pasteGLTable('bilan');
+    rbSauverEtatReleve(etat);
+    alert('✅ ' + nbReportees + ' écriture(s) reportée(s) au Grand Livre Bilan (partie double, ' + lignesGL.length
+        + ' ligne(s)). Vérifiez-les dans l’onglet Grand Livre avant de conclure.');
+    rbLancerRapprochement(true);
+}
 
 /* ---------- Génération du tableau d'un mois depuis le Grand Livre ---------- */
 function rbGenererMois(moisIndex, silencieux){
@@ -84,11 +598,12 @@ function rbGenererMois(moisIndex, silencieux){
     var corps = document.getElementById('rb-table-' + info.id);
     if(!corps) return;
 
-    // Mémorise le pointage déjà effectué avant de reconstruire.
+    // Mémorise le pointage déjà effectué (et son origine manuel/auto) avant de reconstruire.
     var dejaPointees = {};
     Array.prototype.slice.call(corps.querySelectorAll('tr[data-rb-clef]')).forEach(function(tr){
-        if(tr.querySelector('.rb-pointe') && tr.querySelector('.rb-pointe').checked)
-            dejaPointees[tr.getAttribute('data-rb-clef')] = true;
+        var cb = tr.querySelector('.rb-pointe');
+        if(cb && cb.checked)
+            dejaPointees[tr.getAttribute('data-rb-clef')] = { origine: cb.getAttribute('data-origine') || 'manuel' };
     });
 
     var ecritures = rbEcrituresGL(moisIndex, rbComptesConfigures());
@@ -105,6 +620,9 @@ function rbGenererMois(moisIndex, silencieux){
     corps.innerHTML = ecritures.map(function(r){
         var clef = rbClefLigne(r);
         var debit = parseNum(r.debit), credit = parseNum(r.credit);
+        var pointage = dejaPointees[clef];
+        var checked = !!pointage;
+        var origine = pointage ? pointage.origine : 'manuel';
         return '<tr data-rb-clef="' + esc(clef) + '">'
             + '<td>' + esc(r.date) + '</td>'
             + '<td>' + esc(r.compte) + '</td>'
@@ -112,8 +630,10 @@ function rbGenererMois(moisIndex, silencieux){
             + '<td>' + esc(r.libelle) + '</td>'
             + '<td class="number rb-debit" data-montant="' + debit + '">' + (debit ? fmt(debit) : '') + '</td>'
             + '<td class="number rb-credit" data-montant="' + credit + '">' + (credit ? fmt(credit) : '') + '</td>'
-            + '<td style="text-align:center;"><input type="checkbox" class="rb-pointe"'
-            + (dejaPointees[clef] ? ' checked' : '') + ' onchange="rbRecalculerDeCellule(this)"></td>'
+            + '<td style="text-align:center;"><input type="checkbox" class="rb-pointe" data-origine="' + origine + '"'
+            + (checked ? ' checked' : '') + ' onchange="rbRecalculerDeCellule(this)">'
+            + (checked && origine === 'auto' ? ' <span title="Rapproché automatiquement — vérifiez avant de conclure" style="font-size:11px;">🤖</span>' : '')
+            + '</td>'
             + '</tr>';
     }).join('');
 
@@ -137,6 +657,13 @@ function rbMoisDeTable(corps){
     return null;
 }
 function rbRecalculerDeCellule(el){
+    // Toute interaction humaine sur la case reclasse la ligne en « manuel » —
+    // y compris décocher/recocher un pointage posé par le moteur automatique —
+    // et retire le badge 🤖, qui n'aurait plus de sens sur une décision qui
+    // vient d'être reconfirmée à la main.
+    el.setAttribute('data-origine', 'manuel');
+    var badge = el.parentNode.querySelector('span[title^="Rapproché automatiquement"]');
+    if(badge) badge.remove();
     var corps = el.closest('tbody');
     var moisIndex = rbMoisDeTable(corps);
     if(moisIndex !== null) rbRecalculer(moisIndex);
@@ -327,7 +854,12 @@ function rbBasculerTout(moisIndex, valeur){
     var info = rbInfoMois(moisIndex);
     var corps = document.getElementById('rb-table-' + info.id);
     if(!corps) return;
-    Array.prototype.slice.call(corps.querySelectorAll('.rb-pointe')).forEach(function(c){ c.checked = valeur; });
+    Array.prototype.slice.call(corps.querySelectorAll('.rb-pointe')).forEach(function(c){
+        c.checked = valeur;
+        c.setAttribute('data-origine', 'manuel');
+        var badge = c.parentNode.querySelector('span[title^="Rapproché automatiquement"]');
+        if(badge) badge.remove();
+    });
     rbRecalculer(moisIndex);
 }
 
@@ -367,6 +899,62 @@ function rbRendreMois(info){
         + '</div>';
 }
 
+/* ---------- Rendu du bloc d'import (fichier + collage + moteur) ---------- */
+function rbImportHtml(){
+    return '<div class="card" style="background:#fdf6e3; margin-bottom:16px;">'
+        + '<h3 style="margin-top:0;">📥 Importer le relevé bancaire (optionnel)</h3>'
+        + '<p style="font-size:12px; color:#555; margin:0 0 10px;">Deux façons d’importer, au choix — aucune mise en forme à '
+        + 'préparer : <strong>fichier</strong> (CSV ou Excel, pratique au bureau) ou <strong>collage</strong> (copiez les lignes '
+        + 'depuis votre appli bancaire ou Excel et collez-les ci-dessous — fonctionne aussi bien sur mobile, sans passer par le '
+        + 'sélecteur de fichiers). Le fichier doit avoir une ligne d’en-tête (Date, Libellé, Débit/Crédit ou Montant).</p>'
+        + '<div class="form-row" style="align-items:center; gap:14px; flex-wrap:wrap;">'
+        + '<div class="form-group" style="margin:0;"><label>Fichier (.csv, .xlsx, .xls)</label>'
+        + '<input type="file" accept=".csv,.xlsx,.xls" onchange="rbImporterFichier(this)"></div>'
+        + '<div class="form-group" style="margin:0;"><label>Tolérance de rapprochement (jours)</label>'
+        + '<input type="number" id="rb-tolerance-jours" value="5" min="0" max="31" style="width:70px;"></div>'
+        + '<button type="button" class="btn btn-primary" style="background:#8e44ad;" onclick="rbLancerRapprochement()">🤖 Lancer le rapprochement automatique</button>'
+        + '<button type="button" class="btn btn-warning" onclick="rbViderReleve()">🗑 Vider le relevé importé</button>'
+        + '</div>'
+        + '<div class="form-group" style="margin-top:10px;"><label>Ou collez ici le texte du relevé</label>'
+        + '<textarea id="rb-colle-texte" rows="4" style="width:100%; font-family:monospace; font-size:11px;" '
+        + 'placeholder="Date;Libellé;Référence;Débit;Crédit&#10;05/11/2025;VIREMENT CLIENT XYZ;VIR001;;250000&#10;..."></textarea>'
+        + '<button type="button" class="btn btn-primary" style="margin-top:6px;" onclick="rbImporterColle()">📋 Analyser le texte collé</button></div>'
+        + '<div id="rb-import-diagnostic"></div>'
+        + '<textarea id="rb-releve-json" style="display:none;"></textarea>'
+        + '<div class="form-row" style="margin-top:12px; gap:14px; flex-wrap:wrap; font-size:11px; color:#555;">'
+        + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Compte contrepartie — Frais bancaires</label>'
+        + '<input type="text" id="rb-compte-frais" value="631" style="width:70px;"></div>'
+        + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Compte contrepartie — Agios</label>'
+        + '<input type="text" id="rb-compte-agios" value="674" style="width:70px;"></div>'
+        + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Compte contrepartie — Non identifié</label>'
+        + '<input type="text" id="rb-compte-inconnu" value="471" style="width:70px;"></div>'
+        + '</div>'
+        + '</div>';
+}
+function rbAmbigusHtml(){
+    return '<div class="card" id="rb-ambigus-section" style="display:none; background:#fdedec; margin-bottom:16px;">'
+        + '<h3 style="margin-top:0;">⚠️ Doublons ambigus — décision manuelle requise</h3>'
+        + '<p style="font-size:12px; color:#555; margin:0 0 10px;">Ces lignes du relevé ont plusieurs correspondances possibles dans le '
+        + 'Grand Livre (ou une écriture du Grand Livre est candidate pour plusieurs lignes du relevé) : le moteur ne choisit jamais seul '
+        + 'dans ce cas — choisissez la bonne correspondance, ou « Aucune de ces écritures » si aucune ne convient.</p>'
+        + '<div class="scroll-table"><table><thead><tr><th>Mois</th><th>Date relevé</th><th>Libellé relevé</th><th>Montant</th>'
+        + '<th>Correspondance</th><th></th></tr></thead><tbody id="rb-ambigus-corps"></tbody></table></div>'
+        + '</div>';
+}
+function rbManquantesHtml(){
+    return '<div class="card" id="rb-manquantes-section" style="display:none; background:#eafaf1; margin-bottom:16px;">'
+        + '<h3 style="margin-top:0;">➕ Écritures relevé sans correspondance — proposition</h3>'
+        + '<p style="font-size:12px; color:#555; margin:0 0 10px;">Ces lignes du relevé n’ont aucune écriture correspondante dans le '
+        + 'Grand Livre (frais, agios, virement non comptabilisé…). Une écriture en partie double est proposée pour chacune — '
+        + 'vérifiez/corrigez les comptes et le libellé, décochez ce qui ne doit pas être reporté, puis validez.</p>'
+        + '<div class="scroll-table"><table><thead><tr><th>Inclure</th><th>Date</th><th>Libellé relevé</th><th>Montant</th>'
+        + '<th>Catégorie détectée</th><th>Compte banque</th><th>Compte contrepartie</th><th>Libellé compta</th></tr></thead>'
+        + '<tbody id="rb-manquantes-corps"></tbody></table></div>'
+        + '<button type="button" class="btn btn-primary" style="margin-top:10px; background:#27ae60;" onclick="rbReporterEcrituresManquantes()">'
+        + '📤 Reporter les lignes cochées au Grand Livre Bilan</button>'
+        + '</div>';
+}
+
 function rbInstaller(){
     if(typeof TABS !== 'undefined' && !TABS.some(function(t){ return t.id === 'rapprochement-bancaire'; }))
         TABS.push({ id:'rapprochement-bancaire', label:'🏦 Rapprochement Bancaire', phase:2 });
@@ -382,16 +970,20 @@ function rbInstaller(){
           '<div class="card" data-tab="rapprochement-bancaire">'
         + '<h2>🏦 RAPPROCHEMENT BANCAIRE — Novembre / Décembre</h2>'
         + '<div class="alert alert-info">Ce tableau affiche les <strong>montants inscrits en comptabilité</strong> sur le(s) '
-        + 'compte(s) de banque, extraits automatiquement du Grand Livre déjà saisi — il n’y a rien à importer ici. '
-        + 'Prenez votre relevé bancaire papier et cochez « Pointé » à chaque montant que vous y retrouvez : les lignes '
-        + 'cochées passent en grisé, et le <strong>solde des opérations en suspens</strong> vous donne à tout moment le '
-        + 'montant qui reste à justifier. Attention au sens : en comptabilité, un <strong>débit</strong> du compte banque '
-        + 'est un encaissement et un <strong>crédit</strong> un décaissement — l’inverse des colonnes de votre relevé.</div>'
+        + 'compte(s) de banque, extraits automatiquement du Grand Livre déjà saisi. Deux façons de pointer, au choix : à la '
+        + 'main, en cochant chaque montant retrouvé sur votre relevé papier ; ou automatiquement, en important/collant votre '
+        + 'relevé ci-dessous — le moteur rapproche chaque écriture par montant/date, ne coche <strong>jamais</strong> un cas '
+        + 'ambigu tout seul, et propose les écritures manquantes (frais, agios, virements non comptabilisés) prêtes à reporter '
+        + 'dans le Grand Livre. Attention au sens : en comptabilité, un <strong>débit</strong> du compte banque est un '
+        + 'encaissement et un <strong>crédit</strong> un décaissement — l’inverse des colonnes de votre relevé.</div>'
+        + rbImportHtml()
         + '<div class="form-group" style="max-width:340px;"><label>Compte(s) banque (préfixes SYSCOHADA, séparés par une virgule)</label>'
         + '<input type="text" id="rb-comptes-banque" value="52" onchange="rbGenererTout(true)"></div>'
         + RB_MOIS.map(function(info){
             return tfSection(info.nom, rbRendreMois(info), 'rb-sec-' + info.id);
         }).join('')
+        + rbAmbigusHtml()
+        + rbManquantesHtml()
         + rbRecapHtml()
         + '</div>';
         hote.appendChild(d);
@@ -416,6 +1008,10 @@ function rbInstaller(){
     // d'alerte. Si un contenu sauvegardé est restauré ensuite, rbObserverSync
     // rétablit les boutons et rbRecalculerTout remet les totaux à jour.
     rbGenererTout(true);
+    // Ré-affiche les ambigus/manquantes déjà en mémoire (relevé restauré depuis
+    // Firestore) sans relancer le moteur — juste refléter l'état persisté.
+    var etatRestaure = rbChargerEtatReleve();
+    if(etatRestaure && etatRestaure.lignes && etatRestaure.lignes.length) rbLancerRapprochement(true);
 }
 
 // Filet de sécurité, même principe que glAssurerIntegrite (04-grand-livre.js) :
@@ -447,6 +1043,13 @@ function rbObserverSync(){
     var mo = new MutationObserver(function(){
         rbAssurerBoutons();
         rbRecalculerTout();
+        // Une mise à jour distante (un autre collaborateur) remplace tout le
+        // contenu de l'onglet, ambigus/manquantes inclus, par sa version au
+        // moment de SA sauvegarde : on relance le rapprochement localement pour
+        // recalculer ces deux tables contre l'état réel courant plutôt que de
+        // garder tel quel un instantané potentiellement obsolète.
+        var etat = rbChargerEtatReleve();
+        if(etat && etat.lignes && etat.lignes.length) rbLancerRapprochement(true);
     });
     mo.observe(div, { childList:true });
 }

@@ -113,6 +113,18 @@ var SEC_CHAMPS_GL = [
     ['credit',   /^CREDIT$|MONTANTCREDIT/],
     ['compte',   /^N?COMPTE$|NUMCOMPTE|NUMERO/]
 ];
+// Relevé bancaire (onglet Rapprochement Bancaire, 51-rapprochement-bancaire.js) :
+// soit Débit/Crédit séparés (convention du relevé, pas celle de la comptabilité —
+// voir la note de sens dans 51-rapprochement-bancaire.js), soit un Montant unique
+// signé (positif = crédit/encaissement, négatif = débit/décaissement).
+var SEC_CHAMPS_RELEVE = [
+    ['date',     /^DATE/],
+    ['libelle',  /LIBELLE|DESCRIPTION|OPERATION|OBJET|MOTIF/],
+    ['ref',      /^REF|REFERENCE|PIECE|NUMEROPIECE|NUMEROOPERATION/],
+    ['debit',    /^DEBIT$|MONTANTDEBIT|SORTIE/],
+    ['credit',   /^CREDIT$|MONTANTCREDIT|ENTREE/],
+    ['montant',  /^MONTANT$/]
+];
 // Un en-tête ne peut alimenter qu'un seul champ : premier motif prioritaire
 // qui matche gagne la colonne, retirée de la course pour les suivants.
 function secMapperEntetes(definitions, celluleEntetes){
@@ -216,4 +228,54 @@ function secImporterGLFichier(input, kind){
             + (nettoyees ? ', ' + nettoyees + ' ligne(s) de centralisation ont été nettoyées.' : '.'));
     }, function(msg){ secToast('⚠ ' + msg); });
     input.value = '';
+}
+
+/* ---------- Import fichier : Relevé bancaire (CSV ou Excel) ----------
+   Contrairement aux deux imports ci-dessus, celui-ci ne pousse rien
+   directement dans une table de saisie : il renvoie un tableau de lignes
+   de cellules (array de array de chaînes), tel-quel, à
+   rbParserLignesCellules() (51-rapprochement-bancaire.js) qui fait le
+   mapping d'en-têtes et la validation ligne à ligne. La différence CSV/
+   Excel est donc entièrement absorbée ici — le moteur de rapprochement
+   ne sait pas d'où viennent les lignes. */
+var SEC_RELEVE_MAX_OCTETS = 8 * 1024 * 1024; // relevés Excel plus volumineux qu'un CSV de balance
+function secValiderFichierReleve(file){
+    if(!file) return { ok:false, erreur:'Aucun fichier sélectionné.' };
+    if(!/\.(csv|xlsx|xls)$/i.test(file.name || ''))
+        return { ok:false, erreur:'Le fichier doit être un .csv, .xlsx ou .xls.' };
+    if(file.size > SEC_RELEVE_MAX_OCTETS)
+        return { ok:false, erreur:'Fichier trop volumineux (' + (file.size/1024/1024).toFixed(1) + ' Mo) — 8 Mo maximum.' };
+    return { ok:true };
+}
+function secLireReleveFichier(file, onLignes, onErreur){
+    if(/\.(xlsx|xls)$/i.test(file.name || '')){
+        if(typeof XLSX === 'undefined'){
+            onErreur('Le lecteur de fichiers Excel n’a pas fini de charger (connexion lente ou hors ligne) — '
+                + 'réessayez dans quelques secondes, ou utilisez le collage de texte à la place.');
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function(){
+            try{
+                var donnees = new Uint8Array(reader.result);
+                reader = null;
+                var classeur = XLSX.read(donnees, { type:'array', cellDates:false });
+                donnees = null;
+                var feuille = classeur.Sheets[classeur.SheetNames[0]];
+                var lignes = XLSX.utils.sheet_to_json(feuille, { header:1, raw:false, defval:'' });
+                onLignes(lignes);
+            }catch(e){ reader = null; onErreur('Fichier Excel illisible : ' + e.message); }
+        };
+        reader.onerror = function(){ reader = null; onErreur('Lecture du fichier impossible.'); };
+        reader.readAsArrayBuffer(file);
+    } else {
+        secLireFichierTexte(file, function(texte){
+            var brut = texte.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; });
+            texte = null;
+            if(!brut.length){ onErreur('Fichier vide.'); return; }
+            var delim = secDetecterDelimiteur(brut[0]);
+            var lignes = brut.map(function(l){ return secDecouperLigneCSV(l, delim); });
+            onLignes(lignes);
+        }, onErreur);
+    }
 }
