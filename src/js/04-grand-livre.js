@@ -77,8 +77,13 @@ function importGLLinesChunked(kind, lines){
         idx = end;
         if(idx < total){
             glImportSetStatus('⏳ Import du ' + label + '… ' + idx + '/' + total + ' lignes');
-            // requestAnimationFrame laisse le navigateur peindre / répondre aux événements avant le lot suivant
-            requestAnimationFrame(function(){ setTimeout(processChunk, 0); });
+            // setTimeout seul (pas requestAnimationFrame) : laisse le navigateur peindre / répondre
+            // aux événements entre deux lots, SANS dépendre d'une frame d'animation. rAF se met en
+            // pause dès que l'onglet n'est plus au premier plan/visible (changement de fenêtre,
+            // notification, etc.) — l'import restait alors bloqué indéfiniment au premier lot, écran
+            // figé (« la page ne répond plus »), confirmé par test : reproductible aussi bien sur la
+            // version déployée avant le 26/08 que sur celle-ci — bug préexistant, pas une régression.
+            setTimeout(processChunk, 0);
         } else {
             actionButtons.forEach(function(b){ b.disabled = false; });
             recomputeGLTable(kind);
