@@ -67,3 +67,45 @@ test('IMPORT PAR LOTS — un collage de plusieurs milliers de lignes va jusqu’
     assert.equal(w.grandLivreBilanData.length, total);
     d.window.close();
 });
+
+test('IMPORT PAR LOTS — suspend l’auto-sauvegarde pendant l’import puis déclenche une sauvegarde immédiate à la fin', async () => {
+    // Bug réel constaté en production (26/08) : le clic qui lance l'import est lui-même un
+    // clic DANS l'onglet, qui programme une sauvegarde automatique ~1,3s après — bien avant
+    // qu'un gros import ne soit terminé, capturant un tableau à moitié rempli. Vérifie que
+    // l'import suspend bien scheduleSave() pour la durée du traitement par lots, et déclenche
+    // lui-même une sauvegarde COMPLÈTE une fois tous les lots posés.
+    const d = await domPret();
+    const w = d.window;
+    assert.equal(typeof w.SEVEN7_PAUSE_AUTOSAVE, 'function', 'window.SEVEN7_PAUSE_AUTOSAVE doit être exposée');
+    assert.equal(typeof w.SEVEN7_SCHEDULE_SAVE, 'function', 'window.SEVEN7_SCHEDULE_SAVE doit être exposée');
+
+    const appels = [];
+    w.SEVEN7_PAUSE_AUTOSAVE = (tabId, pause) => appels.push(['pause', tabId, pause]);
+    w.SEVEN7_SCHEDULE_SAVE = (tabId, immediate) => appels.push(['save', tabId, immediate]);
+
+    const CHUNK_SIZE = 300;
+    const total = CHUNK_SIZE * 2 + 50;
+    const lignes = [];
+    for(let i = 0; i < total; i++){
+        lignes.push(['5211' + String(1000 + i).padStart(4, '0'), 'BANQUE', '2025-11-05', 'REF' + i, 'E' + i,
+            '', String(1000 + i)].join('\t'));
+    }
+    w.importGLLinesChunked('bilan', lignes);
+
+    // La pause doit être posée SYNCHRONEMENT, avant même le premier lot.
+    assert.deepEqual(appels[0], ['pause', 'gl-bilan', true]);
+
+    const termine = await attendreJusqua(() => appels.some(a => a[0] === 'save'), 15000);
+    assert.ok(termine, 'sauvegarde finale jamais déclenchée après ' + JSON.stringify(appels));
+
+    const leveePause = appels.find(a => a[0] === 'pause' && a[2] === false);
+    const sauvegarde = appels.find(a => a[0] === 'save');
+    assert.ok(leveePause, 'la pause doit être levée à la fin de l’import');
+    assert.equal(sauvegarde[1], 'gl-bilan');
+    assert.equal(sauvegarde[2], true, 'la sauvegarde finale doit être immédiate, pas debounced');
+    // La levée de pause doit précéder (ou coïncider avec) la demande de sauvegarde : sinon
+    // scheduleSave() la trouverait encore active et l’ignorerait silencieusement.
+    assert.ok(appels.indexOf(leveePause) < appels.indexOf(sauvegarde),
+        'la pause doit être levée AVANT de demander la sauvegarde finale');
+    d.window.close();
+});

@@ -130,6 +130,18 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     var isAdmin = false;
     var permData = { admin: null, access: {} };
     var applyingRemote = {};
+    // Bug réel constaté en production (26/08) : cliquer sur « Coller les écritures » d'un
+    // gros Grand Livre (5 000 à 7 000 lignes) est lui-même un clic DANS l'onglet gl-bilan/
+    // gl-gestion — le listener global de clic (plus bas, ~ligne 2397) programme donc une
+    // sauvegarde automatique ~1,3s après CE clic, alors que l'import par lots vient tout
+    // juste de démarrer et tourne encore pendant plusieurs dizaines de secondes. La
+    // sauvegarde se déclenchait alors EN MÊME TEMPS que l'import (freezeDynamicValues +
+    // capture du innerHTML sur un tableau encore à moitié rempli, en pleine croissance) :
+    // les deux se disputaient le même thread, et le tableau capturé était incomplet.
+    // pauseAutosave suspend scheduleSave() pour un onglet précis pendant l'import
+    // (04-grand-livre.js appelle window.SEVEN7_PAUSE_AUTOSAVE), qui déclenche ensuite lui-
+    // même une sauvegarde immédiate une fois TOUS les lots réellement posés.
+    var pauseAutosave = {};
     var saveTimers = {};
     var configReady = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('COLLEZ_') !== 0;
     var originalShowTab = window.showTab;
@@ -2114,9 +2126,15 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
             });
         });
     }
+    // Exposées pour 04-grand-livre.js (importGLLinesChunked) : suspendre l'auto-sauvegarde
+    // pendant un gros import par lots, puis déclencher explicitement une sauvegarde complète
+    // une fois l'import terminé — voir la note sur pauseAutosave plus haut.
+    window.SEVEN7_PAUSE_AUTOSAVE = function(tabId, pause){ pauseAutosave[tabId] = !!pause; };
+    window.SEVEN7_SCHEDULE_SAVE = function(tabId, immediate){ scheduleSave(tabId, immediate); };
+
     function scheduleSave(tabId, immediate){
         if(TAB_SYNC_EXCLUDED.indexOf(tabId) !== -1) return;
-        if(applyingRemote[tabId] || !db || !dossierId) return;
+        if(applyingRemote[tabId] || pauseAutosave[tabId] || !db || !dossierId) return;
         // E3, masquage d'interface (§12 : la vraie barrière est déjà dans
         // firestore.rules — accesPontEcriture refuserait ce même appel côté
         // serveur). Évite juste un aller-retour réseau inutile qui échouerait de

@@ -58,23 +58,44 @@ function importGLLinesChunked(kind, lines){
     var actionButtons = document.querySelectorAll('#'+cfg.containerId+' button, #'+cfg.containerId+' input[type="file"]');
     actionButtons.forEach(function(b){ b.disabled = true; });
     glImportSetStatus('⏳ Import du ' + label + '… 0/' + total + ' lignes');
+    // Le clic qui a déclenché cet import (bouton « Coller »/import fichier) programme lui-même
+    // une sauvegarde automatique ~1,3s plus tard (listener global de clic, 10-config-
+    // collaboration.js) — bien avant qu'un gros import (plusieurs milliers de lignes, plusieurs
+    // dizaines de secondes) ne soit terminé. Sans cette pause, la sauvegarde capturait le
+    // tableau EN PLEINE CROISSANCE, les deux se disputant le même thread (bug réel constaté en
+    // production le 26/08). On suspend donc l'auto-sauvegarde de cet onglet pour la durée de
+    // l'import, et on déclenche nous-mêmes une sauvegarde immédiate une fois tous les lots posés.
+    if(typeof window.SEVEN7_PAUSE_AUTOSAVE === 'function') window.SEVEN7_PAUSE_AUTOSAVE(cfg.containerId, true);
+
+    // Filet de sécurité : si processChunk() échoue de façon inattendue en cours de route,
+    // ne JAMAIS laisser l'auto-sauvegarde suspendue en silence pour cet onglet — mieux vaut
+    // un message d'erreur visible qu'un onglet qui cesse silencieusement de se sauvegarder.
+    function annulerImport(erreur){
+        actionButtons.forEach(function(b){ b.disabled = false; });
+        if(typeof window.SEVEN7_PAUSE_AUTOSAVE === 'function') window.SEVEN7_PAUSE_AUTOSAVE(cfg.containerId, false);
+        glImportSetStatus('❌ Import du ' + label + ' interrompu (' + idx + '/' + total + ' lignes posées) — ' + erreur.message);
+        alert('⚠ L’import du ' + label + ' s’est interrompu après ' + idx + ' ligne(s) sur ' + total
+            + '. Les lignes déjà posées restent affichées ; relancez l’import pour le reste si besoin.\n\n' + erreur.message);
+    }
 
     function processChunk(){
-        var fragment = document.createDocumentFragment();
-        var end = Math.min(idx + CHUNK_SIZE, total);
-        for(var i = idx; i < end; i++){
-            var parts = lines[i].split('\t');
-            var row = {
-                compte:(parts[0]||'').trim(), intitule:(parts[1]||'').trim(), date:(parts[2]||'').trim(),
-                ref:(parts[3]||'').trim(), libelle:(parts[4]||'').trim(), debit:parseNum(parts[5]), credit:parseNum(parts[6])
-            };
-            if(row.compte === '') continue;
-            var tr = document.createElement('tr');
-            tr.innerHTML = glRowHtml(kind, row);
-            fragment.appendChild(tr);
-        }
-        table.appendChild(fragment);
-        idx = end;
+        try{
+            var fragment = document.createDocumentFragment();
+            var end = Math.min(idx + CHUNK_SIZE, total);
+            for(var i = idx; i < end; i++){
+                var parts = lines[i].split('\t');
+                var row = {
+                    compte:(parts[0]||'').trim(), intitule:(parts[1]||'').trim(), date:(parts[2]||'').trim(),
+                    ref:(parts[3]||'').trim(), libelle:(parts[4]||'').trim(), debit:parseNum(parts[5]), credit:parseNum(parts[6])
+                };
+                if(row.compte === '') continue;
+                var tr = document.createElement('tr');
+                tr.innerHTML = glRowHtml(kind, row);
+                fragment.appendChild(tr);
+            }
+            table.appendChild(fragment);
+            idx = end;
+        }catch(erreur){ annulerImport(erreur); return; }
         if(idx < total){
             glImportSetStatus('⏳ Import du ' + label + '… ' + idx + '/' + total + ' lignes');
             // setTimeout seul (pas requestAnimationFrame) : laisse le navigateur peindre / répondre
@@ -89,6 +110,8 @@ function importGLLinesChunked(kind, lines){
             recomputeGLTable(kind);
             var nb = kind === 'bilan' ? grandLivreBilanData.length : grandLivreGestionData.length;
             glImportSetStatus('🟢 ' + label + ' importé (' + nb + ' lignes)');
+            if(typeof window.SEVEN7_PAUSE_AUTOSAVE === 'function') window.SEVEN7_PAUSE_AUTOSAVE(cfg.containerId, false);
+            if(typeof window.SEVEN7_SCHEDULE_SAVE === 'function') window.SEVEN7_SCHEDULE_SAVE(cfg.containerId, true);
         }
     }
     processChunk();
