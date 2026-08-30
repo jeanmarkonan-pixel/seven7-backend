@@ -68,6 +68,21 @@ function formaterTousLesMontants(racine){
     }
 }
 
+/* Suspension globale du balayage automatique. Un gros import par lots
+   (Grand Livre : plusieurs milliers de lignes, chaque lot posé dans un
+   macrotask séparé) déclenche l'observateur ci-dessous à répétition —
+   or formaterTousLesMontants(document) rescanne TOUT le document à chaque
+   passe (querySelectorAll sur des dizaines de milliers de champs), ce qui
+   dégénère en O(n²) et fige l'écran (« la page ne répond plus »), en plus
+   des deux causes déjà corrigées le 26/08 (rAF en arrière-plan, course
+   avec l'auto-sauvegarde). L'importateur suspend donc ce balayage pour la
+   durée du traitement, puis relance un seul passage ciblé sur son tableau.
+   Même principe que window.SEVEN7_PAUSE_AUTOSAVE (10-config-collaboration). */
+var formatMontantsEnPause = false;
+if(typeof window !== 'undefined'){
+    window.SEVEN7_PAUSE_FORMAT_MONTANTS = function(pause){ formatMontantsEnPause = !!pause; };
+}
+
 /* Édition : valeur brute au focus, valeur formatée à la sortie */
 function initFormatageMontants(){
     if(window.__SEVEN7_FMT_INIT) return;
@@ -95,9 +110,12 @@ function initFormatageMontants(){
     if(typeof MutationObserver === 'function'){
         var enAttente = false;
         var obs = new MutationObserver(function(){
-            if(enAttente) return;
+            if(enAttente || formatMontantsEnPause) return;
             enAttente = true;
-            setTimeout(function(){ enAttente = false; formaterTousLesMontants(document); }, 120);
+            setTimeout(function(){
+                enAttente = false;
+                if(!formatMontantsEnPause) formaterTousLesMontants(document);
+            }, 120);
         });
         try{ obs.observe(document.body, {childList:true, subtree:true}); }catch(e){}
     }

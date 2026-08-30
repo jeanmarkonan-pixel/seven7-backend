@@ -68,6 +68,38 @@ test('IMPORT PAR LOTS — un collage de plusieurs milliers de lignes va jusqu’
     d.window.close();
 });
 
+test('IMPORT PAR LOTS — suspend le balayage global de formatage des montants pendant l’import (3e cause du blocage) puis le relance ciblé', async () => {
+    // Bug réel signalé par le cabinet APRÈS les deux premiers correctifs (rAF, auto-sauvegarde) :
+    // l'import d'un gros Grand Livre figeait encore l'écran. Cause : l'observateur global de
+    // 28-format-montants.js rescanne TOUT le document à chaque lot posé (querySelectorAll sur
+    // des dizaines de milliers de champs) — coût O(n²) synchrone. L'import doit suspendre ce
+    // balayage pour sa durée, puis relancer un seul passage ciblé sur son propre tableau.
+    const d = await domPret();
+    const w = d.window;
+    assert.equal(typeof w.SEVEN7_PAUSE_FORMAT_MONTANTS, 'function', 'window.SEVEN7_PAUSE_FORMAT_MONTANTS doit être exposée');
+
+    const appels = [];
+    w.SEVEN7_PAUSE_FORMAT_MONTANTS = (pause) => appels.push(pause);
+
+    const CHUNK_SIZE = 300;
+    const total = CHUNK_SIZE * 2 + 50;
+    const lignes = [];
+    for(let i = 0; i < total; i++){
+        lignes.push(['5211' + String(1000 + i).padStart(4, '0'), 'BANQUE', '2025-11-05', 'REF' + i, 'E' + i,
+            '', String(1000 + i)].join('\t'));
+    }
+    w.importGLLinesChunked('bilan', lignes);
+
+    // La suspension doit être posée SYNCHRONEMENT, avant le premier lot.
+    assert.equal(appels[0], true, 'le balayage global doit être suspendu avant le premier lot');
+
+    const termine = await attendreJusqua(
+        () => w.document.getElementById('collab-status').textContent.indexOf('importé') !== -1, 15000);
+    assert.ok(termine, 'import non terminé — ' + JSON.stringify(appels));
+    assert.equal(appels[appels.length - 1], false, 'le balayage global doit être relancé à la fin de l’import');
+    d.window.close();
+});
+
 test('IMPORT PAR LOTS — suspend l’auto-sauvegarde pendant l’import puis déclenche une sauvegarde immédiate à la fin', async () => {
     // Bug réel constaté en production (26/08) : le clic qui lance l'import est lui-même un
     // clic DANS l'onglet, qui programme une sauvegarde automatique ~1,3s après — bien avant

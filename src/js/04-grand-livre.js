@@ -67,11 +67,25 @@ function importGLLinesChunked(kind, lines){
     // l'import, et on déclenche nous-mêmes une sauvegarde immédiate une fois tous les lots posés.
     if(typeof window.SEVEN7_PAUSE_AUTOSAVE === 'function') window.SEVEN7_PAUSE_AUTOSAVE(cfg.containerId, true);
 
+    // TROISIÈME cause du blocage à l'import d'un gros Grand Livre (les deux premières —
+    // rAF en arrière-plan, course avec l'auto-sauvegarde — ont été corrigées le 26/08,
+    // le cabinet a signalé que ça bloquait toujours) : l'observateur global de
+    // 28-format-montants.js rescanne TOUT le document (querySelectorAll sur des dizaines
+    // de milliers de champs) à chaque lot posé — coût O(n²) purement synchrone. On le
+    // suspend pour la durée de l'import, puis on relance UN seul passage ciblé sur ce
+    // tableau une fois tous les lots en place.
+    if(typeof window.SEVEN7_PAUSE_FORMAT_MONTANTS === 'function') window.SEVEN7_PAUSE_FORMAT_MONTANTS(true);
+    function reprendreFormatMontants(){
+        if(typeof window.SEVEN7_PAUSE_FORMAT_MONTANTS === 'function') window.SEVEN7_PAUSE_FORMAT_MONTANTS(false);
+        if(typeof formaterTousLesMontants === 'function') formaterTousLesMontants(table);
+    }
+
     // Filet de sécurité : si processChunk() échoue de façon inattendue en cours de route,
     // ne JAMAIS laisser l'auto-sauvegarde suspendue en silence pour cet onglet — mieux vaut
     // un message d'erreur visible qu'un onglet qui cesse silencieusement de se sauvegarder.
     function annulerImport(erreur){
         actionButtons.forEach(function(b){ b.disabled = false; });
+        reprendreFormatMontants();
         if(typeof window.SEVEN7_PAUSE_AUTOSAVE === 'function') window.SEVEN7_PAUSE_AUTOSAVE(cfg.containerId, false);
         glImportSetStatus('❌ Import du ' + label + ' interrompu (' + idx + '/' + total + ' lignes posées) — ' + erreur.message);
         alert('⚠ L’import du ' + label + ' s’est interrompu après ' + idx + ' ligne(s) sur ' + total
@@ -108,6 +122,7 @@ function importGLLinesChunked(kind, lines){
         } else {
             actionButtons.forEach(function(b){ b.disabled = false; });
             recomputeGLTable(kind);
+            reprendreFormatMontants();
             var nb = kind === 'bilan' ? grandLivreBilanData.length : grandLivreGestionData.length;
             glImportSetStatus('🟢 ' + label + ' importé (' + nb + ' lignes)');
             if(typeof window.SEVEN7_PAUSE_AUTOSAVE === 'function') window.SEVEN7_PAUSE_AUTOSAVE(cfg.containerId, false);
