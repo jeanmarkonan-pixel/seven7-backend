@@ -16,3 +16,8 @@ dist-vitrine/
 # Sauvegardes de migration : données réelles de cabinets (raison
 # sociale, e-mail de contact) — jamais commitées.
 migration/sauvegardes/*.json
+
+# Clés de compte de service Firebase — JAMAIS commitées.
+*serviceAccount*.json
+*service-account*.json
+migration/*.json
