@@ -82,16 +82,21 @@ async function main(){
         console.error('❌ --quotaAdmins doit être un entier ≥ 1.'); process.exit(1);
     }
 
+    // Mode inspection / ajustement : seul --code est requis.
+    const modeLecture = has('inspecter') || val('definir-quota-admins') !== undefined;
+
     const manquants = [];
     if(!code) manquants.push('--code');
-    if(!raison) manquants.push('--raison');
-    if(!email) manquants.push('--email');
-    if(!nomAdmin) manquants.push('--nomAdmin');
-    if(!planId) manquants.push('--plan');
+    if(!modeLecture){
+        if(!raison) manquants.push('--raison');
+        if(!email) manquants.push('--email');
+        if(!nomAdmin) manquants.push('--nomAdmin');
+        if(!planId) manquants.push('--plan');
+    }
     if(manquants.length){ console.error('❌ Paramètre(s) obligatoire(s) manquant(s) : ' + manquants.join(', ')); process.exit(1); }
 
-    const plan = trouverPlan(planId);
-    if(!plan){ console.error(`❌ Plan "${planId}" inconnu. Choix : ${PLANS.map(p=>p.id).join(', ')}`); process.exit(1); }
+    const plan = modeLecture ? null : trouverPlan(planId);
+    if(!modeLecture && !plan){ console.error(`❌ Plan "${planId}" inconnu. Choix : ${PLANS.map(p=>p.id).join(', ')}`); process.exit(1); }
 
     const app = initApp();
     const db = getFirestore(app);
@@ -103,9 +108,46 @@ async function main(){
     console.log('  Mode : ' + (GO ? '🔴 ÉCRITURE RÉELLE' : '🟡 APERÇU (rien ne sera écrit)'));
     console.log('====================================================================\n');
 
-    // Refus si le cabinet existe déjà
     const existant = await db.doc(`cabinets/${code}`).get();
-    if(existant.exists){ console.error(`❌ cabinets/${code} existe déjà. Choisis un autre --code.`); process.exit(1); }
+
+    // --inspecter : lit et affiche l'état du cabinet existant, n'écrit rien.
+    // --definir-quota-admins N : met à jour UNIQUEMENT quotaAdmins sur un cabinet
+    //   existant (utile si le cabinet a été créé avant l'ajout de ce champ).
+    const nouveauQuotaAdmins = val('definir-quota-admins');
+    if(has('inspecter') || nouveauQuotaAdmins !== undefined){
+        if(!existant.exists){ console.error(`❌ cabinets/${code} n'existe pas.`); process.exit(1); }
+        const d = existant.data() || {};
+        const membres = await db.collection(`cabinets/${code}/membres`).get();
+        let compteAuth = 'absent';
+        try{ const u = await auth.getUserByEmail(emailAuth); compteAuth = 'présent (uid ' + u.uid + ')'; }
+        catch(e){ if(e.code !== 'auth/user-not-found') throw e; }
+        console.log('  cabinets/' + code + ' :');
+        console.log('    raisonSociale   : ' + d.raisonSociale);
+        console.log('    plan            : ' + d.plan + '   statut : ' + d.statut);
+        console.log('    quotaAdmins     : ' + (d.quotaAdmins === undefined ? '(non défini → illimité)' : d.quotaAdmins));
+        console.log('    adminPrincipal  : ' + d.adminPrincipalUid);
+        console.log('    compte Auth     : ' + emailAuth + ' — ' + compteAuth);
+        const roles = [];
+        membres.forEach(m => roles.push((m.data()||{}).role + ' ' + ((m.data()||{}).nom || m.id)));
+        console.log('    membres (' + membres.size + ') : ' + (roles.join(', ') || '—'));
+
+        if(nouveauQuotaAdmins !== undefined){
+            const n = parseInt(nouveauQuotaAdmins, 10);
+            if(!Number.isFinite(n) || n < 1){ console.error('\n❌ --definir-quota-admins doit être un entier ≥ 1.'); process.exit(1); }
+            const nbAdminsActuels = roles.filter(r => r.startsWith('ADMIN')).length;
+            if(n < nbAdminsActuels){
+                console.error(`\n❌ Le cabinet a déjà ${nbAdminsActuels} administrateurs — impossible de fixer le plafond à ${n}. Rétrograde d'abord.`);
+                process.exit(1);
+            }
+            if(!GO){ console.log(`\n🟡 Aperçu — relance avec --go pour écrire quotaAdmins = ${n}.`); process.exit(0); }
+            await db.doc(`cabinets/${code}`).update({ quotaAdmins: n });
+            console.log(`\n  ✅ cabinets/${code}.quotaAdmins = ${n}`);
+        }
+        process.exit(0);
+    }
+
+    // Refus si le cabinet existe déjà (création)
+    if(existant.exists){ console.error(`❌ cabinets/${code} existe déjà. --inspecter pour voir son état, ou --definir-quota-admins N pour ajuster le plafond.`); process.exit(1); }
 
     // Compte Auth admin : déjà là ?
     let uidAdmin = null, compteExiste = false;
