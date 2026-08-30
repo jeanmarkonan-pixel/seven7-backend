@@ -37,7 +37,7 @@ import path from 'node:path';
 import { initializeApp, cert, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import { PLANS, trouverPlan } from './plans.mjs';
+import { PLANS, trouverPlan, SEUIL_ILLIMITE } from './plans.mjs';
 import { membreAdmin } from './migrer-cabinet.mjs';
 
 const PROJECT_ID = 'seven7-audit';
@@ -72,6 +72,15 @@ async function main(){
     const planId = String(val('plan') || '').toUpperCase();
     const telephone = val('telephone') || null;
     const motDePasse = val('motDePasseAdmin');
+    // Plafond d'administrateurs pour ce cabinet. Absent => illimité (SEUIL_ILLIMITE,
+    // même convention que les quotas de /plans). Appliqué par l'écran Équipe
+    // (src/js/10-config-collaboration.js) : les règles Firestore ne savent pas
+    // compter les documents d'une sous-collection, ce plafond est donc une règle
+    // métier côté application, pas une barrière de sécurité.
+    const quotaAdmins = val('quotaAdmins') !== undefined ? parseInt(val('quotaAdmins'), 10) : SEUIL_ILLIMITE;
+    if(!Number.isFinite(quotaAdmins) || quotaAdmins < 1){
+        console.error('❌ --quotaAdmins doit être un entier ≥ 1.'); process.exit(1);
+    }
 
     const manquants = [];
     if(!code) manquants.push('--code');
@@ -107,6 +116,7 @@ async function main(){
     console.log('  Admin        : ' + nomAdmin + '  <' + email + '>' + (telephone ? '  tél ' + telephone : ''));
     console.log('  Connexion    : code «' + code + '»  (e-mail interne ' + emailAuth + ')');
     console.log('  Plan         : ' + plan.id + '  — ' + plan.quotaDossiers + ' dossiers, ' + plan.quotaCollaborateurs + ' collaborateurs');
+    console.log('  Admins max   : ' + (quotaAdmins >= SEUIL_ILLIMITE ? 'illimité' : quotaAdmins));
     console.log('  Compte Auth  : ' + (compteExiste ? 'existe déjà (uid ' + uidAdmin + ') — réutilisé'
         : (motDePasse ? 'à créer avec le mot de passe fourni' : '❌ à créer mais --motDePasseAdmin absent')));
     console.log('');
@@ -149,6 +159,7 @@ async function main(){
         dateFin: null,
         statut: 'ACTIF',
         adminPrincipalUid: uidAdmin,
+        quotaAdmins: quotaAdmins,
         createdAt: maintenant,
         creeManuellement: true,
     };

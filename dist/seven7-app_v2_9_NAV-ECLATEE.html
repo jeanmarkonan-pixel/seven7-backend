@@ -472,6 +472,7 @@
 
             <p id="cabinet-equipe-erreur" style="color:#c0392b; font-size:12px; margin:0 0 10px; display:none;"></p>
             <p id="cabinet-equipe-succes" style="color:#1e7a4c; font-size:12px; margin:0 0 10px; display:none;"></p>
+            <p id="cabinet-equipe-quota-admins" style="font-size:11px; color:#888; margin:0 0 10px;"></p>
 
             <div id="cabinet-equipe-liste" style="margin-bottom:16px;">
                 <p style="font-size:12px; color:#888;">Chargement de l'équipe…</p>
@@ -8610,6 +8611,7 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
     // une SECONDE app Firebase, isolée, dont la session ne touche jamais celle
     // de l'app principale : c'est elle qui crée le compte, puis se ferme.
     var cabinetEquipeCode = null;
+    var cabinetEquipeQuotaAdmins = 9999; // plafond d'admins du cabinet ouvert dans l'écran Équipe
 
     window.cabinetOuvrirGestionEquipe = function(code){
         cabinetEquipeCode = code;
@@ -8630,9 +8632,17 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         Promise.all([
             db.collection('cabinets').doc(code).collection('membres').get(),
             db.collection('cabinets').doc(code).collection('dossiers').get(),
+            db.collection('cabinets').doc(code).get(),
         ]).then(function(res){
-            var membresSnap = res[0], dossiersSnap = res[1];
-            trackReads(membresSnap.size + dossiersSnap.size);
+            var membresSnap = res[0], dossiersSnap = res[1], cabinetDoc = res[2];
+            trackReads(membresSnap.size + dossiersSnap.size + 1);
+            // quotaAdmins : plafond métier d'administrateurs pour ce cabinet (posé à
+            // la création — creer-cabinet.mjs). Absent sur les cabinets plus anciens
+            // => illimité. Appliqué ici seulement : les règles Firestore ne comptent
+            // pas les documents d'une sous-collection.
+            var cabinetData = cabinetDoc.exists ? (cabinetDoc.data() || {}) : {};
+            cabinetEquipeQuotaAdmins = (typeof cabinetData.quotaAdmins === 'number' && cabinetData.quotaAdmins > 0)
+                ? cabinetData.quotaAdmins : 9999;
             var dossiers = [];
             dossiersSnap.forEach(function(d){ dossiers.push({ id: d.id, intitule: (d.data() || {}).intitule || d.id }); });
             dossiers.sort(function(a, b){ return String(a.intitule).localeCompare(String(b.intitule)); });
@@ -8649,6 +8659,13 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
                 return;
             }
             var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;'); };
+            var nbAdmins = membres.filter(function(m){ return m.role === 'ADMIN'; }).length;
+            var plafondAdminsAtteint = nbAdmins >= cabinetEquipeQuotaAdmins;
+            if(cabinetEquipeQuotaAdmins < 9999){
+                var infoEl = document.getElementById('cabinet-equipe-quota-admins');
+                if(infoEl) infoEl.textContent = 'Administrateurs : ' + nbAdmins + ' / ' + cabinetEquipeQuotaAdmins
+                    + (plafondAdminsAtteint ? ' — plafond atteint' : '');
+            }
             listeEl.innerHTML = membres.map(function(m){
                 var soi = (m.uid === firebase.auth().currentUser.uid);
                 var affectes = Array.isArray(m.dossiersAffectes) ? m.dossiersAffectes : [];
@@ -8665,10 +8682,18 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
 
                 // Un cabinet peut avoir plusieurs admins (voir cabinetChangerRoleMembre) —
                 // jamais sur soi-même, la règle Firestore le refuserait de toute façon.
-                var roleBtn = soi ? ''
-                    : '<button type="button" class="btn" style="font-size:11px; padding:3px 8px; margin-left:6px;" '
-                    + 'onclick="cabinetChangerRoleMembre(\'' + esc(m.uid) + '\', \'' + (m.role === 'ADMIN' ? 'COLLABORATEUR' : 'ADMIN') + '\')">'
-                    + (m.role === 'ADMIN' ? 'Rétrograder en collaborateur' : 'Promouvoir administrateur') + '</button>';
+                // Le plafond quotaAdmins bloque la promotion (jamais la rétrogradation).
+                var roleBtn;
+                if(soi){
+                    roleBtn = '';
+                }else if(m.role !== 'ADMIN' && plafondAdminsAtteint){
+                    roleBtn = '<button type="button" class="btn" disabled title="Plafond d\'administrateurs atteint pour ce cabinet (' + cabinetEquipeQuotaAdmins + ')." '
+                        + 'style="font-size:11px; padding:3px 8px; margin-left:6px; opacity:.5; cursor:not-allowed;">Promouvoir administrateur</button>';
+                }else{
+                    roleBtn = '<button type="button" class="btn" style="font-size:11px; padding:3px 8px; margin-left:6px;" '
+                        + 'onclick="cabinetChangerRoleMembre(\'' + esc(m.uid) + '\', \'' + (m.role === 'ADMIN' ? 'COLLABORATEUR' : 'ADMIN') + '\')">'
+                        + (m.role === 'ADMIN' ? 'Rétrograder en collaborateur' : 'Promouvoir administrateur') + '</button>';
+                }
 
                 var dossiersHtml = (m.role === 'ADMIN')
                     ? '<div style="font-size:11px; color:#888; margin-top:6px;">Accède à tous les dossiers du cabinet.</div>'
@@ -8727,19 +8752,34 @@ var TAB_SYNC_EXCLUDED = ['messagerie'];
         var erreurEl = document.getElementById('cabinet-equipe-erreur');
         var succesEl = document.getElementById('cabinet-equipe-succes');
         erreurEl.style.display = 'none'; succesEl.style.display = 'none';
-        db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').doc(uid)
-            .update({ role: nouveauRole })
-            .then(function(){
-                succesEl.textContent = nouveauRole === 'ADMIN'
-                    ? '✅ Ce membre est maintenant administrateur.'
-                    : '✅ Ce membre est redevenu collaborateur.';
-                succesEl.style.display = 'block';
-                cabinetRafraichirEquipe();
-            })
-            .catch(function(err){
-                erreurEl.textContent = 'Impossible de changer ce rôle : ' + (err && err.message ? err.message : err);
-                erreurEl.style.display = 'block';
-            });
+
+        // Plafond d'administrateurs : re-vérifié en base au moment de l'action
+        // (le bouton pouvait être affiché avant qu'un autre admin ne promeuve
+        // quelqu'un). Ne concerne que la PROMOTION — rétrograder reste possible.
+        var garde = (nouveauRole === 'ADMIN' && cabinetEquipeQuotaAdmins < 9999)
+            ? db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').where('role', '==', 'ADMIN').get()
+                .then(function(snap){
+                    trackReads(Math.max(1, snap.size));
+                    if(snap.size >= cabinetEquipeQuotaAdmins){
+                        throw new Error('Plafond d\'administrateurs atteint pour ce cabinet ('
+                            + cabinetEquipeQuotaAdmins + '). Rétrogradez d\'abord un administrateur.');
+                    }
+                })
+            : Promise.resolve();
+
+        garde.then(function(){
+            return db.collection('cabinets').doc(cabinetEquipeCode).collection('membres').doc(uid)
+                .update({ role: nouveauRole });
+        }).then(function(){
+            succesEl.textContent = nouveauRole === 'ADMIN'
+                ? '✅ Ce membre est maintenant administrateur.'
+                : '✅ Ce membre est redevenu collaborateur.';
+            succesEl.style.display = 'block';
+            cabinetRafraichirEquipe();
+        }).catch(function(err){
+            erreurEl.textContent = 'Impossible de changer ce rôle : ' + (err && err.message ? err.message : err);
+            erreurEl.style.display = 'block';
+        });
     };
 
     window.cabinetSauvegarderAffectations = function(uid){
