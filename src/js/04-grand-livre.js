@@ -48,6 +48,24 @@ function glImportSetStatus(txt){
     var el = document.getElementById('collab-status');
     if(el) el.textContent = txt;
 }
+// Normalise une date d'écriture vers le format ISO AAAA-MM-JJ attendu par
+// <input type="date"> : un collage depuis Excel arrive en JJ/MM/AAAA (ou
+// JJ/MM/AA, ou en numéro de série Excel). Sans conversion, l'<input type="date">
+// REJETTE silencieusement la valeur et s'affiche vide — et le rapprochement
+// bancaire, qui filtre les écritures par mois, ne voit alors AUCUNE opération
+// (bug production : « pas d'opérations en novembre/décembre »). rbParserDate
+// (51-rapprochement-bancaire.js) sait déjà faire ces conversions ; on la
+// réutilise, avec repli sur la valeur brute si elle est absente ou ne
+// reconnaît pas le format (la case restera vide, mais rien n'est inventé).
+function glNormaliserDate(brut){
+    var s = (brut == null ? '' : String(brut)).trim();
+    if(s === '') return '';
+    if(typeof rbParserDate === 'function'){
+        var iso = rbParserDate(s);
+        if(iso) return iso;
+    }
+    return s;
+}
 function importGLLinesChunked(kind, lines){
     var cfg = GL_TABLES[kind];
     var label = kind === 'bilan' ? 'GL Bilan' : 'GL Gestion';
@@ -55,6 +73,7 @@ function importGLLinesChunked(kind, lines){
     var total = lines.length;
     var CHUNK_SIZE = 300;
     var idx = 0;
+    var datesNonReconnues = 0;
     var actionButtons = document.querySelectorAll('#'+cfg.containerId+' button, #'+cfg.containerId+' input[type="file"]');
     actionButtons.forEach(function(b){ b.disabled = true; });
     glImportSetStatus('⏳ Import du ' + label + '… 0/' + total + ' lignes');
@@ -98,8 +117,11 @@ function importGLLinesChunked(kind, lines){
             var end = Math.min(idx + CHUNK_SIZE, total);
             for(var i = idx; i < end; i++){
                 var parts = lines[i].split('\t');
+                var dateBrute = (parts[2]||'').trim();
+                var dateISO = glNormaliserDate(dateBrute);
+                if(dateBrute !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) datesNonReconnues++;
                 var row = {
-                    compte:(parts[0]||'').trim(), intitule:(parts[1]||'').trim(), date:(parts[2]||'').trim(),
+                    compte:(parts[0]||'').trim(), intitule:(parts[1]||'').trim(), date:dateISO,
                     ref:(parts[3]||'').trim(), libelle:(parts[4]||'').trim(), debit:parseNum(parts[5]), credit:parseNum(parts[6])
                 };
                 if(row.compte === '') continue;
@@ -124,7 +146,13 @@ function importGLLinesChunked(kind, lines){
             recomputeGLTable(kind);
             reprendreFormatMontants();
             var nb = kind === 'bilan' ? grandLivreBilanData.length : grandLivreGestionData.length;
-            glImportSetStatus('🟢 ' + label + ' importé (' + nb + ' lignes)');
+            glImportSetStatus('🟢 ' + label + ' importé (' + nb + ' lignes)'
+                + (datesNonReconnues ? ' — ⚠ ' + datesNonReconnues + ' date(s) non reconnue(s), format attendu JJ/MM/AAAA' : ''));
+            if(datesNonReconnues){
+                alert('⚠ ' + datesNonReconnues + ' ligne(s) du ' + label + ' ont une date dans un format non reconnu '
+                    + '(la colonne date attend JJ/MM/AAAA ou AAAA-MM-JJ). Ces écritures sont importées mais SANS date : '
+                    + 'elles n’apparaîtront pas dans le rapprochement bancaire par mois tant que leur date n’est pas corrigée.');
+            }
             if(typeof window.SEVEN7_PAUSE_AUTOSAVE === 'function') window.SEVEN7_PAUSE_AUTOSAVE(cfg.containerId, false);
             if(typeof window.SEVEN7_SCHEDULE_SAVE === 'function') window.SEVEN7_SCHEDULE_SAVE(cfg.containerId, true);
         }

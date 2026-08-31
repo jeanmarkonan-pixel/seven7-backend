@@ -68,6 +68,31 @@ test('IMPORT PAR LOTS — un collage de plusieurs milliers de lignes va jusqu’
     d.window.close();
 });
 
+test('IMPORT — les dates JJ/MM/AAAA (collage Excel) sont converties en AAAA-MM-JJ, sinon le rapprochement ne voit aucune opération', async () => {
+    // Bug production : un collage depuis Excel arrive avec des dates JJ/MM/AAAA.
+    // <input type="date"> rejette ce format et s'affiche vide → grandLivreBilanData
+    // porte des dates vides → le rapprochement bancaire par mois ne trouve aucune
+    // écriture (« pas d'opérations en novembre/décembre »).
+    const d = await domPret();
+    const w = d.window;
+    const lignes = [
+        ['52110001', 'BANQUE', '05/11/2025', 'R1', 'Encaissement', '', '150000'],
+        ['52110001', 'BANQUE', '12/12/2025', 'R2', 'Frais', '2500', ''],
+        ['52110001', 'BANQUE', '2025-12-20', 'R3', 'Déjà ISO', '', '9000'],
+    ].map(r => r.join('\t'));
+    w.document.getElementById('paste-gl-bilan').value = lignes.join('\n');
+    w.pasteGLTable('bilan');
+
+    const termine = await attendreJusqua(
+        () => w.document.getElementById('collab-status').textContent.indexOf('importé') !== -1, 15000);
+    assert.ok(termine, 'import non terminé');
+    // Array.from : rapatrie le tableau depuis la realm JSDOM (sinon deepStrictEqual
+    // echoue sur l'identite du prototype Array, pas sur le contenu).
+    const dates = Array.from(w.grandLivreBilanData).map(r => String(r.date)).sort();
+    assert.deepEqual(dates, ['2025-11-05', '2025-12-12', '2025-12-20']);
+    d.window.close();
+});
+
 test('IMPORT PAR LOTS — suspend le balayage global de formatage des montants pendant l’import (3e cause du blocage) puis le relance ciblé', async () => {
     // Bug réel signalé par le cabinet APRÈS les deux premiers correctifs (rAF, auto-sauvegarde) :
     // l'import d'un gros Grand Livre figeait encore l'écran. Cause : l'observateur global de
