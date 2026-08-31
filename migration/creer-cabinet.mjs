@@ -83,7 +83,7 @@ async function main(){
     }
 
     // Mode inspection / ajustement : seul --code est requis.
-    const modeLecture = has('inspecter') || val('definir-quota-admins') !== undefined;
+    const modeLecture = has('inspecter') || val('definir-quota-admins') !== undefined || val('reinit-mot-de-passe') !== undefined;
 
     const manquants = [];
     if(!code) manquants.push('--code');
@@ -114,12 +114,13 @@ async function main(){
     // --definir-quota-admins N : met à jour UNIQUEMENT quotaAdmins sur un cabinet
     //   existant (utile si le cabinet a été créé avant l'ajout de ce champ).
     const nouveauQuotaAdmins = val('definir-quota-admins');
-    if(has('inspecter') || nouveauQuotaAdmins !== undefined){
+    const nouveauMotDePasse = val('reinit-mot-de-passe');
+    if(has('inspecter') || nouveauQuotaAdmins !== undefined || nouveauMotDePasse !== undefined){
         if(!existant.exists){ console.error(`❌ cabinets/${code} n'existe pas.`); process.exit(1); }
         const d = existant.data() || {};
         const membres = await db.collection(`cabinets/${code}/membres`).get();
-        let compteAuth = 'absent';
-        try{ const u = await auth.getUserByEmail(emailAuth); compteAuth = 'présent (uid ' + u.uid + ')'; }
+        let compteAuth = 'absent', uidCompte = null;
+        try{ const u = await auth.getUserByEmail(emailAuth); uidCompte = u.uid; compteAuth = 'présent (uid ' + u.uid + ')'; }
         catch(e){ if(e.code !== 'auth/user-not-found') throw e; }
         console.log('  cabinets/' + code + ' :');
         console.log('    raisonSociale   : ' + d.raisonSociale);
@@ -142,6 +143,16 @@ async function main(){
             if(!GO){ console.log(`\n🟡 Aperçu — relance avec --go pour écrire quotaAdmins = ${n}.`); process.exit(0); }
             await db.doc(`cabinets/${code}`).update({ quotaAdmins: n });
             console.log(`\n  ✅ cabinets/${code}.quotaAdmins = ${n}`);
+        }
+
+        if(nouveauMotDePasse !== undefined){
+            if(typeof nouveauMotDePasse !== 'string' || nouveauMotDePasse.length < 6){
+                console.error('\n❌ --reinit-mot-de-passe : au moins 6 caractères (contrainte Firebase).'); process.exit(1);
+            }
+            if(!uidCompte){ console.error(`\n❌ Aucun compte Auth ${emailAuth} à réinitialiser.`); process.exit(1); }
+            if(!GO){ console.log(`\n🟡 Aperçu — relance avec --go pour redéfinir le mot de passe de ${emailAuth}.`); process.exit(0); }
+            await auth.updateUser(uidCompte, { password: nouveauMotDePasse });
+            console.log(`\n  ✅ mot de passe redéfini pour ${emailAuth} — connexion : code «${code}» + ce mot de passe.`);
         }
         process.exit(0);
     }
