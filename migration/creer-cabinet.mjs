@@ -84,15 +84,27 @@ async function main(){
 
     // Mode inspection / ajustement : seul --code est requis.
     const modeLecture = has('inspecter') || val('definir-quota-admins') !== undefined || val('reinit-mot-de-passe') !== undefined;
+    // --creer-doc-ancien : écrit le document seven7_cabinets/{code} de l'ANCIEN modèle,
+    //   en plus (ou indépendamment) du nouveau. Nécessaire aujourd'hui : l'écran
+    //   « créer un nouveau dossier » (prénom / avatar / code cabinet / nom du dossier)
+    //   valide le code contre seven7_cabinets/{code}, PAS contre cabinets/{code}. Sans
+    //   ce document, un cabinet du nouveau modèle ne peut créer aucun dossier via
+    //   l'interface (le nouveau tableau de bord ne propose que la liaison d'un dossier
+    //   existant). Requiert --code et --plan ; --raison sert de cabinetName si fourni.
+    // --creer-doc-ancien est un mode autonome : il écrit seven7_cabinets/{code} et rien
+    // d'autre (ne recrée pas le cabinet du nouveau modèle). --raison, si fourni, sert de
+    // cabinetName.
+    const modeDocAncienSeul = has('creer-doc-ancien') && !modeLecture;
 
     const manquants = [];
     if(!code) manquants.push('--code');
-    if(!modeLecture){
+    if(!modeLecture && !modeDocAncienSeul){
         if(!raison) manquants.push('--raison');
         if(!email) manquants.push('--email');
         if(!nomAdmin) manquants.push('--nomAdmin');
         if(!planId) manquants.push('--plan');
     }
+    if(modeDocAncienSeul && !planId) manquants.push('--plan (détermine le plafond de dossiers)');
     if(manquants.length){ console.error('❌ Paramètre(s) obligatoire(s) manquant(s) : ' + manquants.join(', ')); process.exit(1); }
 
     const plan = modeLecture ? null : trouverPlan(planId);
@@ -107,6 +119,34 @@ async function main(){
     console.log('  SEVEN7 — Création de cabinet   (projet : ' + PROJECT_ID + ')');
     console.log('  Mode : ' + (GO ? '🔴 ÉCRITURE RÉELLE' : '🟡 APERÇU (rien ne sera écrit)'));
     console.log('====================================================================\n');
+
+    // --- Document ancien modèle seven7_cabinets/{code} ---
+    async function ecrireDocAncien(){
+        const ref = db.doc(`seven7_cabinets/${code}`);
+        const snap = await ref.get();
+        const plafond = plan.quotaDossiers; // même plafond que le palier du nouveau modèle
+        if(snap.exists){
+            const d = snap.data() || {};
+            console.log(`  seven7_cabinets/${code} existe déjà — palier ${d.palier}, ${d.dossiersCreesAnnee || 0}/${d.plafondDossiers} dossiers. Inchangé.`);
+            return;
+        }
+        if(!GO){ console.log(`  🟡 seven7_cabinets/${code} serait créé — palier ${plan.id}, plafond ${plafond}, 0 dossier.`); return; }
+        await ref.set({
+            palier: plan.id,
+            plafondDossiers: plafond,
+            dossiersCreesAnnee: 0,
+            cabinetName: raison || code,
+            creeManuellement: true,
+        });
+        console.log(`  ✅ seven7_cabinets/${code} créé — palier ${plan.id}, plafond ${plafond}.`);
+    }
+
+    if(modeDocAncienSeul){
+        console.log('  Mode : document ANCIEN modèle uniquement (seven7_cabinets/' + code + ')\n');
+        await ecrireDocAncien();
+        console.log('\n' + (GO ? '✅ Terminé.' : '🟡 Aperçu terminé — ajoute --go pour écrire.'));
+        process.exit(0);
+    }
 
     const existant = await db.doc(`cabinets/${code}`).get();
 
@@ -224,6 +264,8 @@ async function main(){
     console.log('  ✅ cabinets/' + code + '/membres/' + uidAdmin + ' — role ADMIN');
 
     console.log('\n✅ Cabinet créé.');
+    console.log('   ⚠️  Pour créer des dossiers via l\'interface, ajoute aussi le document');
+    console.log('   ancien modèle : relance avec --code ' + code + ' --plan ' + plan.id + ' --creer-doc-ancien --go');
     console.log('   À transmettre au cabinet : le CODE «' + code + '»');
     console.log('   Mot de passe provisoire : par un canal séparé. À changer à la 1re connexion.');
     process.exit(0);
