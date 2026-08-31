@@ -1,14 +1,15 @@
 /* ==================================================================
    RAPPROCHEMENT BANCAIRE — intégration DOM (import → rapprochement →
-   report au Grand Livre)
+   tableau unique côte à côte → report au Grand Livre)
 
    Le moteur pur (parsing, matching, proposition) est couvert sans DOM
    dans rapprochement-bancaire.test.js. Ici, on vérifie le CÂBLAGE réel :
-   l'import peuple l'état persistant, le rapprochement coche les bonnes
-   cases dans le tableau affiché, les cas ambigus/manquants sont bien
-   rendus, et le report d'une écriture manquante passe RÉELLEMENT par le
-   circuit d'import du Grand Livre (paste-gl-bilan + pasteGLTable), pas
-   par une écriture directe dans grandLivreBilanData.
+   l'import peuple l'état persistant, le rapprochement remplit le tableau
+   « Résultat » (une ligne par paire GL/relevé + non rapprochées des deux
+   côtés), les cas ambigus sont rendus pour arbitrage manuel, et le report
+   d'une écriture manquante passe RÉELLEMENT par le circuit d'import du
+   Grand Livre (paste-gl-bilan + pasteGLTable), pas par une écriture
+   directe dans grandLivreBilanData.
    ================================================================== */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,85 +34,80 @@ async function domPret(){
     w.rbInstaller();
     return d;
 }
+function etatDe(w){ return JSON.parse(w.document.getElementById('rb-releve-json').value); }
 
-test('INSTALLATION — les blocs import/ambigus/manquantes sont posés une seule fois', async () => {
+test('INSTALLATION — les blocs (période, import, ambigus, résultat, manquantes) sont posés une seule fois', async () => {
     const d = await domPret();
     const w = d.window;
     w.rbInstaller();
     w.rbInstaller();
-    assert.equal(w.document.querySelectorAll('#rapprochement-bancaire .card').length,
-        w.document.querySelectorAll('#rapprochement-bancaire .card').length, 'pas de crash à réinstaller');
+    assert.ok(w.document.getElementById('rb-date-du'), 'sélecteur de période absent');
     assert.ok(w.document.getElementById('rb-import-diagnostic'), 'zone de diagnostic import absente');
     assert.ok(w.document.getElementById('rb-releve-json'), 'état persistant du relevé absent');
+    assert.ok(w.document.getElementById('rb-resultat-corps'), 'tableau résultat absent');
     assert.ok(w.document.getElementById('rb-ambigus-section'), 'section doublons ambigus absente');
     assert.ok(w.document.getElementById('rb-manquantes-section'), 'section écritures manquantes absente');
+    assert.equal(w.document.querySelectorAll('#rb-releve-json').length, 1, 'état persistant dupliqué');
     assert.equal(w.document.getElementById('rb-ambigus-section').style.display, 'none', 'masquée tant que rien n’est ambigu');
     assert.equal(w.document.getElementById('rb-manquantes-section').style.display, 'none', 'masquée tant que rien ne manque');
     d.window.close();
 });
 
-test('IMPORT + RAPPROCHEMENT — une ligne sans ambiguïté est cochée automatiquement et badgée 🤖', async () => {
+test('IMPORT + RAPPROCHEMENT — une ligne sans ambiguïté apparaît comme paire GL/relevé dans le tableau résultat', async () => {
     const d = await domPret();
     const w = d.window;
     w.grandLivreBilanData = [
-        { compte:'521100', intitule:'BANQUE', date:'2025-11-06', ref:'', libelle:'Vir client', debit:250000, credit:0 },
+        { compte:'521100', intitule:'BANQUE', date:'2025-11-06', ref:'FAC1', libelle:'Vir client SCI', debit:250000, credit:0 },
     ];
-    w.rbGenererTout(true);
-
     const cellules = [
         ['Date', 'Libellé', 'Référence', 'Débit', 'Crédit'],
-        ['05/11/2025', 'VIREMENT CLIENT', 'VIR001', '', '250000'],
+        ['05/11/2025', 'VIR RECU SCI', 'FAC1', '', '250000'],
     ];
     w.rbTraiterLignesImportees(cellules, 'test.csv');
 
-    const corps = w.document.getElementById('rb-table-nov');
-    const cb = corps.querySelector('.rb-pointe');
-    assert.ok(cb, 'ligne GL absente du tableau novembre');
-    assert.equal(cb.checked, true, 'la correspondance non ambiguë doit être cochée automatiquement');
-    assert.equal(cb.getAttribute('data-origine'), 'auto');
-
-    const etat = JSON.parse(w.document.getElementById('rb-releve-json').value);
+    const etat = etatDe(w);
     assert.equal(etat.lignes.length, 1);
-    assert.equal(etat.lignes[0].traite, true, 'la ligne de relevé rapprochée doit être marquée traitée');
+    assert.equal(etat.lignes[0].statut, 'auto', 'correspondance mutuellement unique => statut auto');
+    assert.equal(etat.lignes[0].matchClef, w.rbClefLigne(w.grandLivreBilanData[0]));
+
+    const corps = w.document.getElementById('rb-resultat-corps');
+    assert.equal(corps.querySelectorAll('tr').length, 1, 'une seule ligne dans le résultat');
+    assert.ok(corps.textContent.includes('Vir client SCI'), 'libellé GL absent de la ligne');
+    assert.ok(corps.textContent.includes('VIR RECU SCI'), 'libellé relevé absent de la ligne');
+    assert.equal(w.document.getElementById('rb-res-tot-ecart').textContent.replace(/\s| /g, ''), '0', 'écart total nul attendu');
     d.window.close();
 });
 
-test('IMPORT + RAPPROCHEMENT — deux candidats au même montant : rien coché seul, résolution manuelle possible', async () => {
+test('RAPPROCHEMENT — deux candidats au même montant : rien rapproché seul, arbitrage manuel puis paire dans le résultat', async () => {
     const d = await domPret();
     const w = d.window;
     w.grandLivreBilanData = [
         { compte:'521100', intitule:'BANQUE', date:'2025-11-04', ref:'', libelle:'Paiement A', debit:100000, credit:0 },
         { compte:'521100', intitule:'BANQUE', date:'2025-11-06', ref:'', libelle:'Paiement B', debit:100000, credit:0 },
     ];
-    w.rbGenererTout(true);
-
     const cellules = [
         ['Date', 'Libellé', 'Montant'],
         ['05/11/2025', 'ENCAISSEMENT X', '100000'],
     ];
     w.rbTraiterLignesImportees(cellules, 'test.csv');
 
-    const corps = w.document.getElementById('rb-table-nov');
-    const cases = Array.from(corps.querySelectorAll('.rb-pointe'));
-    assert.ok(cases.every(c => !c.checked), 'aucune case ne doit être cochée toute seule en cas d’ambiguïté');
-
+    assert.equal(etatDe(w).lignes[0].statut, undefined, 'aucun statut posé seul en cas d’ambiguïté');
     const section = w.document.getElementById('rb-ambigus-section');
     assert.notEqual(section.style.display, 'none', 'la section ambigus doit être visible');
     const select = w.document.getElementById('rb-ambigus-corps').querySelector('select');
     assert.ok(select, 'sélecteur de résolution manuelle absent');
     assert.equal(select.querySelectorAll('option').length, 4, '2 candidats + "Choisir" + "Aucune"');
 
-    // Résolution manuelle : l'auditeur choisit le premier candidat proposé (l'option
-    // porte la clef stable de l'écriture GL, pas un simple indice — voir rbRendreAmbigus).
-    const premiereOption = Array.from(select.querySelectorAll('option')).find(o => o.value && o.value !== 'aucune');
-    assert.ok(premiereOption, 'aucune option de candidat dans le sélecteur');
-    select.value = premiereOption.value;
-    const bouton = w.document.getElementById('rb-ambigus-corps').querySelector('button');
-    bouton.click();
+    const premiere = Array.from(select.querySelectorAll('option')).find(o => o.value && o.value !== 'aucune');
+    select.value = premiere.value;
+    w.document.getElementById('rb-ambigus-corps').querySelector('button').click();
 
-    const casesApres = Array.from(corps.querySelectorAll('.rb-pointe'));
-    assert.equal(casesApres.filter(c => c.checked).length, 1, 'exactement une case doit être cochée après résolution manuelle');
     assert.equal(w.document.getElementById('rb-ambigus-section').style.display, 'none', 'plus de cas ambigu après résolution');
+    const etat = etatDe(w);
+    assert.equal(etat.lignes[0].statut, 'manuel');
+    assert.equal(etat.lignes[0].matchClef, premiere.value);
+    const corps = w.document.getElementById('rb-resultat-corps');
+    assert.ok(corps.textContent.includes('ENCAISSEMENT X'), 'la ligne résolue doit apparaître dans le résultat');
     d.window.close();
 });
 
@@ -119,8 +115,6 @@ test('SANS CORRESPONDANCE — proposition d’écriture manquante, reportée au 
     const d = await domPret();
     const w = d.window;
     w.grandLivreBilanData = [];
-    w.rbGenererTout(true);
-
     const cellules = [
         ['Date', 'Libellé', 'Débit', 'Crédit'],
         ['10/11/2025', 'AGIOS TRIMESTRE', '15000', ''],
@@ -138,12 +132,10 @@ test('SANS CORRESPONDANCE — proposition d’écriture manquante, reportée au 
     assert.equal(w.grandLivreBilanData.length, nbAvant + 2, 'partie double : deux lignes GL créées (contrepartie + banque)');
 
     const comptes = w.grandLivreBilanData.map(r => String(r.compte));
-    assert.equal(comptes.length, 2);
-    assert.ok(comptes.includes('52'), 'compte banque (52) manquant — comptes obtenus : ' + comptes.join(','));
-    assert.ok(comptes.includes('674'), 'compte agios (674) manquant — comptes obtenus : ' + comptes.join(','));
+    assert.ok(comptes.includes('52'), 'compte banque (52) manquant — ' + comptes.join(','));
+    assert.ok(comptes.includes('674'), 'compte agios (674) manquant — ' + comptes.join(','));
 
-    const etat = JSON.parse(w.document.getElementById('rb-releve-json').value);
-    assert.equal(etat.lignes[0].traite, true, 'la ligne reportée doit être marquée traitée');
+    assert.equal(etatDe(w).lignes[0].statut, 'reporte', 'la ligne reportée doit être marquée statut=reporte');
     assert.equal(w.document.getElementById('rb-manquantes-section').style.display, 'none', 'plus rien à proposer après report');
     d.window.close();
 });
@@ -158,5 +150,25 @@ test('SÉCURITÉ — une ligne du fichier illisible n’est jamais silencieuseme
     w.rbTraiterLignesImportees(cellules, 'test.csv');
     const diag = w.document.getElementById('rb-import-diagnostic').innerHTML;
     assert.ok(diag.indexOf('LIGNE CASSÉE') !== -1, 'la ligne rejetée doit être listée en clair dans le diagnostic');
+    d.window.close();
+});
+
+test('PÉRIODE — une opération hors des bornes Du / Au est exclue du rapprochement', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.document.getElementById('rb-date-du').value = '2025-11-01';
+    w.document.getElementById('rb-date-au').value = '2025-11-30';
+    w.grandLivreBilanData = [
+        { compte:'521100', intitule:'BANQUE', date:'2025-12-15', ref:'', libelle:'Hors période', debit:80000, credit:0 },
+    ];
+    const cellules = [
+        ['Date', 'Libellé', 'Montant'],
+        ['15/12/2025', 'VIR DECEMBRE', '80000'],
+    ];
+    w.rbTraiterLignesImportees(cellules, 'test.csv');
+
+    assert.equal(etatDe(w).lignes.length, 0, 'la ligne de relevé de décembre est hors période, donc non retenue');
+    const corps = w.document.getElementById('rb-resultat-corps');
+    assert.ok(!corps.textContent.includes('Hors période'), 'l’écriture GL de décembre ne doit pas apparaître');
     d.window.close();
 });
