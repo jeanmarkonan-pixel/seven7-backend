@@ -62,6 +62,31 @@ test('LIGNES — colonne Montant unique signée (positif = crédit, négatif = d
     assert.equal(res.lignes[1].credit, 0);
 });
 
+test('LIGNES — en-tête précédé de lignes de titre (relevé Banque Atlantique) : la vraie ligne d’en-tête est détectée', () => {
+    // Cas réel : un relevé Banque Atlantique commence par 4 lignes de titre
+    // (nom de banque, client, n° de compte, période) avant l’en-tête
+    // « Date de l'opération | Date Valeur | Référence | Libellé | Montant | Solde ».
+    const cellules = [
+        ['BANQUE ATLANTIQUE - Relevé de Compte'],
+        ['Client : PRO-TRANS AFRICA - 14388087'],
+        ['Compte n° : 143880870012 XOF'],
+        ['Période : du 01/01/2024 au 17/12/2024'],
+        [],
+        ["Date de l'opération", 'Date Valeur', 'Référence', 'Libellé', 'Montant', 'Solde'],
+        ['17/12/2024', '17/12/2024', 'FT2435248K5Q', 'Paiement Cheque : 0000640', '(2 572 690)', '5 651 603'],
+        ['16/12/2024', '16/12/2024', '0082120', 'Commission incident', '-33 000', '8 927 293'],
+        ['12/12/2024', '12/12/2024', 'FT24347Q7LFK', 'Remise Cheque', '4 788 417', '8 998 793'],
+    ];
+    const res = ev(`rbParserLignesCellules(${JSON.stringify(cellules)})`);
+    assert.equal(res.erreurEntete, false, 'la ligne d’en-tête réelle doit être trouvée malgré les titres');
+    assert.equal(res.lignes.length, 3);
+    assert.equal(res.lignes[0].date, '2024-12-17');
+    assert.equal(res.lignes[0].debit, 2572690, 'montant négatif entre parenthèses => débit (décaissement)');
+    assert.equal(res.lignes[0].credit, 0);
+    assert.equal(res.lignes[2].credit, 4788417, 'montant positif => crédit (encaissement)');
+    assert.equal(res.lignes[2].debit, 0);
+});
+
 test('LIGNES — en-tête non reconnu : erreurEntete=true, jamais un mapping de colonnes deviné en silence', () => {
     const cellules = [ ['Col1', 'Col2', 'Col3'], ['a', 'b', 'c'] ];
     const res = ev(`rbParserLignesCellules(${JSON.stringify(cellules)})`);

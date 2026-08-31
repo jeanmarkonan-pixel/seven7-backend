@@ -140,6 +140,30 @@ test('SANS CORRESPONDANCE — proposition d’écriture manquante, reportée au 
     d.window.close();
 });
 
+test('COLLAGE — un relevé Banque Atlantique collé (lignes de titre + colonne Montant unique) est importé', async () => {
+    const d = await domPret();
+    const w = d.window;
+    w.document.getElementById('rb-date-du').value = '2024-01-01';
+    w.document.getElementById('rb-date-au').value = '2024-12-31';
+    w.document.getElementById('rb-colle-texte').value = [
+        'BANQUE ATLANTIQUE - Relevé de Compte',
+        'Client : PRO-TRANS AFRICA - 14388087',
+        'Compte n° : 143880870012 XOF',
+        'Période : du 01/01/2024 au 17/12/2024',
+        "Date de l'opération\tDate Valeur\tRéférence\tLibellé\tMontant\tSolde",
+        '17/12/2024\t17/12/2024\tFT2435248K5Q\tPaiement Cheque\t(2 572 690)\t5 651 603',
+        '11/12/2024\t11/12/2024\tFT24346R3KLJ\tRemise Cheque\t1 640 554\t9 387 376',
+    ].join('\n');
+    w.rbImporterColle();
+
+    const etat = etatDe(w);
+    assert.equal(etat.lignes.length, 2, 'les 4 lignes de titre sont ignorées, 2 lignes de données retenues');
+    assert.equal(etat.lignes[0].debit, 2572690, 'montant négatif entre parenthèses => décaissement');
+    assert.equal(etat.lignes[1].credit, 1640554, 'montant positif => encaissement');
+    assert.ok(!/Colonnes non reconnues/.test(w.document.getElementById('rb-import-diagnostic').textContent));
+    d.window.close();
+});
+
 test('SÉCURITÉ — une ligne du fichier illisible n’est jamais silencieusement perdue', async () => {
     const d = await domPret();
     const w = d.window;

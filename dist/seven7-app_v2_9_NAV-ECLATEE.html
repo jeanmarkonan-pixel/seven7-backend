@@ -19309,22 +19309,41 @@ function rbParserDate(v){
     }
     return null;
 }
-// lignesCellules : array de array-de-chaînes (une ligne d'en-tête + lignes de
-// données). Retourne { lignes, rejets, erreurEntete }. erreurEntete=true si
-// aucune colonne Date n'est reconnue, ou ni Débit/Crédit ni Montant — on
-// refuse alors tout net plutôt que de deviner un mauvais ordre de colonnes
-// (une correspondance sur de mauvaises colonnes serait une erreur silencieuse).
+// Un relevé bancaire réel commence souvent par plusieurs lignes de titre
+// (nom de la banque, n° de compte, période) AVANT la vraie ligne d'en-tête
+// — ex. Banque Atlantique : 4 lignes puis « Date de l'opération | Date
+// Valeur | Référence | Libellé | Montant | Solde ». On cherche donc, dans
+// les premières lignes, celle qui donne un en-tête exploitable (colonne
+// Date + soit Débit/Crédit, soit Montant), plutôt que de supposer que
+// c'est forcément la ligne 0.
+function rbEnteteExploitable(mappe){
+    return mappe.date !== undefined
+        && ((mappe.debit !== undefined && mappe.credit !== undefined) || mappe.montant !== undefined);
+}
+function rbTrouverLigneEntete(lignesCellules){
+    var limite = Math.min(15, lignesCellules.length);
+    for(var i = 0; i < limite; i++){
+        var cells = (lignesCellules[i] || []).map(function(c){ return String(c === undefined || c === null ? '' : c); });
+        if(cells.filter(function(s){ return s.trim() !== ''; }).length < 2) continue;
+        if(rbEnteteExploitable(secMapperEntetes(SEC_CHAMPS_RELEVE, cells))) return i;
+    }
+    return -1;
+}
+// lignesCellules : array de array-de-chaînes. Retourne { lignes, rejets,
+// erreurEntete }. erreurEntete=true si aucune ligne d'en-tête exploitable
+// n'est trouvée dans les 15 premières lignes — on refuse alors tout net
+// plutôt que de deviner un mauvais ordre de colonnes (une correspondance
+// sur de mauvaises colonnes serait une erreur silencieuse).
 function rbParserLignesCellules(lignesCellules){
     if(!lignesCellules || !lignesCellules.length) return { lignes:[], rejets:[], erreurEntete:false };
-    var entetes = (lignesCellules[0] || []).map(function(c){ return String(c === undefined || c === null ? '' : c); });
+    var idxEntete = rbTrouverLigneEntete(lignesCellules);
+    if(idxEntete === -1) return { lignes:[], rejets:[], erreurEntete:true };
+    var entetes = (lignesCellules[idxEntete] || []).map(function(c){ return String(c === undefined || c === null ? '' : c); });
     var mappe = secMapperEntetes(SEC_CHAMPS_RELEVE, entetes);
     var aDebitCredit = mappe.debit !== undefined && mappe.credit !== undefined;
     var aMontant = mappe.montant !== undefined;
-    if(mappe.date === undefined || !(aDebitCredit || aMontant)){
-        return { lignes:[], rejets:[], erreurEntete:true };
-    }
     var lignes = [], rejets = [];
-    for(var i = 1; i < lignesCellules.length; i++){
+    for(var i = idxEntete + 1; i < lignesCellules.length; i++){
         var c = lignesCellules[i] || [];
         var vide = c.every(function(x){ return String(x === undefined || x === null ? '' : x).trim() === ''; });
         if(vide) continue;
@@ -19472,12 +19491,28 @@ function rbImporterFichier(input){
         input.value = '';
     }, function(msg){ alert('⚠ ' + msg); input.value = ''; });
 }
+// Le séparateur est cherché sur la MEILLEURE ligne des 15 premières (celle
+// qui produit le plus de colonnes), pas sur la ligne 0 : un relevé collé
+// depuis Excel commence souvent par des lignes de titre sans séparateur
+// (« BANQUE ATLANTIQUE - Relevé de Compte »), qui feraient choisir un
+// mauvais délimiteur à secDetecterDelimiteur.
+function rbMeilleurDelimiteur(lignes){
+    var candidats = ['\t', ';', ',', '|'];
+    var meilleur = ';', maxCols = 1;
+    lignes.slice(0, 15).forEach(function(l){
+        candidats.forEach(function(d){
+            var n = l.split(d).length;
+            if(n > maxCols){ maxCols = n; meilleur = d; }
+        });
+    });
+    return meilleur;
+}
 function rbImporterColle(){
     var ta = document.getElementById('rb-colle-texte');
     if(!ta || !ta.value.trim()){ alert('Collez d’abord le texte du relevé dans le champ prévu.'); return; }
     var brut = ta.value.split(/\r?\n/).filter(function(l){ return l.trim() !== ''; });
     if(!brut.length){ alert('Rien à analyser.'); return; }
-    var delim = secDetecterDelimiteur(brut[0]);
+    var delim = rbMeilleurDelimiteur(brut);
     var lignesCellules = brut.map(function(l){ return secDecouperLigneCSV(l, delim); });
     rbTraiterLignesImportees(lignesCellules, 'Collage manuel');
     ta.value = '';
